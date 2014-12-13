@@ -165,7 +165,7 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0010, 0x1a04, send3, 6, 0);
 
 	/* load "enc" firmware */
-	load_firmware("firmware/mb86h57_h58_enc_h.bin");
+	//load_firmware("firmware/mb86h57_h58_enc_h.bin");
 }
 
 int main() {
