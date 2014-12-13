@@ -14,7 +14,7 @@
 #define INTERFACE_NUM	0x00
 #define CONFIGURATION	0x01
 
-#define CHUNK_SIZE		0x4000
+#define DATA_BUF		0x4000
 
 /* global structs */
 static struct libusb_device_handle *devh = NULL;
@@ -25,7 +25,7 @@ int init_dev_handler() {
 		return 1;
 	}
 
-	//libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
+	libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
 
 	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID);
 	if (!devh) {
@@ -79,71 +79,81 @@ void write_config(uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
 	free(send);
 }
 
+void load_firmware(const char *file) {
+	int transfer;
+
+	FILE *bin;
+	bin = fopen(file, "rb");
+
+	/* get filesize */
+	fseek(bin, 0L, SEEK_END);
+	long filesize = ftell(bin);
+	rewind(bin);
+
+	/* read firmware from file to buffer and bulk transfer to device */
+	for (int i = 0; i <= filesize; i += DATA_BUF) {
+		unsigned char data[DATA_BUF] = {0};
+		int bytes_remain = filesize - i;
+
+		if ((bytes_remain) > DATA_BUF) {
+			bytes_remain = DATA_BUF;
+		}
+
+		int ret = fread(data, bytes_remain, 1, bin);
+
+		libusb_bulk_transfer(devh, 0x02, data, bytes_remain, &transfer, 1000);
+	}
+
+	fclose(bin);
+}
+
 void configure_dev() {
 	read_config(0x0800, 0x0094, 4);
-
 	read_config(0x0800, 0x0098, 4);
-
 	read_config(0x0800, 0x0010, 4);
-
 	read_config(0x0800, 0x0014, 4);
-
 	read_config(0x0800, 0x0018, 4);
 
 	write_config(0x0900, 0x0000, 2);
 
 	read_config(0x0900, 0x0014, 2);
-
 	read_config(0x0800, 0x2008, 2);
-
 	read_config(0x0900, 0x0074, 2);
-
 	read_config(0x0900, 0x01b0, 2);
-
+	read_config(0x0800, 0x2008, 2);
 	read_config(0x0800, 0x2008, 2);
 
-	read_config(0x0800, 0x2008, 2);
-
-	/* this is an important step for sending the firmware. TODO: more elegant */
-	unsigned char send[2];
-
-	send[0] = 0x00;
-	send[1] = 0x04;
-
+	/* this is an important step for sending the firmware */
+	unsigned char send[2] = {0x00, 0x04};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0074, send, 2, 0);
 
 	write_config(0x0900, 0x01b0, 2);
-}
 
-void load_firmware(const char *file) {
-	int transfer;
-	unsigned char data[CHUNK_SIZE];
+	/* load "idle" firmware */
+	load_firmware("firmware/mb86h57_h58_idle.bin");
 
-	for (int i = 0; i < CHUNK_SIZE; i++) {
-		data[i] = 0;
-	}
+	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0070, send, 2, 0);
 
-	FILE *bin;
-	bin = fopen(file, "rb");
+	read_config(0x0900, 0x0014, 2);
+	read_config(0x0900, 0x0018, 2);
+	read_config(0x0000, 0x0010, 2);
+	read_config(0x0000, 0x0012, 2);
+	read_config(0x0000, 0x0014, 2);
+	read_config(0x0000, 0x0016, 2);
+	read_config(0x0000, 0x0018, 2);
+	read_config(0x0000, 0x001a, 2);
+	read_config(0x0000, 0x001c, 2);
+	read_config(0x0000, 0x001e, 2);
+	read_config(0x0800, 0x2008, 2);
 
-	while(1) {
-		for (int i = 0; i < CHUNK_SIZE; i++) {
-			data[i] = 0;
-		}
+	unsigned char send2[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
+	libusb_control_transfer(devh, 0x40, 0xbc, 0x0010, 0x1a04, send2, 8, 0);
 
-		int ret = fread(data, sizeof(data), 1, bin);
+	unsigned char send3[6] = {0x00, 0x00, 0x04, 0x00, 0x00, 0x00};
+	libusb_control_transfer(devh, 0x40, 0xbc, 0x0010, 0x1a04, send3, 6, 0);
 
-		/* TODO: only transfer amount of read Bytes */
-		libusb_bulk_transfer(devh, 0x02, data, sizeof(data), &transfer, 1000);
-
-		if (!ret) {
-			break;
-		}
-
-		printf("Bulk transfer: %d Bytes\n", transfer);
-	}
-
-	fclose(bin);
+	/* load "idle" firmware */
+	load_firmware("firmware/mb86h57_h58_enc_h.bin");
 }
 
 int main() {
@@ -159,9 +169,6 @@ int main() {
 
 	/* configure device */
 	configure_dev();
-
-	/* load "idle" firmware */
-	load_firmware("firmware/mb86h57_h58_idle.bin");
 
 end:
 	/* clean up */
