@@ -7,8 +7,10 @@
 #include <libusb-1.0/libusb.h>
 
 /* constants */
-#define ELGATO_VENDOR		0x0fd9
-#define GAME_CAPTURE_HD_PID	0x004e
+#define ELGATO_VENDOR			0x0fd9
+#define GAME_CAPTURE_HD_PID_0	0x0044
+#define GAME_CAPTURE_HD_PID_1	0x004e
+#define GAME_CAPTURE_HD_PID_2	0x0051
 
 #define EP_OUT			0x02
 #define INTERFACE_NUM	0x00
@@ -27,13 +29,23 @@ int init_dev_handler() {
 
 	libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
 
-	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID);
-	if (!devh) {
-		fprintf(stderr, "Unable to find device.");
-		return 1;
+	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_0);
+	if (devh) {
+		return 0;
 	}
 
-	return 0;
+	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_1);
+	if (devh) {
+		return 0;
+	}
+
+	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_2);
+	if (devh) {
+		return 0;
+	}
+
+	fprintf(stderr, "Unable to find device.");
+	return 1;
 }
 
 int get_interface() {
