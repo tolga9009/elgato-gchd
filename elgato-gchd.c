@@ -119,7 +119,7 @@ void load_firmware(const char *file) {
 			bytes_remain = DATA_BUF;
 		}
 
-		int ret = fread(data, bytes_remain, 1, bin);
+		fread(data, bytes_remain, 1, bin);
 
 		libusb_bulk_transfer(devh, 0x02, data, bytes_remain, &transfer, 1000);
 	}
@@ -190,8 +190,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0022, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0024[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0025[2] = {0x00, 0x00};
@@ -224,8 +222,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0036, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0038[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0039[2] = {0x00, 0x02};
@@ -258,8 +254,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0050, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0052[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0053[2] = {0x00, 0x02};
@@ -292,8 +286,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0064, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0066[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0067[2] = {0x00, 0x02};
@@ -326,8 +318,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0078, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0080[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0081[2] = {0x00, 0x02};
@@ -360,8 +350,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0092, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0094[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0095[2] = {0x00, 0x02};
@@ -394,8 +382,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0106, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0108[3] = {0x33, 0x44, 0x55};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0109[2] = {0x00, 0x02};
@@ -428,8 +414,6 @@ void configure_dev() {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0120, 2, 0);
 
 	read_config(0x0900, 0x001c, 2);
-
-	unsigned char snd0122[3] = {0x27, 0xf9, 0x7b};
 	read_config2(0x0000, 0x3300, 3);
 
 	unsigned char snd0123[2] = {0x00, 0x06};
