@@ -75,19 +75,11 @@ void clean_up() {
 	libusb_exit(NULL);
 }
 
-void read_config(uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
+void read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
 	unsigned char *recv;
 
 	recv = calloc(wLength, sizeof(unsigned char));
-	libusb_control_transfer(devh, 0xc0, 0xbc, wValue, wIndex, recv, wLength, 0);
-	free(recv);
-}
-
-void read_config2(uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
-	unsigned char *recv;
-
-	recv = calloc(wLength, sizeof(unsigned char));
-	libusb_control_transfer(devh, 0xc0, 0xbd, wValue, wIndex, recv, wLength, 0);
+	libusb_control_transfer(devh, 0xc0, bRequest, wValue, wIndex, recv, wLength, 0);
 	free(recv);
 }
 
@@ -121,27 +113,27 @@ void load_firmware(const char *file) {
 
 		fread(data, bytes_remain, 1, bin);
 
-		libusb_bulk_transfer(devh, 0x02, data, bytes_remain, &transfer, 1000);
+		libusb_bulk_transfer(devh, 0x02, data, bytes_remain, &transfer, 0);
 	}
 
 	fclose(bin);
 }
 
 void configure_dev() {
-	read_config(0x0800, 0x0094, 4);
-	read_config(0x0800, 0x0098, 4);
-	read_config(0x0800, 0x0010, 4);
-	read_config(0x0800, 0x0014, 4);
-	read_config(0x0800, 0x0018, 4);
+	read_config(0xbc, 0x0800, 0x0094, 4);
+	read_config(0xbc, 0x0800, 0x0098, 4);
+	read_config(0xbc, 0x0800, 0x0010, 4);
+	read_config(0xbc, 0x0800, 0x0014, 4);
+	read_config(0xbc, 0x0800, 0x0018, 4);
 
 	write_config(0x0900, 0x0000, 2);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0800, 0x2008, 2);
-	read_config(0x0900, 0x0074, 2);
-	read_config(0x0900, 0x01b0, 2);
-	read_config(0x0800, 0x2008, 2);
-	read_config(0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0900, 0x0074, 2);
+	read_config(0xbc, 0x0900, 0x01b0, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	/* this is an important step for sending the firmware */
 	unsigned char send[2] = {0x00, 0x04};
@@ -156,26 +148,26 @@ void configure_dev() {
 	unsigned char snd0001[2] = {0x00, 0x04};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0070, snd0001, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
-	read_config(0x0000, 0x0010, 2);
-	read_config(0x0000, 0x0012, 2);
-	read_config(0x0000, 0x0014, 2);
-	read_config(0x0000, 0x0016, 2);
-	read_config(0x0000, 0x0018, 2);
-	read_config(0x0000, 0x001a, 2);
-	read_config(0x0000, 0x001c, 2);
-	read_config(0x0000, 0x001e, 2);
-	read_config(0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0000, 0x0010, 2);
+	read_config(0xbc, 0x0000, 0x0012, 2);
+	read_config(0xbc, 0x0000, 0x0014, 2);
+	read_config(0xbc, 0x0000, 0x0016, 2);
+	read_config(0xbc, 0x0000, 0x0018, 2);
+	read_config(0xbc, 0x0000, 0x001a, 2);
+	read_config(0xbc, 0x0000, 0x001c, 2);
+	read_config(0xbc, 0x0000, 0x001e, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	unsigned char snd0013[6] = {0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
 	libusb_control_transfer(devh, 0x40, 0xb8, 0x0000, 0x0000, snd0013, 6, 0);
 
-	read_config(0x0800, 0x2008, 2);
-	read_config(0x0900, 0x0074, 2);
-	read_config(0x0900, 0x01b0, 2);
-	read_config(0x0800, 0x2008, 2);
-	read_config(0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0900, 0x0074, 2);
+	read_config(0xbc, 0x0900, 0x01b0, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
+	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	unsigned char snd0019[2] = {0x00, 0x04};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0074, snd0019, 2, 0);
@@ -189,13 +181,13 @@ void configure_dev() {
 	unsigned char snd0022[2] = {0x00, 0x00};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0022, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0025[2] = {0x00, 0x00};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0025, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0027[2] = {0x00, 0x04};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0027, 2, 0);
@@ -203,8 +195,8 @@ void configure_dev() {
 	unsigned char snd0028[2] = {0x00, 0x00};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0028, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0031[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0031, 2, 0);
@@ -212,8 +204,8 @@ void configure_dev() {
 	unsigned char snd0032[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0032, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0035[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0035, 5, 0);
@@ -221,13 +213,13 @@ void configure_dev() {
 	unsigned char snd0036[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0036, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0039[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0039, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0041[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0041, 2, 0);
@@ -235,8 +227,8 @@ void configure_dev() {
 	unsigned char snd0042[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0042, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0045[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0045, 2, 0);
@@ -244,8 +236,8 @@ void configure_dev() {
 	unsigned char snd0046[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0046, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0049[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0049, 5, 0);
@@ -253,13 +245,13 @@ void configure_dev() {
 	unsigned char snd0050[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0050, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0053[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0053, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0055[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0055, 2, 0);
@@ -267,8 +259,8 @@ void configure_dev() {
 	unsigned char snd0056[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0056, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0059[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0059, 2, 0);
@@ -276,8 +268,8 @@ void configure_dev() {
 	unsigned char snd0060[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0060, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0063[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0063, 5, 0);
@@ -285,13 +277,13 @@ void configure_dev() {
 	unsigned char snd0064[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0064, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0067[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0067, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0069[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0069, 2, 0);
@@ -299,8 +291,8 @@ void configure_dev() {
 	unsigned char snd0070[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0070, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0073[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0073, 2, 0);
@@ -308,8 +300,8 @@ void configure_dev() {
 	unsigned char snd0074[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0074, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0077[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0077, 5, 0);
@@ -317,13 +309,13 @@ void configure_dev() {
 	unsigned char snd0078[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0078, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0081[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0081, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0083[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0083, 2, 0);
@@ -331,8 +323,8 @@ void configure_dev() {
 	unsigned char snd0084[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0084, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0087[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0087, 2, 0);
@@ -340,8 +332,8 @@ void configure_dev() {
 	unsigned char snd0088[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0088, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0091[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0091, 5, 0);
@@ -349,13 +341,13 @@ void configure_dev() {
 	unsigned char snd0092[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0092, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0095[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0095, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0097[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0097, 2, 0);
@@ -363,8 +355,8 @@ void configure_dev() {
 	unsigned char snd0098[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0098, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0101[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0101, 2, 0);
@@ -372,8 +364,8 @@ void configure_dev() {
 	unsigned char snd0102[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0102, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0105[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0105, 5, 0);
@@ -381,13 +373,13 @@ void configure_dev() {
 	unsigned char snd0106[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0106, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0109[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0109, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
+	read_config(0xbc, 0x0900, 0x001c, 2);
 
 	unsigned char snd0111[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0111, 2, 0);
@@ -395,8 +387,8 @@ void configure_dev() {
 	unsigned char snd0112[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0112, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0115[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0115, 2, 0);
@@ -404,8 +396,8 @@ void configure_dev() {
 	unsigned char snd0116[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0116, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0119[5] = {0xab, 0xa9, 0x0f, 0xa4, 0x55};
 	libusb_control_transfer(devh, 0x40, 0xbd, 0x0000, 0x3300, snd0119, 5, 0);
@@ -413,8 +405,8 @@ void configure_dev() {
 	unsigned char snd0120[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0120, 2, 0);
 
-	read_config(0x0900, 0x001c, 2);
-	read_config2(0x0000, 0x3300, 3);
+	read_config(0xbc, 0x0900, 0x001c, 2);
+	read_config(0xbd, 0x0000, 0x3300, 3);
 
 	unsigned char snd0123[2] = {0x00, 0x06};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0014, snd0123, 2, 0);
@@ -422,8 +414,8 @@ void configure_dev() {
 	unsigned char snd0124[2] = {0x00, 0x02};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0018, snd0124, 2, 0);
 
-	read_config(0x0900, 0x0014, 2);
-	read_config(0x0900, 0x0018, 2);
+	read_config(0xbc, 0x0900, 0x0014, 2);
+	read_config(0xbc, 0x0900, 0x0018, 2);
 
 	unsigned char snd0127[2] = {0x00, 0x00};
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0900, 0x0000, snd0127, 2, 0);
@@ -1204,6 +1196,20 @@ void configure_dev() {
 	load_firmware("firmware/mb86h57_h58_enc_h.bin");
 }
 
+void receive_data() {
+	int transfer;
+	unsigned char data[DATA_BUF] = {0};
+
+	libusb_bulk_transfer(devh, 0x84, data, DATA_BUF, &transfer, 0);
+	printf("%d bytes received\n", transfer);
+
+	for (int i = 0; i < DATA_BUF; i++) {
+		printf("%x ", data[i]);
+	}
+
+	printf("\n");
+}
+
 int main() {
 	/* initialize device handler */
 	if (init_dev_handler()) {
@@ -1217,6 +1223,10 @@ int main() {
 
 	/* configure device */
 	configure_dev();
+
+	while(1) {
+		receive_data();
+	}
 
 end:
 	/* clean up */
