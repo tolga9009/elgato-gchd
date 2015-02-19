@@ -653,9 +653,11 @@ int main() {
 	/* configure device */
 	configure_dev();
 
+/*
 	while(1) {
 		receive_data();
 	}
+*/
 
 end:
 	/* clean up */
