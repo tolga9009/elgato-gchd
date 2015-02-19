@@ -154,7 +154,7 @@ void configure_dev() {
 	/* load "idle" firmware */
 	load_firmware("firmware/mb86h57_h58_idle.bin");
 
-	// begin of highly (!) experimental part - thank you jedahan!
+	/* begin of highly (!) experimental part - thank you jedahan! */
 	write_config2(0xbc, 0x0900, 0x0070, 0x00, 0x04);
 
 	read_config(0xbc, 0x0900, 0x0014, 2);
@@ -619,10 +619,15 @@ void configure_dev() {
 	write_config8(0xbc, 0x0001, 0x1a04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01);
 
 	write_config6(0xb8, 0x0000, 0x0000, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00);
-	// end of highly experimental part
+	/* end of highly experimental part */
 
 	/* load "enc" firmware */
 	load_firmware("firmware/mb86h57_h58_enc_h.bin");
+
+	read_config(0xbc, 0x0000, 0x0010, 2);
+	read_config(0xbc, 0x0000, 0x0012, 2);
+	read_config(0xbc, 0x0000, 0x0014, 2);
+	read_config(0xbc, 0x0000, 0x0016, 2);
 }
 
 void receive_data() {
