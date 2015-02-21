@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
 	 * match[5-6]: wIndex (bytes swapped)
 	 * match[7-8]: wLength (bytes swapped)
 	 */
-	std::string str_rgx_data0 = "DATA0:\\s(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)";
-	std::string str_rgx_data1 = "DATA1:\\s(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)";
+	std::string str_rgx_data0 = "DATA0:\\s(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)";
+	std::string str_rgx_data1 = "DATA1:\\s(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)";
 
 	std::string str_rgx_ack = "ACK";
 	std::string str_rgx_nak = "NAK";
@@ -130,13 +130,13 @@ nextline:
 				}
 
 print:
-				if(std::stoi(wLength, nullptr, 16) > 8) {
-					std::cout << "Line " << line << ", wLength: " << std::stoi(wLength, nullptr, 16) << std::endl;
-				}
-
 				if(bmRequestType == "c0") {
 					std::cout << "read_config" << "(0x" << bRequest << ", 0x" << wValue << ", 0x" << wIndex << ", " << std::stoi(wLength, nullptr, 16) << ");" << std::endl;
 				} else if(bmRequestType == "40") {
+					if(std::stoi(wLength, nullptr, 16) > 10) {
+						std::cout << "Line " << line << ", wLength: " << std::stoi(wLength, nullptr, 16) << std::endl;
+					}
+
 					std::cout << "write_config" << std::stoi(wLength, nullptr, 16) << "(0x" << bRequest << ", 0x" << wValue << ", 0x" << wIndex;
 
 					for(unsigned long i = 1; i < data1_match.size() && i <= std::stoul(wLength, nullptr, 16); i++) {
