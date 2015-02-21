@@ -6,7 +6,7 @@
 int main(int argc, char **argv) {
 	/* exit, if number of args is incorrect */
 	if(argc != 3) {
-		std::cout << "Usage: " << argv[0] << " <file> <device destination>" << std::endl;
+		std::cout << "Usage: " << argv[0] << " <file> <device number>" << std::endl;
 
 		return 1;
 	}
@@ -27,25 +27,31 @@ int main(int argc, char **argv) {
 	std::string strbuf;
 
 	/* SETUP - match[1]: device destination, match[2]: endpoint */
-	std::string str_rgx_setup = "SETUP:.*([[:digit:]]).([[:digit:]])";
+	std::string str_rgx_setup = "SETUP:\\s(\\d)\\.(\\d)";
+	std::string str_rgx_data0 = "DATA0:\\s(?:([0-9a-f]+)*\\s?)*";
 
 	std::regex rgx_setup(str_rgx_setup);
-	std::smatch match;
-
-	int line = 0;
+	std::regex rgx_data0(str_rgx_data0);
+	std::smatch setup_match;
+	std::smatch data0_match;
 
 	/* searching for matches, line for line using regex */
 	while(!textfile.eof()) {
-		++line;
 		std::getline(textfile, strbuf);
 
-		if(std::regex_search(strbuf, match, rgx_setup)) {
-			for(unsigned long i = 0; i < match.size(); i++) {
-				if(match[1] != device) {
-					std::cout << "Breaking loop" << std::endl;
-					break;
-				} else {
-					std::cout << "Line " << line << ": Match: " << match[i] << std::endl;
+		if(std::regex_search(strbuf, setup_match, rgx_setup)) {
+
+			/* skip to next iteration, if wrong device number */
+			if(setup_match[1] != device) {
+				std::cout << "breaking" << std::endl;
+				continue;
+			}
+
+			std::getline(textfile, strbuf);
+
+			if(std::regex_search(strbuf, data0_match, rgx_data0)) {
+				for(unsigned long i = 0; i < data0_match.size(); i++) {
+					std::cout << data0_match[i] << std::endl;
 				}
 			}
 		}
