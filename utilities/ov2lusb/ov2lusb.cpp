@@ -66,13 +66,13 @@ int main(int argc, char **argv) {
 	std::regex rgx_nak(str_rgx_nak);
 
 	std::smatch setup_match;
-	std::smatch in_match;
 	std::smatch out_match;
 	std::smatch data0_match;
 	std::smatch data1_match;
 
 	/* loop variables */
 	int line = 0;
+	bool setup_loop = true;
 	std::string prev_bmRequestType;
 
 	/* searching for matches, line for line using regex */
@@ -100,7 +100,9 @@ int main(int argc, char **argv) {
 				std::string wLength(data0_match[8]);
 				wLength.append(data0_match[7]);
 
-				if(prev_bmRequestType != bmRequestType) {
+				if(!setup_loop) {
+					std::cout << std::endl;
+				} else if(prev_bmRequestType != bmRequestType) {
 					std::cout << std::endl;
 				}
 
@@ -112,7 +114,7 @@ nextline:
 					goto nextline;
 				}
 
-				if(std::regex_search(strbuf, in_match, rgx_in)) {
+				if(std::regex_search(strbuf, rgx_in)) {
 					goto nextline;
 				}
 
@@ -121,6 +123,10 @@ nextline:
 				}
 
 				if(std::regex_search(strbuf, out_match, rgx_out)) {
+					if(out_match[1] != device) {
+						goto nextline;
+					}
+
 					++line;
 					std::getline(textfile, strbuf);
 
@@ -148,8 +154,26 @@ print:
 					std::cout << "Line " << line << ": " << "(0x" << bmRequestType << ", 0x" << bRequest << ", 0x" << wValue << ", 0x" << wIndex << ", 0x" << wLength << ");" << std::endl;
 				}
 
+				setup_loop = true;
 				prev_bmRequestType = bmRequestType;
 			}
+		} else if(std::regex_search(strbuf, out_match, rgx_out)) {
+			if(out_match[1] != device || out_match[2] == "0") {
+				continue;
+			}
+
+			if(setup_loop) {
+				std::cout << std::endl;
+			}
+
+			/* inform, if Bulk transfer has been found */
+			if(out_match[2] == "2") {
+				std::cout << "Bulk transfer OUT on Endpoint 0x" << out_match[2] << std::endl;
+			} else if(out_match[2] == "1" || out_match[2] == "4" || out_match[2] == "5") {
+				std::cout << "Bulk transfer IN on Endpoint 0x" << out_match[2] << std::endl;
+			}
+
+			setup_loop = false;
 		}
 	}
 }
