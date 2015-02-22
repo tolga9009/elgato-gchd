@@ -88,6 +88,16 @@ void write_config2(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned 
 	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 2, 0);
 }
 
+void write_config3(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2) {
+	unsigned char send[3] = {data0, data1, data2};
+	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 3, 0);
+}
+
+void write_config4(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3) {
+	unsigned char send[4] = {data0, data1, data2, data3};
+	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 4, 0);
+}
+
 void write_config5(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3, unsigned char data4) {
 	unsigned char send[5] = {data0, data1, data2, data3, data4};
 	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 5, 0);
