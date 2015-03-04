@@ -556,7 +556,7 @@ void receive_data() {
 	int transfer;
 	unsigned char data[DATA_BUF] = {0};
 
-	libusb_bulk_transfer(devh, 0x84, data, DATA_BUF, &transfer, 0);
+	libusb_bulk_transfer(devh, 0x81, data, DATA_BUF, &transfer, 0);
 	printf("%d bytes received\n", transfer);
 
 	for (int i = 0; i < DATA_BUF; i++) {
