@@ -1,5 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <string>
+#include <sstream>
+
+#include <cstdio>
+#include <cstdlib>
+
 #include <unistd.h>
 
 #include <sys/types.h>
@@ -75,12 +79,19 @@ void clean_up() {
 	libusb_exit(NULL);
 }
 
-void read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
-	unsigned char *recv;
-
-	recv = calloc(wLength, sizeof(unsigned char));
+std::string read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
+	unsigned char *recv = new unsigned char[wLength];
 	libusb_control_transfer(devh, 0xc0, bRequest, wValue, wIndex, recv, wLength, 0);
-	free(recv);
+
+	std::stringstream str;
+
+	for(int i = 0; i < wLength; i++) {
+		str << recv[i];
+	}
+
+	delete[] recv;
+
+	return str.str();
 }
 
 void write_config2(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1) {
