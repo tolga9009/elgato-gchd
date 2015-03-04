@@ -52,7 +52,13 @@ int main(int argc, char **argv) {
 	 * match[7-8]: wLength (bytes swapped)
 	 */
 	std::string str_rgx_data0 = "DATA0:\\s(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)";
+
+	/* DATA1
+	 * match[i]: raw data[i]
+	 */
 	std::string str_rgx_data1 = "DATA1:\\s(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)(?:([0-9a-f]+)*\\s?)";
+
+	std::string str_rgx_data = "DATA[01]";
 
 	std::string str_rgx_ack = "ACK";
 	std::string str_rgx_nak = "NAK";
@@ -62,11 +68,13 @@ int main(int argc, char **argv) {
 	std::regex rgx_out(str_rgx_out);
 	std::regex rgx_data0(str_rgx_data0);
 	std::regex rgx_data1(str_rgx_data1);
+	std::regex rgx_data(str_rgx_data);
 	std::regex rgx_ack(str_rgx_ack);
 	std::regex rgx_nak(str_rgx_nak);
 
 	std::smatch setup_match;
 	std::smatch out_match;
+	std::smatch in_match;
 	std::smatch data0_match;
 	std::smatch data1_match;
 
@@ -162,18 +170,49 @@ print:
 				continue;
 			}
 
-			if(setup_loop) {
-				std::cout << std::endl;
-			}
+			std::string endpoint(out_match[2]);
+
+			++line;
+			std::getline(textfile, strbuf);
 
 			/* inform, if Bulk transfer has been found */
-			if(out_match[2] == "2") {
-				std::cout << "Bulk transfer OUT on Endpoint 0x" << out_match[2] << std::endl;
-			} else if(out_match[2] == "1" || out_match[2] == "4" || out_match[2] == "5") {
-				std::cout << "Bulk transfer IN on Endpoint 0x" << out_match[2] << std::endl;
+			if(std::regex_search(strbuf, rgx_data)) {
+				if(setup_loop) {
+					std::cout << std::endl;
+				}
+
+				if(endpoint == "2") {
+					std::cout << "Bulk transfer OUT on Endpoint 0x" << endpoint << std::endl;
+				} else {
+					std::cout << "Bulk transfer OUT on Unknown Endpoint 0x" << endpoint << std::endl;
+				}
+
+				setup_loop = false;
+			}
+		} else if(std::regex_search(strbuf, in_match, rgx_in)) {
+			if(in_match[1] != device || in_match[2] == "0") {
+				continue;
 			}
 
-			setup_loop = false;
+			std::string endpoint(in_match[2]);
+
+			++line;
+			std::getline(textfile, strbuf);
+
+			/* inform, if Bulk transfer has been found */
+			if(std::regex_search(strbuf, rgx_data)) {
+				if(setup_loop) {
+					std::cout << std::endl;
+				}
+
+				if(endpoint == "1" || endpoint == "4" || endpoint == "5") {
+					std::cout << "Bulk transfer IN on Endpoint 0x" << endpoint << std::endl;
+				} else {
+					std::cout << "Bulk transfer IN on Unknown Endpoint 0x" << endpoint << std::endl;
+				}
+
+				setup_loop = false;
+			}
 		}
 	}
 }
