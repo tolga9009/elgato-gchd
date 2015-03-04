@@ -85,13 +85,18 @@ Steven Toth from Kernel Labs noted, that the device is outputting native
 ISO13818 TS packets. Once the device is set up, we should be able to get the
 video stream without any encoding. Thank you Steve for the hint!
 
+However, the difficult part is to setup the device in order to stream the data.
+Everything we have are multiple capture logs, which we need to study and
+understand. You can find the latest capture logs under issue #2 at GitHub. If
+you find anything interesting, please let us know.
+
 
 Drivers
 =======
 
 Currently, we've fully implemented the transfer of both binary files. The next
 step is to figure out, how the host is configuring the GCHD and receiving audio
-and video. We have full capture logs available (look at issue #2 on GitHub).
+and video.
 
 
 What we need and how you can help
