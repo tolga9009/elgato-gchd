@@ -19,6 +19,11 @@
 
 #define DATA_BUF		0x4000
 
+// scmd commands
+#define IDLE			1
+#define INIT			4
+#define STATE_CHANGE	5
+
 /* globals */
 static struct libusb_device_handle *devh = NULL;
 static volatile sig_atomic_t is_running = 1;
@@ -115,6 +120,35 @@ void write_config6(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned 
 void write_config8(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3, unsigned char data4, unsigned char data5, unsigned char data6, unsigned char data7) {
 	unsigned char send[8] = {data0, data1, data2, data3, data4, data5, data6, data7};
 	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 8, 0);
+}
+
+/**
+ * Reverse engineered function from official drivers. Used to set device states
+ * and modes. scmd() is the short form for system command.
+ *
+ * @param command there are currently three commands, we have identified. A
+ *  value of 1 stands for IDLE command. A value of 4 means INIT and is used for
+ *  loading firmwares onto the device. A value of 5 means STATE_CHANGE and is
+ *  used to control the device's encoding procedure.
+ * @param mode there is only one use case known so far. It's for setting
+ *  encoding mode.
+ * @param data applies to send[4] and send[5]. The 16-bit integer data needs to
+ *  be split up into two 8-bit integers. It holds data to further specify
+ *  the command parameter. In conjunction with STATE_CHANGE, it is used to set
+ *  specific encoding states: 1 means STOP, 2 means START and 4 means NULL.
+ *  Setting STATE_CHANGE to NULL will make the device output an empty data
+ *  stream during the encoding process.
+ */
+void scmd(uint8_t command, uint8_t mode, uint16_t data) {
+	uint8_t send[6] = {0};
+	send[2] = command;
+	send[3] = mode;
+
+	// splitting up data to two 8-bit integers by bitshifting and masking
+	send[4] = data >> 8;
+	send[5] = data & 0xff;
+
+	libusb_control_transfer(devh, 0x40, 0xb8, 0x0000, 0x0000, send, 6, 0);
 }
 
 /**
