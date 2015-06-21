@@ -21,8 +21,7 @@ process of figuring out, how the device actually works.
 Current TODOs
 =============
 
-- port C++ code to C code
-- implement sparam, slsi, statechange, scmd, boot and dlfirm functions
+- implement sparam, statechange, scmd and boot functions
 - figure out i2c write and i2c stat functions
 - 1080p support
 
