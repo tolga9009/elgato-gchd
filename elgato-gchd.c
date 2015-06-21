@@ -121,7 +121,7 @@ void write_config8(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned 
  * Reverse engineered function from official drivers. Used to set specific
  * device parameters, like H.264 profile, video size and audio bitrate.
  *
- * @param wIndex offset, where requests are passed to
+ * @param wIndex offset, where requests are passed to.
  * @param shift bit shift left operations to the whole send[8] array. If any
  *  bit gets cut off, substracting wIndex by 1 will be equal to a bit shift
  *  right operation of 8. It's used for readibility. Minimum value is 0 and
