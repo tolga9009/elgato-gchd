@@ -1,15 +1,15 @@
-CXX = clang++
-CXXFLAGS = -std=c++11 -Wall -Wextra
+CC = clang
+CFLAGS = -std=c99 -Wall -Wextra
 LDFLAGS = -lusb-1.0
 
-SRCS = elgato-gchd.cpp
+SRCS = elgato-gchd.c
 OBJS = $(SRCS:.c=.o)
 EXEC = elgato-gchd
 
 all: $(EXEC)
 
 $(EXEC): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(EXEC)
+	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $(EXEC)
 
 clean:
 	rm -f *.o $(EXEC)
