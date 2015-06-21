@@ -144,7 +144,7 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
 	// instead of implementing a for-loop, which takes care of two 8-bit
 	// integers. If you have found a way, how to do it more efficiently or
 	// better, please share with us.
-	uint16_t range_bits;
+	uint16_t range_bits = 0;
 
 	for (int i = 0; i <= range; i++) {
 		range_bits |= 1 << i;
