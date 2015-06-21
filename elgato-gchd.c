@@ -7,7 +7,7 @@
 
 #include <libusb-1.0/libusb.h>
 
-/* constants */
+// constants
 #define ELGATO_VENDOR			0x0fd9
 #define GAME_CAPTURE_HD_PID_0	0x0044
 #define GAME_CAPTURE_HD_PID_1	0x004e
@@ -24,7 +24,7 @@
 #define INIT			4
 #define STATE_CHANGE	5
 
-/* globals */
+// globals
 static struct libusb_device_handle *devh = NULL;
 static volatile sig_atomic_t is_running = 1;
 FILE *fp = NULL;
@@ -225,12 +225,12 @@ void dlfirm(const char *file) {
 	FILE *bin;
 	bin = fopen(file, "rb");
 
-	/* get filesize */
+	// get filesize
 	fseek(bin, 0L, SEEK_END);
 	long filesize = ftell(bin);
 	rewind(bin);
 
-	/* read firmware from file to buffer and bulk transfer to device */
+	// read firmware from file to buffer and bulk transfer to device
 	for (int i = 0; i <= filesize; i += DATA_BUF) {
 		unsigned char data[DATA_BUF] = {0};
 		int bytes_remain = filesize - i;
@@ -247,7 +247,7 @@ void dlfirm(const char *file) {
 	fclose(bin);
 }
 
-/* unidentified repetitive sequence 1 */
+// unidentified repetitive sequence 1
 void sequence1() {
 	write_config5(0xbd, 0x0000, 0x3300, 0xab, 0xa9, 0x0f, 0xa4, 0x55);
 	write_config2(0xbc, 0x0900, 0x0014, 0x00, 0x06);
@@ -288,14 +288,14 @@ void configure_dev() {
 	read_config(0xbc, 0x0800, 0x2008, 2);
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
-	/* this is an important step for sending the firmware */
+	// this is an important step for sending the firmware
 	write_config2(0xbc, 0x0900, 0x0074, 0x00, 0x04);
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
 
-	/* load "idle" firmware */
+	// load "idle" firmware
 	dlfirm("firmware/mb86h57_h58_idle.bin");
 
-	/* begin of highly (!) experimental part - thank you jedahan! */
+	// begin of highly (!) experimental part - thank you jedahan!
 	write_config2(0xbc, 0x0900, 0x0070, 0x00, 0x04);
 
 	read_config(0xbc, 0x0900, 0x0014, 2);
@@ -342,7 +342,7 @@ void configure_dev() {
 	read_config(0xbc, 0x0900, 0x0014, 2);
 	read_config(0xbc, 0x0900, 0x0018, 2);
 
-	/* TODO: check for specific condition in a loop */
+	// TODO: check for specific condition in a loop
 	sequence1();
 	sequence1();
 	sequence1();
@@ -7262,28 +7262,28 @@ void clean_up() {
 }
 
 int main() {
-	/* signal handling */
+	// signal handling
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
 
-	/* initialize device handler */
+	// initialize device handler
 	if (init_dev_handler()) {
 		goto end;
 	}
 
-	/* detach kernel driver and claim interface */
+	// detach kernel driver and claim interface
 	if (get_interface()) {
 		goto end;
 	}
 
-	/* open output file */
+	// open output file
 	fp = fopen("output.ts", "wb+");
 
 	if (fp == NULL) {
 		goto end;
 	}
 
-	/* configure device */
+	// configure device
 	configure_dev();
 
 	while(is_running) {
@@ -7291,7 +7291,7 @@ int main() {
 	}
 
 end:
-	/* clean up */
+	// clean up
 	clean_up();
 
 	return 0;
