@@ -1,12 +1,6 @@
-#include <atomic>
-#include <fstream>
-#include <string>
-#include <sstream>
-
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <sys/types.h>
@@ -27,16 +21,16 @@
 
 /* globals */
 static struct libusb_device_handle *devh = NULL;
-std::atomic<bool> state;
-std::ofstream outfile("output.ts", std::ofstream::binary);
+static volatile sig_atomic_t is_running = 1;
+FILE *fp = NULL;
 
 void sig_handler(int sig) {
 	switch(sig) {
 		case SIGINT:
-			state = 0;
+			is_running = 0;
 			break;
 		case SIGTERM:
-			state = 0;
+			is_running = 0;
 			break;
 	}
 }
@@ -86,30 +80,11 @@ int get_interface() {
 	return 0;
 }
 
-void clean_up() {
-	if (devh) {
-		libusb_release_interface(devh, INTERFACE_NUM);
-		libusb_close(devh);
-	}
-
-	libusb_exit(NULL);
-
-	outfile.close();
-}
-
-std::string read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
-	unsigned char *recv = new unsigned char[wLength];
+void read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
+	unsigned char *recv;
+	recv = calloc(wLength, sizeof(unsigned char));
 	libusb_control_transfer(devh, 0xc0, bRequest, wValue, wIndex, recv, wLength, 0);
-
-	std::stringstream str;
-
-	for(int i = 0; i < wLength; i++) {
-		str << recv[i];
-	}
-
-	delete[] recv;
-
-	return str.str();
+	free(recv);
 }
 
 void write_config2(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1) {
@@ -7171,19 +7146,23 @@ void receive_data() {
 
 	libusb_bulk_transfer(devh, 0x81, data, DATA_BUF, &transfer, 5000);
 
-	outfile.write((char *)data, DATA_BUF);
+	fwrite((char *)data, sizeof(data), DATA_BUF, fp);
+}
+
+void clean_up() {
+	if (devh) {
+		libusb_release_interface(devh, INTERFACE_NUM);
+		libusb_close(devh);
+	}
+
+	libusb_exit(NULL);
+	fclose(fp);
 }
 
 int main() {
 	/* signal handling */
-	struct sigaction action;
-
-	action.sa_handler = sig_handler;
-
-	sigaction(SIGINT, &action, nullptr);
-	sigaction(SIGTERM, &action, nullptr);
-
-	state = 1;
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
 
 	/* initialize device handler */
 	if (init_dev_handler()) {
@@ -7195,10 +7174,17 @@ int main() {
 		goto end;
 	}
 
+	/* open output file */
+	fp = fopen("output.ts", "wb+");
+
+	if (fp == NULL) {
+		goto end;
+	}
+
 	/* configure device */
 	configure_dev();
 
-	while(state) {
+	while(is_running) {
 		receive_data();
 	}
 
