@@ -166,6 +166,25 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0001, wIndex, send, 8, 0);
 }
 
+/**
+ * Reverse engineered function from official drivers. Used to configure the
+ * device.
+ *
+ * @param wIndex offset, where requests are passed to.
+ * @param data applies to send[0] and send[1]. The 16-bit integer data needs to
+ *  be split up into two 8-bit integers. It holds the actual data, like video
+ *  vertical size and bitrate.
+ */
+void slsi(uint16_t wIndex, uint16_t data) {
+	uint8_t send[2] = {0};
+
+	// splitting up data to two 8-bit integers by bitshifting and masking
+	send[0] = data >> 8;
+	send[1] = data & 0xff;
+
+	libusb_control_transfer(devh, 0x40, 0xbc, 0x0000, wIndex, send, 2, 0);
+}
+
 void load_firmware(const char *file) {
 	int transfer;
 
