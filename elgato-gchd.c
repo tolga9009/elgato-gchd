@@ -185,7 +185,7 @@ void slsi(uint16_t wIndex, uint16_t data) {
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0000, wIndex, send, 2, 0);
 }
 
-void load_firmware(const char *file) {
+void dlfirm(const char *file) {
 	int transfer;
 
 	FILE *bin;
@@ -259,7 +259,7 @@ void configure_dev() {
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
 
 	/* load "idle" firmware */
-	load_firmware("firmware/mb86h57_h58_idle.bin");
+	dlfirm("firmware/mb86h57_h58_idle.bin");
 
 	/* begin of highly (!) experimental part - thank you jedahan! */
 	write_config2(0xbc, 0x0900, 0x0070, 0x00, 0x04);
@@ -605,7 +605,7 @@ void configure_dev() {
 	/* end of highly experimental part */
 
 	/* load "enc" firmware */
-	load_firmware("firmware/mb86h57_h58_enc_h.bin");
+	dlfirm("firmware/mb86h57_h58_enc_h.bin");
 
 	read_config(0xbc, 0x0000, 0x0010, 2);
 	read_config(0xbc, 0x0000, 0x0012, 2);
