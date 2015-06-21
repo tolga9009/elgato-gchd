@@ -117,6 +117,55 @@ void write_config8(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned 
 	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 8, 0);
 }
 
+/**
+ * Reverse engineered function from official drivers. Used to set specific
+ * device parameters, like H.264 profile, video size and audio bitrate.
+ *
+ * @param wIndex offset, where requests are passed to
+ * @param shift bit shift left operations to the whole send[8] array. If any
+ *  bit gets cut off, substracting wIndex by 1 will be equal to a bit shift
+ *  right operation of 8. It's used for readibility. Minimum value is 0 and
+ *  maximum is 16.
+ * @param range applies to send[4] and send[5]. Sets n bits to 1, starting from
+ *  the first bit in send[5]. If it's greater than 8, bits are set in send[4].
+ *  Minimum value is 0 and maximum is 16.
+ * @param data applies to send[0] and send[1]. The 16-bit integer data needs to
+ *  be split up into two 8-bit integers. It holds the actual data, like video
+ *  vertical size and bitrate.
+ */
+void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
+	uint8_t send[8] = {0};
+
+	// splitting up data to two 8-bit integers by bitshifting and masking
+	send[0] = data >> 8;
+	send[1] = data & 0xff;
+
+	// to make the for-loop simpler, we're using a temporary 16-bit integer
+	// instead of implementing a for-loop, which takes care of two 8-bit
+	// integers. If you have found a way, how to do it more efficiently or
+	// better, please share with us.
+	uint16_t range_bits;
+
+	for (int i = 0; i <= range; i++) {
+		range_bits |= 1 << i;
+	}
+
+	send[4] = range_bits >> 8;
+	send[5] = range_bits & 0xff;
+
+	// we need to bit shift left the whole array by the value of shift. First of
+	// all, we need to check, if any overflow would happen in send[0]. If yes,
+	// we need to subtract wIndex by 1, which equals to a bit shift right of 8.
+	// Next, we need to check, if an overflow would happen in send[1]. If yes,
+	// we need to subtract wIndex by another 1. We now have a total right shift
+	// of 16. This is the maximum value per definition, we don't need to check
+	// for more overflows.
+
+	// TODO: implement bitshift algorithm
+
+	libusb_control_transfer(devh, 0x40, 0xbc, 0x0001, wIndex, send, 8, 0);
+}
+
 void load_firmware(const char *file) {
 	int transfer;
 
