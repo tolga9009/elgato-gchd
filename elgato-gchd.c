@@ -7254,7 +7254,7 @@ void receive_data() {
 	unsigned char data[DATA_BUF] = {0};
 
 	libusb_bulk_transfer(devh, 0x81, data, DATA_BUF, &transfer, 5000);
-	write(fd_fifo, (char *)data, sizeof(data));
+	write(fd_fifo, (char *)data, DATA_BUF);
 }
 
 void clean_up() {
@@ -7273,6 +7273,9 @@ int main() {
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
 
+	// ignore SIGPIPE: causes the program to terminate on unsuccessful write()
+	signal(SIGPIPE, SIG_IGN);
+
 	// initialize device handler
 	if (init_dev_handler()) {
 		goto end;
@@ -7288,10 +7291,6 @@ int main() {
 
 	// open FIFO
 	fd_fifo = open(fifo_path, O_WRONLY);
-
-	if (fd_fifo < 0) {
-		goto end;
-	}
 
 	// configure device
 	configure_dev();
