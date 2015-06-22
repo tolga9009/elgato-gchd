@@ -49,7 +49,7 @@ int init_dev_handler() {
 		return 1;
 	}
 
-	libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
+	//libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
 
 	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_0);
 	if (devh) {
