@@ -1,8 +1,10 @@
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <libusb-1.0/libusb.h>
@@ -27,7 +29,8 @@
 // globals
 static struct libusb_device_handle *devh = NULL;
 static volatile sig_atomic_t is_running = 1;
-FILE *fp = NULL;
+int fd_fifo;
+char *fifo_path = "/tmp/elgato_gchd";
 
 void sig_handler(int sig) {
 	switch(sig) {
@@ -7247,8 +7250,7 @@ void receive_data() {
 	unsigned char data[DATA_BUF] = {0};
 
 	libusb_bulk_transfer(devh, 0x81, data, DATA_BUF, &transfer, 5000);
-
-	fwrite((char *)data, sizeof(data), DATA_BUF, fp);
+	write(fd_fifo, (char *)data, sizeof(data));
 }
 
 void clean_up() {
@@ -7258,7 +7260,8 @@ void clean_up() {
 	}
 
 	libusb_exit(NULL);
-	fclose(fp);
+	close(fd_fifo);
+	unlink(fifo_path);
 }
 
 int main() {
@@ -7276,10 +7279,13 @@ int main() {
 		goto end;
 	}
 
-	// open output file
-	fp = fopen("output.ts", "wb+");
+	// create the FIFO (also known as named pipe)
+	mkfifo(fifo_path, 0644);
 
-	if (fp == NULL) {
+	// open FIFO
+	fd_fifo = open(fifo_path, O_WRONLY);
+
+	if (fd_fifo < 0) {
 		goto end;
 	}
 
