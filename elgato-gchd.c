@@ -30,7 +30,7 @@
 static struct libusb_device_handle *devh = NULL;
 static volatile sig_atomic_t is_running = 1;
 int fd_fifo;
-char *fifo_path = "/tmp/elgato_gchd";
+char *fifo_path = "/tmp/elgato_gchd.ts";
 
 void sig_handler(int sig) {
 	switch(sig) {
