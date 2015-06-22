@@ -177,10 +177,12 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
 	send[0] = data >> 8;
 	send[1] = data & 0xff;
 
-	// to make the for-loop simpler, we're using a temporary 16-bit integer
-	// instead of implementing a for-loop, which takes care of two 8-bit
-	// integers. If you have found a way, how to do it more efficiently or
-	// better, please share with us.
+	/*
+	 * to make the for-loop simpler, we're using a temporary 16-bit integer
+	 * instead of implementing a for-loop, which takes care of two 8-bit
+	 * integers. If you have found a way, how to do it more efficiently or
+	 * better, please share with us.
+	 */
 	uint16_t range_bits = 0;
 
 	for (int i = 0; i <= range; i++) {
@@ -190,13 +192,15 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
 	send[4] = range_bits >> 8;
 	send[5] = range_bits & 0xff;
 
-	// we need to bit shift left the whole array by the value of shift. First of
-	// all, we need to check, if any overflow would happen in send[0]. If yes,
-	// we need to subtract wIndex by 1, which equals to a bit shift right of 8.
-	// Next, we need to check, if an overflow would happen in send[1]. If yes,
-	// we need to subtract wIndex by another 1. We now have a total right shift
-	// of 16. This is the maximum value per definition, we don't need to check
-	// for more overflows.
+	/*
+	 * we need to bit shift left the whole array by the value of shift. First of
+	 * all, we need to check, if any overflow would happen in send[0]. If yes,
+	 * we need to subtract wIndex by 1, which equals to a bit shift right of 8.
+	 * Next, we need to check, if an overflow would happen in send[1]. If yes,
+	 * we need to subtract wIndex by another 1. We now have a total right shift
+	 * of 16. This is the maximum value per definition, we don't need to check
+	 * for more overflows.
+	 */
 
 	// TODO: implement bitshift algorithm
 
