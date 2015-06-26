@@ -50,6 +50,16 @@ void write_config8(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned 
 	libusb_control_transfer(devh, 0x40, bRequest, wValue, wIndex, send, 8, 0);
 }
 
+uint8_t count_bits(uint16_t data) {
+	uint8_t i = 0;
+
+	for (i = 0; data; i++) {
+		data &= data - 1;
+	}
+
+	return i;
+}
+
 void scmd(uint8_t command, uint8_t mode, uint16_t data) {
 	uint8_t send[6] = {0};
 	send[2] = command;
@@ -77,7 +87,7 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
 	 */
 	uint16_t range_bits = 0;
 
-	for (int i = 0; i <= range; i++) {
+	for (uint8_t i = 0; i <= range; i++) {
 		range_bits |= 1 << i;
 	}
 
@@ -93,8 +103,30 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data) {
 	 * of 16. This is the maximum value per definition, we don't need to check
 	 * for more overflows.
 	 */
+	while (count_bits(data) != count_bits(data << shift) && send[7] == 0) {
+		// right cycling send[8] array
+		for (uint8_t i = 7; i > 0; i--) {
+			send[i] = send[i - 1];
+		}
 
-	// TODO: implement bitshift algorithm
+		send[0] = 0;
+
+		// to compensate this, we decrease wIndex by 1 and right shift data by 8
+		wIndex--;
+		data >>= 8;
+	}
+
+	uint64_t data_shifted = 0;
+
+	for (uint8_t i = 0; i < 8; i++) {
+		data_shifted |= send[i] << (8 * (7 - i));
+	}
+
+	data_shifted <<= shift;
+
+	for (uint8_t i = 0; i < 8; i++) {
+		send[i] = (data_shifted >> (8 * (7 - i))) & 0xff;
+	}
 
 	libusb_control_transfer(devh, 0x40, 0xbc, 0x0001, wIndex, send, 8, 0);
 }
