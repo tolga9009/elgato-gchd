@@ -1,6 +1,8 @@
 Elgato Game Capture HD - Linux drivers
 ======================================
 
+[![Join the chat at https://gitter.im/tolga9009/elgato-gchd](https://badges.gitter.im/tolga9009/elgato-gchd.svg)](https://gitter.im/tolga9009/elgato-gchd?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Reverse engineering the Elgato Game Capture HD to make it work under Linux.
 
 We all love our Elgatos, we all love our Linux machines. I've been in contact
