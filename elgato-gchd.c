@@ -20,6 +20,7 @@
 #include "commands.h"
 #include "common.h"
 #include "init.h"
+#include "remove.h"
 
 // constants
 #define ELGATO_VENDOR			0x0fd9
@@ -108,6 +109,8 @@ void receive_data() {
 }
 
 void clean_up() {
+	remove_elgato();
+
 	if (devh) {
 		libusb_release_interface(devh, INTERFACE_NUM);
 		libusb_close(devh);

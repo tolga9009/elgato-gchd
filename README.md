@@ -1,97 +1,57 @@
-Elgato Game Capture HD - Linux drivers
-======================================
+Elgato Game Capture HD Linux driver
+===================================
 
-Reverse engineering the Elgato Game Capture HD to make it work under Linux.
+This project provides a userspace driver to support the Elgato Game Capture HD
+under Linux. This is an unofficial driver and therefore not supported by Elgato.
 
-We all love our Elgatos, we all love our Linux machines. I've been in contact
-with Elgato several times and talked to them about this topic, but they don't
-plan adding Linux support and they also can't help Linux developers, due to NDA
-restrictions. As a result, they can't support any reverse engineering efforts.
-
-Everyone who can help us is welcome, it doesn't matter if you want to program,
-improve the documentation or research. Please note, that this driver is in a
-very early development stage and not ready for use.
-
-Currently, it's possible to receive a 720p60 HDMI input and save it to a file.
-
-Please note, that we can't take any feature requests, as we are currently in the
-process of figuring out, how the device actually works.
+Use at your own risk! This software is not intended for production use.
 
 
-Current TODOs
-=============
+Install
+=======
 
-- implement sparam, statechange and boot functions
-- figure out i2c write and i2c stat functions
-- 1080p support
+Install the following dependencies. Please refer to your specific Linux
+distribution, as package names might differ.
 
+- libusb >= 1.0.20
+- clang (make)
+- make (make)
 
-About the device
-================
-
-After studying the video output and USB packets, the Elgato Game Capture HD
-seems to be one hell of device! This little thing directly outputs compressed
-video and audio data, in the following format:
-
-    General
-    Format                         : MPEG-TS
-    Overall bit rate mode          : Variable
-    Overall bit rate               : 22.4 Mbps
-    
-    Video
-    ID                             : 100 (0x64)
-    Menu ID                        : 2 (0x2)
-    Format                         : AVC
-    Format/Info                    : Advanced Video Codec
-    Format profile                 : High@L4.0
-    Format settings, CABAC         : Yes
-    Format settings, ReFrames      : 2 frames
-    Codec ID                       : 27
-    Duration                       : 12s 217ms
-    Bit rate mode                  : Variable
-    Bit rate                       : 21.1 Mbps
-    Maximum bit rate               : 30.0 Mbps
-    Width                          : 1 280 pixels
-    Height                         : 720 pixels
-    Display aspect ratio           : 16:9
-    Frame rate                     : 60.000 fps
-    Color space                    : YUV
-    Chroma subsampling             : 4:2:0
-    Bit depth                      : 8 bits
-    Scan type                      : Progressive
-    Bits/(Pixel*Frame)             : 0.382
-    Stream size                    : 30.7 MiB (92%)
-    Color primaries                : BT.709
-    Transfer characteristics       : BT.709
-    Matrix coefficients            : BT.709
-    
-    Audio
-    ID                             : 101 (0x65)
-    Menu ID                        : 2 (0x2)
-    Format                         : AAC
-    Format/Info                    : Advanced Audio Codec
-    Format version                 : Version 4
-    Format profile                 : LC
-    Muxing mode                    : ADTS
-    Codec ID                       : 15
-    Duration                       : 12s 245ms
-    Bit rate mode                  : Variable
-    Bit rate                       : 220 Kbps
-    Channel(s)                     : 2 channels
-    Channel positions              : Front: L R
-    Sampling rate                  : 48.0 KHz
-    Compression mode               : Lossy
-    Delay relative to video        : -333ms
-    Stream size                    : 329 KiB (1%)
-
-Steven Toth from Kernel Labs noted, that the device is outputting native
-ISO13818 TS packets. Once the device is set up, we should be able to get the
-video stream without any encoding. Thank you Steve for the hint!
+Compile the driver:
+`make`
 
 
-What we need and how you can help
-=================================
+Usage
+=====
 
-The official repository of this driver can be found at
-https://github.com/tolga9009/elgato-gchd. This is our primary platform for
-sharing information. If you are willing to help, please get in touch with us.
+Run `./elgato-gchd` with root permissions in a terminal and leave it open. This
+driver will create a new file `/tmp/elgato-gchd.ts`.
+
+Please note, that this file is actually a FIFO pipe and will not grow. You will
+need an external program to record footage onto your harddisk.
+
+You can open up this file using any media player, which supports reading from
+pipes. There will be a slight delay, which is hardware limited and can not be
+worked around.
+
+After closing the file, you will not be able to reopen it again. You will need
+to stop the terminal using "Ctrl + C", disconnect and reconnect your Elgato Game
+Capture HD's USB cable and start over again.
+
+Currently, only 720p source is supported.
+
+
+Contributors
+============
+
+- Join our official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
+- Special thanks to jedahan for writing openvizsla2c utility
+
+
+License
+=======
+
+Provided firmwares have been extracted from Elgato's official Mac OS X
+drivers. Please refer to https://www.elgato.com for more information.
+
+Elgato Game Capture HD Linux driver is made available under the MIT License.
