@@ -18,14 +18,16 @@ distribution, as package names might differ.
 - make (make)
 
 Compile the driver:
+
 `make`
 
 
 Usage
 =====
 
-Run `./elgato-gchd` with root permissions in a terminal and leave it open. This
-driver will create a new file `/tmp/elgato-gchd.ts`.
+According to your HDMI source, run `./elgato-gchd -r 720p` or
+`./elgato-gchd -r 1080p` with root permissions in a terminal and leave it open.
+This driver will create a new file `/tmp/elgato-gchd.ts`.
 
 Please note, that this file is actually a FIFO pipe and will not grow. You will
 need an external program to record footage onto your harddisk.
@@ -38,7 +40,7 @@ After closing the file, you will not be able to reopen it again. You will need
 to stop the terminal using "Ctrl + C", disconnect and reconnect your Elgato Game
 Capture HD's USB cable and start over again.
 
-Currently, only 720p source is supported.
+Currently, 1080p30 and 720p60 are supported.
 
 
 Contributors
