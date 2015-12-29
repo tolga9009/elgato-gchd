@@ -19,7 +19,8 @@
 
 #include "commands.h"
 #include "common.h"
-#include "init.h"
+#include "init_720p.h"
+#include "init_1080p.h"
 #include "remove.h"
 
 // constants
@@ -146,7 +147,7 @@ int main() {
 	fd_fifo = open(fifo_path, O_WRONLY);
 
 	// configure device
-	configure_dev();
+	configure_dev_1080p();
 
 	while(is_running) {
 		receive_data();
