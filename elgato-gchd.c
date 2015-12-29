@@ -6,10 +6,12 @@
  */
 
 #include <fcntl.h>
+#include <getopt.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <sys/stat.h>
@@ -43,6 +45,11 @@ static volatile sig_atomic_t is_running = 1;
 int fd_fifo;
 char *fifo_path = "/tmp/elgato_gchd.ts";
 
+enum video_resoltion {
+	v720p,
+	v1080p
+};
+
 void sig_handler(int sig) {
 	switch(sig) {
 		case SIGINT:
@@ -58,7 +65,7 @@ int init_dev_handler() {
 	devh = NULL;
 
 	if (libusb_init(NULL)) {
-		fprintf(stderr, "Error initializing libusb.");
+		fprintf(stderr, "Error initializing libusb.\n");
 		return 1;
 	}
 
@@ -79,7 +86,7 @@ int init_dev_handler() {
 		return 0;
 	}
 
-	fprintf(stderr, "Unable to find device.");
+	fprintf(stderr, "Unable to find device.\n");
 	return 1;
 }
 
@@ -89,12 +96,12 @@ int get_interface() {
 	}
 
 	if (libusb_set_configuration(devh, CONFIGURATION)) {
-		fprintf(stderr, "Could not activate configuration.");
+		fprintf(stderr, "Could not activate configuration.\n");
 		return 1;
 	}
 
 	if (libusb_claim_interface(devh, INTERFACE_NUM)) {
-		fprintf(stderr, "Failed to claim interface.");
+		fprintf(stderr, "Failed to claim interface.\n");
 		return 1;
 	}
 
@@ -110,9 +117,8 @@ void receive_data() {
 }
 
 void clean_up() {
-	remove_elgato();
-
 	if (devh) {
+		remove_elgato();
 		libusb_release_interface(devh, INTERFACE_NUM);
 		libusb_close(devh);
 	}
@@ -122,13 +128,45 @@ void clean_up() {
 	unlink(fifo_path);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	// signal handling
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
 
 	// ignore SIGPIPE: causes the program to terminate on unsuccessful write()
 	signal(SIGPIPE, SIG_IGN);
+
+	// handling command-line options
+	static struct option longOptions[] = {
+		{"resolution", required_argument, 0, 'r'},
+	};
+
+	int opt, index, resolution = 0;
+
+	while ((opt = getopt_long(argc, argv, "r:", longOptions, &index)) != -1) {
+		switch (opt) {
+			case 'r':
+				if (strcmp(optarg, "720p") == 0) {
+					resolution = v720p;
+					break;
+				} else if (strcmp(optarg, "1080p") == 0) {
+					resolution = v1080p;
+					break;
+				}
+
+				fprintf(stderr, "Unsupported resolution.\n");
+				return EXIT_FAILURE;
+			case ':':
+				fprintf(stderr, "Missing argument.\n");
+				return EXIT_FAILURE;
+			case '?':
+				fprintf(stderr, "Unrecognized option.\n");
+				return EXIT_FAILURE;
+			default:
+				fprintf(stderr, "Unexpected error.\n");
+				return EXIT_FAILURE;
+		}
+	}
 
 	// initialize device handler
 	if (init_dev_handler()) {
@@ -146,8 +184,11 @@ int main() {
 	// open FIFO
 	fd_fifo = open(fifo_path, O_WRONLY);
 
-	// configure device
-	configure_dev_1080p();
+	switch (resolution) {
+		case v720p: configure_dev_720p(); break;
+		case v1080p: configure_dev_1080p(); break;
+		default: clean_up();
+	}
 
 	while(is_running) {
 		receive_data();
