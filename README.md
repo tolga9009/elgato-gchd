@@ -51,7 +51,4 @@ Contributors
 License
 =======
 
-Provided firmwares have been extracted from Elgato's official Mac OS X
-drivers. Please refer to https://www.elgato.com for more information.
-
 Elgato Game Capture HD Linux driver is made available under the MIT License.
