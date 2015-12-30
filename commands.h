@@ -10,6 +10,11 @@
 
 #include <stdint.h>
 
+// scmd commands
+#define SCMD_IDLE			1
+#define SCMD_INIT			4
+#define SCMD_STATE_CHANGE	5
+
 // deprecated functions. Getting replaced by reverse engineered functions.
 void read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength);
 void write_config2(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1);
@@ -67,6 +72,11 @@ void sparam(uint16_t wIndex, uint8_t shift, uint8_t range, uint16_t data);
  */
 void slsi(uint16_t wIndex, uint16_t data);
 
+/**
+ * Loads firmware to the device
+ *
+ * @param file relative path to binary firmware file
+ */
 void dlfirm(const char *file);
 
 #endif
