@@ -42,7 +42,8 @@
 
 // globals
 static volatile sig_atomic_t is_running = 1;
-int fd_fifo;
+int libusb_ret = 1;
+int fd_fifo = 0;
 char *fifo_path = "/tmp/elgato_gchd.ts";
 
 enum video_resoltion {
@@ -63,8 +64,9 @@ void sig_handler(int sig) {
 
 int init_dev_handler() {
 	devh = NULL;
+	libusb_ret = libusb_init(NULL);
 
-	if (libusb_init(NULL)) {
+	if (libusb_ret) {
 		fprintf(stderr, "Error initializing libusb.\n");
 		return 1;
 	}
@@ -86,7 +88,6 @@ int init_dev_handler() {
 		return 0;
 	}
 
-	fprintf(stderr, "Unable to find device.\n");
 	return 1;
 }
 
@@ -123,7 +124,10 @@ void clean_up() {
 		libusb_close(devh);
 	}
 
-	libusb_exit(NULL);
+	if (libusb_ret == 0) {
+		libusb_exit(NULL);
+	}
+
 	close(fd_fifo);
 	unlink(fifo_path);
 }
@@ -168,13 +172,21 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	if (access(FW_MB86H57_H58_IDLE, F_OK) != 0
+	    || access(FW_MB86H57_H58_ENC, F_OK) != 0) {
+		    fprintf(stderr, "Firmware files missing.\n");
+		    goto end;
+	    }
+
 	// initialize device handler
 	if (init_dev_handler()) {
+		fprintf(stderr, "Unable to find device.\n");
 		goto end;
 	}
 
 	// detach kernel driver and claim interface
 	if (get_interface()) {
+		fprintf(stderr, "Could not claim interface.\n");
 		goto end;
 	}
 

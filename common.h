@@ -12,6 +12,8 @@
 
 // constants
 #define DATA_BUF		0x4000
+#define FW_MB86H57_H58_IDLE	"firmware/mb86h57_h58_idle.bin"
+#define FW_MB86H57_H58_ENC	"firmware/mb86h57_h58_enc_h.bin"
 
 struct libusb_device_handle *devh;
 
