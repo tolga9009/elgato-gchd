@@ -26,18 +26,18 @@
 #include "remove.h"
 
 // constants
-#define ELGATO_VENDOR			0x0fd9
+#define ELGATO_VENDOR		0x0fd9
 #define GAME_CAPTURE_HD_PID_0	0x0044
 #define GAME_CAPTURE_HD_PID_1	0x004e
 #define GAME_CAPTURE_HD_PID_2	0x0051
 
-#define EP_OUT			0x02
+#define EP_OUT		0x02
 #define INTERFACE_NUM	0x00
 #define CONFIGURATION	0x01
 
 // scmd commands
-#define IDLE			1
-#define INIT			4
+#define IDLE		1
+#define INIT		4
 #define STATE_CHANGE	5
 
 // globals
@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
 
-	// ignore SIGPIPE: causes the program to terminate on unsuccessful write()
+	// ignore SIGPIPE, else program terminates on unsuccessful write()
 	signal(SIGPIPE, SIG_IGN);
 
 	// handling command-line options
@@ -184,12 +184,14 @@ int main(int argc, char *argv[]) {
 	// open FIFO
 	fd_fifo = open(fifo_path, O_WRONLY);
 
+	// set device configuration
 	switch (resolution) {
 		case v720p: configure_dev_720p(); break;
 		case v1080p: configure_dev_1080p(); break;
 		default: clean_up();
 	}
 
+	// receive audio and video from device
 	while(is_running) {
 		receive_data();
 	}
