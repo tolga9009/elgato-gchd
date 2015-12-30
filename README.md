@@ -22,16 +22,16 @@ distribution for more information.
 
 3. Uncompress Elgato Game Capture HD Mac OS X drivers:
 
-```
-dmg2img gchdm_203_970.dmg -o gchdm_203_970.dmg.img
-```
+    ```
+    dmg2img gchdm_203_970.dmg -o gchdm_203_970.dmg.img
+    ```
 
 4. Mount the uncompressed HFS+ image with root permissions:
 
-```
-mkdir /tmp/dmg
-mount -o loop -t hfsplus gchdm_203_970.dmg.img /tmp/dmg
-```
+    ```
+    mkdir /tmp/dmg
+    mount -o loop -t hfsplus gchdm_203_970.dmg.img /tmp/dmg
+    ```
 
 5. Copy `mb86h57_h58_idle.bin` and `mb86h57_h58_enc_h.bin` from
 `/tmp/dmg/Game\ Capture\ HD.app/Contents/Resources/Firmware/Beddo/`.
@@ -51,9 +51,9 @@ distribution, as package names might differ.
 
 2. Compile the driver:
 
-```
-make
-```
+    ```
+    make
+    ```
 
 
 Usage
