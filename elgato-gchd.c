@@ -35,11 +35,6 @@
 #define INTERFACE_NUM	0x00
 #define CONFIGURATION	0x01
 
-// scmd commands
-#define IDLE		1
-#define INIT		4
-#define STATE_CHANGE	5
-
 // globals
 static volatile sig_atomic_t is_running = 1;
 int libusb_ret = 1;
