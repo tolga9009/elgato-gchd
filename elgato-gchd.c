@@ -30,6 +30,7 @@
 #define GAME_CAPTURE_HD_PID_0	0x0044
 #define GAME_CAPTURE_HD_PID_1	0x004e
 #define GAME_CAPTURE_HD_PID_2	0x0051
+#define GAME_CAPTURE_HD_PID_3	0x005d
 
 #define EP_OUT		0x02
 #define INTERFACE_NUM	0x00
@@ -84,6 +85,12 @@ int init_dev_handler() {
 	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_2);
 	if (devh) {
 		return 0;
+	}
+
+	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_3);
+	if (devh) {
+		fprintf(stderr, "This revision of the Elgato Game Capture HD is currently not supported.\n");
+		return 1;
 	}
 
 	return 1;
