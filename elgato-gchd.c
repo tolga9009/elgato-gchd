@@ -25,6 +25,7 @@
 #include "init_1080p.h"
 #include "init_576i.h"
 #include "init_component_576p.h"
+#include "init_component_1080p.h"
 #include "remove.h"
 
 // constants
@@ -49,11 +50,12 @@ enum video_resoltion {
 	v720p,
 	v1080p,
 	v576i,
-	v576p
+	vc576p,
+	vc1080p
 };
 
 void sig_handler(int sig) {
-	fprintf(stderr, "Stop signal received. Do not interrupt or unplug your device.\n");
+	fprintf(stderr, "\nStop signal received.\nYour device is going to be reset. Please wait and do not interrupt or unplug your device.\n");
 
 	switch(sig) {
 		case SIGINT:
@@ -136,7 +138,7 @@ void clean_up() {
 	close(fd_fifo);
 	unlink(fifo_path);
 
-	fprintf(stderr, "Clean up done. Terminating\n");
+	fprintf(stderr, "Terminating.\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -166,8 +168,11 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(optarg, "576i") == 0) {
 					resolution = v576i;
 					break;
-				} else if (strcmp(optarg, "576p") == 0) {
-					resolution = v576p;
+				} else if (strcmp(optarg, "c576p") == 0) {
+					resolution = vc576p;
+					break;
+				} else if (strcmp(optarg, "c1080p") == 0) {
+					resolution = vc1080p;
 					break;
 				}
 
@@ -219,7 +224,8 @@ int main(int argc, char *argv[]) {
 			case v720p: configure_dev_720p(); break;
 			case v1080p: configure_dev_1080p(); break;
 			case v576i: configure_dev_576i(); break;
-			case v576p: configure_dev_component_576p(); break;
+			case vc576p: configure_dev_component_576p(); break;
+			case vc1080p: configure_dev_component_1080p(); break;
 			default: clean_up();
 		}
 
