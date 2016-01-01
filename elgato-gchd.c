@@ -48,7 +48,8 @@ char *fifo_path = "/tmp/elgato_gchd.ts";
 enum video_resoltion {
 	v720p,
 	v1080p,
-	v576i
+	v576i,
+	v576p
 };
 
 void sig_handler(int sig) {
@@ -165,6 +166,9 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(optarg, "576i") == 0) {
 					resolution = v576i;
 					break;
+				} else if (strcmp(optarg, "576p") == 0) {
+					resolution = v576p;
+					break;
 				}
 
 				fprintf(stderr, "Unsupported resolution.\n");
@@ -215,6 +219,7 @@ int main(int argc, char *argv[]) {
 			case v720p: configure_dev_720p(); break;
 			case v1080p: configure_dev_1080p(); break;
 			case v576i: configure_dev_576i(); break;
+			case v576p: configure_dev_component_576p(); break;
 			default: clean_up();
 		}
 
