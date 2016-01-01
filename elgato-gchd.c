@@ -23,6 +23,7 @@
 #include "common.h"
 #include "init_720p.h"
 #include "init_1080p.h"
+#include "init_576i.h"
 #include "remove.h"
 
 // constants
@@ -45,7 +46,8 @@ char *fifo_path = "/tmp/elgato_gchd.ts";
 
 enum video_resoltion {
 	v720p,
-	v1080p
+	v1080p,
+	v576i
 };
 
 void sig_handler(int sig) {
@@ -159,6 +161,9 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(optarg, "1080p") == 0) {
 					resolution = v1080p;
 					break;
+				} else if (strcmp(optarg, "576i") == 0) {
+					resolution = v576i;
+					break;
 				}
 
 				fprintf(stderr, "Unsupported resolution.\n");
@@ -208,6 +213,7 @@ int main(int argc, char *argv[]) {
 		switch (resolution) {
 			case v720p: configure_dev_720p(); break;
 			case v1080p: configure_dev_1080p(); break;
+			case v576i: configure_dev_576i(); break;
 			default: clean_up();
 		}
 
