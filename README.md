@@ -61,7 +61,7 @@ Usage
 
 According to your HDMI source, run `./elgato-gchd -r 720p` or
 `./elgato-gchd -r 1080p` with root permissions in a terminal and leave it open.
-This driver will create a new file `/tmp/elgato-gchd.ts`.
+This command will create a new file `/tmp/elgato-gchd.ts`.
 
 Please note, that this file is actually a FIFO pipe and will not grow. You will
 need an external program to record footage.
@@ -70,9 +70,11 @@ You can open up this file using any media player, which supports reading from
 pipes. There will be a slight delay, which is hardware limited and can not be
 worked around.
 
-After closing the file, you will not be able to reopen it again. You will need
-to stop the terminal using "Ctrl + C", disconnect and reconnect your Elgato Game
-Capture HD's USB cable and start over again.
+If you're done using this driver, close the file. Then stop the terminal using
+"Ctrl + C" and wait for the program to successfully terminate. The driver is
+resetting your device, so it can be used again. If you interrupt this step, it
+will leave your device in an undefined state and you will need to replug your
+device, to manually reset it.
 
 Currently, 1080p30 and 720p60 are supported.
 

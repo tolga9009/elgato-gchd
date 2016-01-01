@@ -39,6 +39,7 @@
 static volatile sig_atomic_t is_running = 1;
 int libusb_ret = 1;
 int fd_fifo = 0;
+int init_has_been_run = 0;
 char *fifo_path = "/tmp/elgato_gchd.ts";
 
 enum video_resoltion {
@@ -47,6 +48,8 @@ enum video_resoltion {
 };
 
 void sig_handler(int sig) {
+	fprintf(stderr, "Stop signal received. Do not interrupt or unplug your device.\n");
+
 	switch(sig) {
 		case SIGINT:
 			is_running = 0;
@@ -104,17 +107,13 @@ int get_interface() {
 	return 0;
 }
 
-void receive_data() {
-	int transfer;
-	unsigned char data[DATA_BUF] = {0};
-
-	libusb_bulk_transfer(devh, 0x81, data, DATA_BUF, &transfer, 5000);
-	write(fd_fifo, (char *)data, DATA_BUF);
-}
-
 void clean_up() {
 	if (devh) {
-		remove_elgato();
+		if (init_has_been_run) {
+			remove_elgato();
+			fprintf(stderr, "Device has been reset.\n");
+		}
+
 		libusb_release_interface(devh, INTERFACE_NUM);
 		libusb_close(devh);
 	}
@@ -125,6 +124,8 @@ void clean_up() {
 
 	close(fd_fifo);
 	unlink(fifo_path);
+
+	fprintf(stderr, "Clean up done. Terminating\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -188,18 +189,26 @@ int main(int argc, char *argv[]) {
 	// create the FIFO (also known as named pipe)
 	mkfifo(fifo_path, 0644);
 
+	fprintf(stderr, "%s has been created. Waiting for user to open it.\n", fifo_path);
+
 	// open FIFO
 	fd_fifo = open(fifo_path, O_WRONLY);
 
 	// set device configuration
-	switch (resolution) {
-		case v720p: configure_dev_720p(); break;
-		case v1080p: configure_dev_1080p(); break;
-		default: clean_up();
+	if (is_running) {
+		fprintf(stderr, "Running. Initializing device.\n");
+
+		switch (resolution) {
+			case v720p: configure_dev_720p(); break;
+			case v1080p: configure_dev_1080p(); break;
+			default: clean_up();
+		}
+
+		fprintf(stderr, "Streaming data from device now.\n");
 	}
 
 	// receive audio and video from device
-	while(is_running) {
+	while (is_running) {
 		receive_data();
 	}
 

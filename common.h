@@ -16,5 +16,7 @@
 #define FW_MB86H57_H58_ENC	"firmware/mb86h57_h58_enc_h.bin"
 
 struct libusb_device_handle *devh;
+extern int fd_fifo;
+extern int init_has_been_run;
 
 #endif

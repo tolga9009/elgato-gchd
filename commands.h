@@ -11,12 +11,13 @@
 #include <stdint.h>
 
 // scmd commands
-#define SCMD_IDLE			1
-#define SCMD_INIT			4
+#define SCMD_IDLE		1
+#define SCMD_INIT		4
 #define SCMD_STATE_CHANGE	5
 
-// deprecated functions. Getting replaced by reverse engineered functions.
+// Getting replaced by reverse engineered functions.
 void read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength);
+int read_config4(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3);
 void write_config2(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1);
 void write_config3(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2);
 void write_config4(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3);
@@ -78,5 +79,7 @@ void slsi(uint16_t wIndex, uint16_t data);
  * @param file relative path to binary firmware file
  */
 void dlfirm(const char *file);
+
+void receive_data();
 
 #endif

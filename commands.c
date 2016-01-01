@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <libusb-1.0/libusb.h>
 
@@ -18,6 +19,17 @@ void read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wL
 	recv = calloc(wLength, sizeof(unsigned char));
 	libusb_control_transfer(devh, 0xc0, bRequest, wValue, wIndex, recv, wLength, 0);
 	free(recv);
+}
+
+int read_config4(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3) {
+	unsigned char recv[4];
+	libusb_control_transfer(devh, 0xc0, bRequest, wValue, wIndex, recv, 4, 0);
+
+	if (recv[0] == data0 && recv[1] == data1 && recv[2] == data2 && recv[3] == data3) {
+		return 1;
+	}
+
+	return 0;
 }
 
 void write_config2(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1) {
@@ -167,4 +179,12 @@ void dlfirm(const char *file) {
 	}
 
 	fclose(bin);
+}
+
+void receive_data() {
+	int transfer;
+	unsigned char data[DATA_BUF] = {0};
+
+	libusb_bulk_transfer(devh, 0x81, data, DATA_BUF, &transfer, 5000);
+	write(fd_fifo, (char *)data, DATA_BUF);
 }

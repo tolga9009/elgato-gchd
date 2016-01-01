@@ -8,18 +8,71 @@
 #include "commands.h"
 
 void remove_elgato() {
-	write_config6(0xb8, 0x0000, 0x0000, 0x00, 0x00, 0x05, 0x00, 0x00, 0x04);
+	// state change - output null
+	scmd(SCMD_STATE_CHANGE, 0x00, 0x0004);
+
+	// usually, this is done by a seperate thread, which runs in parallel.
+	// I'm just quickly hacking a way around it, to test some stuff. Taking
+	// a big, random number, which is slightly based on the USB traffic logs
+	// I'm working with. Receive empty data, after setting state change to
+	// null transfer.
+	for (int i = 0; i < 5000; i++) {
+		receive_data();
+	}
+
+	// we probably need some sleeps here and receive null output, to give
+	// the Elgato enough time to gracefully reset. Else, the next scmd()
+	// command seems to be ignored and we're leaving the device in an
+	// undefined state.
+	read_config(0xbc, 0x0800, 0x2008, 2);
+
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
+
+	read_config(0xbc, 0x0900, 0x0074, 2);
+
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
+
+	read_config(0xbc, 0x0900, 0x01b0, 2);
+
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
-	read_config(0xbc, 0x0900, 0x0074, 2);
-	read_config(0xbc, 0x0900, 0x01b0, 2);
+
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
+
 	read_config(0xbc, 0x0800, 0x2008, 2);
-	read_config(0xbc, 0x0800, 0x2008, 2);
+
+
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
 
 	write_config2(0xbc, 0x0900, 0x0074, 0x00, 0x04);
+
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
+
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
 
-	write_config6(0xb8, 0x0000, 0x0000, 0x00, 0x00, 0x05, 0x00, 0x00, 0x01);
+	for (int i = 0; i < 50; i++) {
+		receive_data();
+	}
+
+	// state change - stop encoding
+	scmd(SCMD_STATE_CHANGE, 0x00, 0x0001);
+
+	for (int i = 0; i < 5; i++) {
+		receive_data();
+	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
 	read_config(0xbc, 0x0900, 0x0074, 2);
