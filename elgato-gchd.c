@@ -24,6 +24,7 @@
 #include "init_720p.h"
 #include "init_1080p.h"
 #include "init_576i.h"
+#include "init_component_576p.h"
 #include "remove.h"
 
 // constants
