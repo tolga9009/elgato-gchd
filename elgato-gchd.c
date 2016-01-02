@@ -26,6 +26,7 @@
 #include "init_576i.h"
 #include "init_component_576p.h"
 #include "init_component_720p.h"
+#include "init_component_1080i.h"
 #include "init_component_1080p.h"
 #include "remove.h"
 
@@ -53,6 +54,7 @@ enum video_resoltion {
 	v576i,
 	vc576p,
 	vc720p,
+	vc1080i,
 	vc1080p
 };
 
@@ -176,6 +178,9 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(optarg, "c720p") == 0) {
 					resolution = vc720p;
 					break;
+				} else if (strcmp(optarg, "c1080i") == 0) {
+					resolution = vc1080i;
+					break;
 				} else if (strcmp(optarg, "c1080p") == 0) {
 					resolution = vc1080p;
 					break;
@@ -231,6 +236,7 @@ int main(int argc, char *argv[]) {
 			case v576i: configure_dev_576i(); break;
 			case vc576p: configure_dev_component_576p(); break;
 			case vc720p: configure_dev_component_720p(); break;
+			case vc1080i: configure_dev_component_1080i(); break;
 			case vc1080p: configure_dev_component_1080p(); break;
 			default: clean_up();
 		}
