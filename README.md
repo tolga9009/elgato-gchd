@@ -59,24 +59,31 @@ distribution, as package names might differ.
 Usage
 =====
 
-According to your HDMI source, run `./elgato-gchd -r 720p` or
-`./elgato-gchd -r 1080p` with root permissions in a terminal and leave it open.
-This command will create a new file `/tmp/elgato-gchd.ts`.
+According to your source, run `./elgato-gchd -r <resolution>`, whereas
+`<resolution>` can be `1080p` or `720p` for a HDMI source, `c1080p`, `c1080i`,
+`c720p` or `c576p` for a component source or `576i` for a composite PAL source.
+
+Example: `./elgato-gchd -r 1080p` for HDMI 1080p60 source. This command will
+create a new file `/tmp/elgato-gchd.ts`.
 
 Please note, that this file is actually a FIFO pipe and will not grow. You will
 need an external program to record footage.
 
 You can open up this file using any media player, which supports reading from
-pipes. There will be a slight delay, which is hardware limited and can not be
-worked around.
+pipes (e.g. VLC or obs-studio). There will be a slight delay, which is hardware
+limited and can not be worked around.
 
 If you're done using this driver, close the file. Then stop the terminal using
 "Ctrl + C" and wait for the program to successfully terminate. The driver is
-resetting your device, so it can be used again. If you interrupt this step, it
-will leave your device in an undefined state and you will need to replug your
-device, to manually reset it.
+resetting your device, it may take a while. If you interrupt this step, it will
+leave your device in an undefined state and you will need to manually reset your
+device by reconnecting it.
 
-Currently, 1080p30 and 720p60 are supported.
+Currently supported input sources:
+
+* HDMI: 1080p60 (output 1080p30), 720p60
+* Component: 576p50 (PAL), 720p60, 1080i60, 1080p60 (output 1080p30)
+* Composite: 576i50 (PAL)
 
 
 Contributors
