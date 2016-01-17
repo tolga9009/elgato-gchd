@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2014 - 2015 Tolga Cakir <tolga@cevel.net>
+ * Copyright (c) 2014 - 2016 Tolga Cakir <tolga@cevel.net>
  *
  * This source file is part of Elgato Game Capture HD Linux driver and is
  * distributed under the MIT License. For more information, see LICENSE file.
@@ -21,13 +21,7 @@
 
 #include "commands.h"
 #include "common.h"
-#include "init_720p.h"
-#include "init_1080p.h"
-#include "init_576i.h"
-#include "init_component_576p.h"
-#include "init_component_720p.h"
-#include "init_component_1080i.h"
-#include "init_component_1080p.h"
+#include "init.h"
 #include "remove.h"
 
 // constants
