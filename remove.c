@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2014 - 2015 Tolga Cakir <tolga@cevel.net>
  *
- * This source file is part of Elgato Game Capture HD Linux driver and is
- * distributed under the MIT License. For more information, see LICENSE file.
+ * This source file is part of Game Capture HD Linux driver and is distributed
+ * under the MIT License. For more information, see LICENSE file.
  */
 
 #include "commands.h"
@@ -21,7 +21,7 @@ void remove_elgato() {
 	}
 
 	// we probably need some sleeps here and receive null output, to give
-	// the Elgato enough time to gracefully reset. Else, the next scmd()
+	// the device enough time to gracefully reset. Else, the next scmd()
 	// command seems to be ignored and we're leaving the device in an
 	// undefined state.
 	read_config(0xbc, 0x0800, 0x2008, 2);

@@ -1,14 +1,14 @@
-Elgato Game Capture HD Linux driver
-===================================
+# Game Capture HD Linux driver
 
 This project provides a userspace driver to support the Elgato Game Capture HD
-under Linux. This is an unofficial driver and therefore not supported by Elgato.
+under Linux. This is an unofficial driver and in no way supported by Elgato.
 
 Use at your own risk! This software is not intended for production use.
 
+Official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
 
-Firmware
-========
+
+## Firmware
 
 This software needs Elgato Game Capture HD firmware files to work. They're not
 part of this repository, so you need to extract them yourself. A brief
@@ -39,8 +39,7 @@ distribution for more information.
 6. Place the firmware files into this project's `firmware` folder.
 
 
-Install
-=======
+## Install
 
 1. Install the following dependencies. Please refer to your specific Linux
 distribution, as package names might differ.
@@ -56,8 +55,7 @@ distribution, as package names might differ.
     ```
 
 
-Usage
-=====
+## Usage
 
 According to your source, run `./elgato-gchd -r <resolution>`, whereas
 `<resolution>` can be `1080p` or `720p` for a HDMI source, `c1080p`, `c1080i`,
@@ -86,14 +84,16 @@ Currently supported input sources:
 * Composite: 576i50 (PAL)
 
 
-Contributors
-============
+## Contribution
 
-- Join our official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
-- Special thanks to jedahan for writing openvizsla2c utility
+In order to contribute to this project, you need to read and agree the Developer
+Certificate of Origin, which can be found in the CONTRIBUTING file. Therefore,
+commits need to be signed-off. You can do this by adding the `-s` flag when
+commiting: `git commit -s`. Pseudonyms and anonymous contributions will not be
+accepted.
 
 
-License
-=======
+## License
 
-This driver is made available under the MIT License.
+This project is made available under the MIT License. For more information,
+please refer to the LICENSE file.
