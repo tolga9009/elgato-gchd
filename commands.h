@@ -10,7 +10,10 @@
 
 #include <stdint.h>
 
-// scmd commands
+// endpoints
+#define EP_OUT	0x02
+
+// system commands
 #define SCMD_IDLE		1
 #define SCMD_INIT		4
 #define SCMD_STATE_CHANGE	5

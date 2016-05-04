@@ -17,6 +17,5 @@
 
 struct libusb_device_handle *devh;
 extern int fd_fifo;
-extern int init_has_been_run;
 
 #endif

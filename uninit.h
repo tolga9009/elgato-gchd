@@ -5,9 +5,9 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#ifndef REMOVE_H
-#define REMOVE_H
+#ifndef UNINIT_H
+#define UNINIT_H
 
-void remove_elgato();
+void uninit_device();
 
 #endif

@@ -8,6 +8,19 @@ Use at your own risk! This software is not intended for production use.
 Official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
 
 
+## Supported devices
+
+* Elgato Game Capture HD
+
+
+## Unsupported devices
+
+* Elgato Game Capture HD (latest revision PID 0x005d) (planned)
+* Elgato Game Capture HD60 (planned)
+* Elgato Game Capture HD60 S
+* Elgato Game Capture HD60 Pro
+
+
 ## Firmware
 
 This software needs Elgato Game Capture HD firmware files to work. They're not

@@ -175,7 +175,7 @@ void dlfirm(const char *file) {
 
 		fread(data, bytes_remain, 1, bin);
 
-		libusb_bulk_transfer(devh, 0x02, data, bytes_remain, &transfer, 0);
+		libusb_bulk_transfer(devh, EP_OUT, data, bytes_remain, &transfer, 0);
 	}
 
 	fclose(bin);

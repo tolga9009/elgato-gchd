@@ -7,7 +7,7 @@
 
 #include "commands.h"
 
-void remove_elgato() {
+void uninit_device() {
 	// state change - output null
 	scmd(SCMD_STATE_CHANGE, 0x00, 0x0004);
 

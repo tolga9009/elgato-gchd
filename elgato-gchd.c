@@ -22,27 +22,22 @@
 #include "commands.h"
 #include "common.h"
 #include "init.h"
-#include "remove.h"
+#include "uninit.h"
+
+// USB VID & PIDs
+#define VENDOR_ELGATO		0x0fd9
+#define GAME_CAPTURE_HD_0	0x0044
+#define GAME_CAPTURE_HD_1	0x004e
+#define GAME_CAPTURE_HD_2	0x0051
+#define GAME_CAPTURE_HD_3	0x005d // new revision GCHD - unsupported
+#define GAME_CAPTURE_HD60	0x005c // Game Capture HD60 - unsupported
+#define GAME_CAPTURE_HD60_S	0x004f // Game Capture HD60 S - unsupported
 
 // constants
-#define ELGATO_VENDOR		0x0fd9
-#define GAME_CAPTURE_HD_PID_0	0x0044
-#define GAME_CAPTURE_HD_PID_1	0x004e
-#define GAME_CAPTURE_HD_PID_2	0x0051
-#define GAME_CAPTURE_HD_PID_3	0x005d
+#define INTERFACE_NUM		0x00
+#define CONFIGURATION_VALUE	0x01
 
-#define EP_OUT		0x02
-#define INTERFACE_NUM	0x00
-#define CONFIGURATION	0x01
-
-// globals
-static volatile sig_atomic_t is_running = 1;
-int libusb_ret = 1;
-int fd_fifo = 0;
-int init_has_been_run = 0;
-char *fifo_path = "/tmp/elgato_gchd.ts";
-
-enum video_resoltion {
+enum video_resolution {
 	v720p,
 	v1080p,
 	v576i,
@@ -52,8 +47,15 @@ enum video_resoltion {
 	vc1080p
 };
 
+// globals
+static volatile sig_atomic_t is_running = 1;
+int libusb_ret = 1;
+int fd_fifo = 0;
+int is_initialized = 0;
+char *fifo_path = "/tmp/elgato_gchd.ts";
+
 void sig_handler(int sig) {
-	fprintf(stderr, "\nStop signal received.\nYour device is going to be reset. Please wait and do not interrupt or unplug your device.\n");
+	fprintf(stderr, "\nStop signal received.\n");
 
 	switch(sig) {
 		case SIGINT:
@@ -65,7 +67,7 @@ void sig_handler(int sig) {
 	}
 }
 
-int init_dev_handler() {
+int open_device() {
 	devh = NULL;
 	libusb_ret = libusb_init(NULL);
 
@@ -74,26 +76,39 @@ int init_dev_handler() {
 		return 1;
 	}
 
+	// uncomment for verbose debugging
 	//libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
 
-	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_0);
+	devh = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_0);
 	if (devh) {
 		return 0;
 	}
 
-	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_1);
+	devh = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_1);
 	if (devh) {
 		return 0;
 	}
 
-	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_2);
+	devh = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_2);
 	if (devh) {
 		return 0;
 	}
 
-	devh = libusb_open_device_with_vid_pid(NULL, ELGATO_VENDOR, GAME_CAPTURE_HD_PID_3);
+	devh = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
 	if (devh) {
 		fprintf(stderr, "This revision of the Elgato Game Capture HD is currently not supported.\n");
+		return 1;
+	}
+
+	devh = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD60);
+	if (devh) {
+		fprintf(stderr, "The Elgato Game Capture HD60 is currently not supported.\n");
+		return 1;
+	}
+
+	devh = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD60_S);
+	if (devh) {
+		fprintf(stderr, "The Elgato Game Capture HD60 S is currently not supported.\n");
 		return 1;
 	}
 
@@ -105,7 +120,7 @@ int get_interface() {
 		libusb_detach_kernel_driver(devh, INTERFACE_NUM);
 	}
 
-	if (libusb_set_configuration(devh, CONFIGURATION)) {
+	if (libusb_set_configuration(devh, CONFIGURATION_VALUE)) {
 		fprintf(stderr, "Could not activate configuration.\n");
 		return 1;
 	}
@@ -118,18 +133,24 @@ int get_interface() {
 	return 0;
 }
 
+void close_device() {
+	libusb_release_interface(devh, INTERFACE_NUM);
+	libusb_close(devh);
+}
+
 void clean_up() {
 	if (devh) {
-		if (init_has_been_run) {
-			remove_elgato();
+		if (is_initialized) {
+			fprintf(stderr, "Your device is going to be reset. Please wait and do not interrupt or unplug your device.\n");
+			uninit_device();
 			fprintf(stderr, "Device has been reset.\n");
 		}
 
-		libusb_release_interface(devh, INTERFACE_NUM);
-		libusb_close(devh);
+		close_device();
 	}
 
-	if (libusb_ret == 0) {
+	// deinitialize libusb
+	if (!libusb_ret) {
 		libusb_exit(NULL);
 	}
 
@@ -152,7 +173,8 @@ int main(int argc, char *argv[]) {
 		{"resolution", required_argument, 0, 'r'},
 	};
 
-	int opt, index, resolution = 0;
+	int opt, index;
+	enum video_resolution resolution;
 
 	while ((opt = getopt_long(argc, argv, "r:", longOptions, &index)) != -1) {
 		switch (opt) {
@@ -194,15 +216,16 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	// initialize device handler
+	if (open_device()) {
+		fprintf(stderr, "Unable to find device.\n");
+		goto end;
+	}
+
+	// check for firmware files
 	if (access(FW_MB86H57_H58_IDLE, F_OK) != 0
 	    || access(FW_MB86H57_H58_ENC, F_OK) != 0) {
-		    fprintf(stderr, "Firmware files missing.\n");
-		    goto end;
-	    }
-
-	// initialize device handler
-	if (init_dev_handler()) {
-		fprintf(stderr, "Unable to find device.\n");
+		fprintf(stderr, "Firmware files missing.\n");
 		goto end;
 	}
 
@@ -212,17 +235,19 @@ int main(int argc, char *argv[]) {
 		goto end;
 	}
 
-	// create the FIFO (also known as named pipe)
-	mkfifo(fifo_path, 0644);
+	// create and open FIFO
+	if (mkfifo(fifo_path, 0644)) {
+		fprintf(stderr, "Error creating FIFO.\n");
+		goto end;
+	}
 
 	fprintf(stderr, "%s has been created. Waiting for user to open it.\n", fifo_path);
-
-	// open FIFO
 	fd_fifo = open(fifo_path, O_WRONLY);
 
 	// set device configuration
 	if (is_running) {
-		fprintf(stderr, "Running. Initializing device.\n");
+		fprintf(stderr, "Initializing device.\n");
+		is_initialized = 1;
 
 		switch (resolution) {
 			case v720p: configure_dev_720p(); break;
@@ -244,7 +269,6 @@ int main(int argc, char *argv[]) {
 	}
 
 end:
-	// clean up
 	clean_up();
 
 	return 0;

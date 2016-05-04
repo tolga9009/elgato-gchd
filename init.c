@@ -11,8 +11,6 @@
 void configure_dev_mode() {
 	int is_configured = 0;
 
-	init_has_been_run = 1;
-
 	read_config(0xbc, 0x0800, 0x0094, 4);
 	read_config(0xbc, 0x0800, 0x0098, 4);
 
