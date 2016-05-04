@@ -15,6 +15,7 @@
 #define FW_MB86H57_H58_IDLE	"firmware/mb86h57_h58_idle.bin"
 #define FW_MB86H57_H58_ENC	"firmware/mb86h57_h58_enc_h.bin"
 
+// handlers
 struct libusb_device_handle *devh;
 extern int fd_fifo;
 

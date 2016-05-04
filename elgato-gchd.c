@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +38,28 @@
 #define INTERFACE_NUM		0x00
 #define CONFIGURATION_VALUE	0x01
 
-enum video_resolution {
+// globals
+static volatile sig_atomic_t is_running = 1;
+int libusb_ret = 1;
+int fd_fifo = 0;
+int is_initialized = 0;
+char *fifo_path = "/tmp/elgato_gchd.ts";
+
+// settings
+bool use_hdmi_analog_audio;
+bool allow_60_fps;
+bool use_overscan;
+bool use_standard_definition;
+bool stretch_format_for_sd;
+int brightness;
+int contrast;
+int saturation;
+int hue;
+int analog_audio_gain;
+int digital_audio_gain;
+
+enum video_profile {
+	res_unknown,
 	v720p,
 	v1080p,
 	v576i,
@@ -47,12 +69,19 @@ enum video_resolution {
 	vc1080p
 };
 
-// globals
-static volatile sig_atomic_t is_running = 1;
-int libusb_ret = 1;
-int fd_fifo = 0;
-int is_initialized = 0;
-char *fifo_path = "/tmp/elgato_gchd.ts";
+enum video_input {
+	vid_unknown,
+	composite,
+	svideo,
+	component,
+	hdmi
+};
+
+enum hdmi_colorspace {
+	color_unknown,
+	full,
+	limited
+};
 
 void sig_handler(int sig) {
 	fprintf(stderr, "\nStop signal received.\n");
@@ -174,31 +203,31 @@ int main(int argc, char *argv[]) {
 	};
 
 	int opt, index;
-	enum video_resolution resolution;
+	enum video_profile v_profile;
 
 	while ((opt = getopt_long(argc, argv, "r:", longOptions, &index)) != -1) {
 		switch (opt) {
 			case 'r':
 				if (strcmp(optarg, "720p") == 0) {
-					resolution = v720p;
+					v_profile = v720p;
 					break;
 				} else if (strcmp(optarg, "1080p") == 0) {
-					resolution = v1080p;
+					v_profile = v1080p;
 					break;
 				} else if (strcmp(optarg, "576i") == 0) {
-					resolution = v576i;
+					v_profile = v576i;
 					break;
 				} else if (strcmp(optarg, "c576p") == 0) {
-					resolution = vc576p;
+					v_profile = vc576p;
 					break;
 				} else if (strcmp(optarg, "c720p") == 0) {
-					resolution = vc720p;
+					v_profile = vc720p;
 					break;
 				} else if (strcmp(optarg, "c1080i") == 0) {
-					resolution = vc1080i;
+					v_profile = vc1080i;
 					break;
 				} else if (strcmp(optarg, "c1080p") == 0) {
-					resolution = vc1080p;
+					v_profile = vc1080p;
 					break;
 				}
 
@@ -249,7 +278,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Initializing device.\n");
 		is_initialized = 1;
 
-		switch (resolution) {
+		switch (v_profile) {
 			case v720p: configure_dev_720p(); break;
 			case v1080p: configure_dev_1080p(); break;
 			case v576i: configure_dev_576i(); break;
