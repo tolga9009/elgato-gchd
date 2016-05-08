@@ -59,7 +59,7 @@ class Settings {
 		void setAnalogAudioGain(int analogAudioGain);
 		int getDigitalAudioGain();
 		void setDigitalAudioGain(int digitalAudioGain);
-                Settings();
+		Settings();
 
 	private:
 		bool useAnalogAudio_;

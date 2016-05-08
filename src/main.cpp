@@ -35,16 +35,16 @@ std::string fifoPath = "/tmp/gchd.ts";
 
 // TODO stop GCHD aswell, when signal is received
 void sigHandler(int sig) {
-        fprintf(stderr, "\nStop signal received.\n");
+	fprintf(stderr, "\nStop signal received.\n");
 
-        switch(sig) {
-                case SIGINT:
+	switch(sig) {
+		case SIGINT:
 			isRunning = false;
-                        break;
-                case SIGTERM:
+			break;
+		case SIGTERM:
 			isRunning = false;
-                        break;
-        }
+			break;
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -60,8 +60,8 @@ int main(int argc, char *argv[]) {
 
 	// handling command-line options
 	static struct option longOptions[] = {
-		{"resolution", required_argument, 0, 'r'},
-	};
+	{"resolution", required_argument, 0, 'r'},
+};
 
 	int opt, index;
 

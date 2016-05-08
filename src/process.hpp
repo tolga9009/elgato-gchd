@@ -16,7 +16,7 @@ class Process {
 		void destroyPid();
 		int createFifo(std::string fifoPath);
 		void destroyFifo();
-                Process();
+		Process();
 		~Process();
 
 	private:

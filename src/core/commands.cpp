@@ -5,7 +5,6 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
