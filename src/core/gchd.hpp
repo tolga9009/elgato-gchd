@@ -13,7 +13,7 @@
 
 #include <libusb-1.0/libusb.h>
 
-#include "settings.hpp"
+#include <core/settings.hpp>
 
 // endpoints
 #define EP_OUT		0x02

@@ -23,7 +23,7 @@
 
 #include <libusb-1.0/libusb.h>
 
-#include "gchd.hpp"
+#include <core/gchd.hpp>
 
 // USB VID & PIDs
 #define VENDOR_ELGATO		0x0fd9
