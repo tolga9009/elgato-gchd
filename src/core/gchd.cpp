@@ -5,6 +5,9 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
+#include <string>
+#include <vector>
+
 #include <fcntl.h>
 #include <getopt.h>
 #include <signal.h>
@@ -32,8 +35,8 @@
 #define GAME_CAPTURE_HD60_S	0x004f // Game Capture HD60 S - unsupported
 
 // firmware
-constexpr auto FW_MB86H57_H58_IDLE2 = "mb86h57_h58_idle.bin";
-constexpr auto FW_MB86H57_H58_ENC2 = "mb86h57_h58_enc_h.bin";
+constexpr auto FW_MB86H57_H58_IDLE = "mb86h57_h58_idle.bin";
+constexpr auto FW_MB86H57_H58_ENC = "mb86h57_h58_enc_h.bin";
 
 // constants
 #define INTERFACE_NUM		0x00
@@ -59,10 +62,10 @@ int GCHD::init() {
 	fprintf(stderr, "Initializing device.\n");
 	isInitialized_ = true;
 
-	switch(settings_->getInputSource()) {
+	switch (settings_->getInputSource()) {
 		case InputSource::Composite: configure_dev_576i(); break;
 		case InputSource::Component:
-			switch(settings_->getResolution()) {
+			switch (settings_->getResolution()) {
 				case Resolution::Standard: configure_dev_component_576p(); break;
 				case Resolution::HD720: configure_dev_component_720p(); break;
 				case Resolution::HD1080: configure_dev_component_1080p(); break;
@@ -70,20 +73,14 @@ int GCHD::init() {
 			}
 			break;
 		case InputSource::HDMI:
-			switch(settings_->getResolution()) {
-				case Resolution::HD720: configure_dev_720p();
-				case Resolution::HD1080: configure_dev_1080p();
+			switch (settings_->getResolution()) {
+				case Resolution::HD720: configure_dev_720p(); break;
+				case Resolution::HD1080: configure_dev_1080p(); break;
 				default: return 1;
 			}
+			break;
 
 		default: return 1;
-	}
-
-
-
-
-	if(settings_->getInputSource() == InputSource::Composite) {
-
 	}
 
 	return 0;
@@ -98,19 +95,29 @@ void GCHD::stream(unsigned char *data, int length) {
 int GCHD::checkFirmware() {
 	// TODO check in /usr/lib/firmware, /usr/local/lib/firmware and ./
 	if (deviceType_ == DeviceType::GameCaptureHD) {
-		if (access(FW_MB86H57_H58_IDLE2, F_OK)
-				|| access(FW_MB86H57_H58_ENC2, F_OK)) {
-			fprintf(stderr, "Firmware files missing.\n");
-			return 1;
+		std::vector<std::string> list = {"/usr/lib/firmware/gchd/", "/usr/local/lib/firmware/gchd/", "./"};
+
+		for (auto it : list) {
+			std::string idle = it + FW_MB86H57_H58_IDLE;
+			std::string enc = it + FW_MB86H57_H58_ENC;
+
+			if (!access(idle.c_str(), F_OK)
+					&& !access(enc.c_str(), F_OK)) {
+				firmwareIdle_ = idle;
+				firmwareEnc_ = enc;
+				return 0;
+			}
 		}
 	}
 
-	return 0;
+	fprintf(stderr, "Firmware files missing.\n");
+
+	return 1;
 }
 
 int GCHD::openDevice() {
-	devh_ = NULL;
-	libusb_ = libusb_init(NULL);
+	devh_ = nullptr;
+	libusb_ = libusb_init(nullptr);
 
 	if (libusb_) {
 		fprintf(stderr, "Error initializing libusb.\n");
@@ -118,41 +125,41 @@ int GCHD::openDevice() {
 	}
 
 	// uncomment for verbose debugging
-	//libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_DEBUG);
+	//libusb_set_debug(nullptr, LIBUSB_LOG_LEVEL_DEBUG);
 
-	devh_ = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_0);
+	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_0);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_1);
+	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_1);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_2);
+	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_2);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD;
 		return 0;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
+	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHDNew;
 		fprintf(stderr, "This revision of the Elgato Game Capture HD is currently not supported.\n");
 		return 1;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD60);
+	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD60;
 		fprintf(stderr, "The Elgato Game Capture HD60 is currently not supported.\n");
 		return 1;
 	}
 
-	devh_ = libusb_open_device_with_vid_pid(NULL, VENDOR_ELGATO, GAME_CAPTURE_HD60_S);
+	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60_S);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD60S;
 		fprintf(stderr, "The Elgato Game Capture HD60 S is currently not supported.\n");
@@ -209,6 +216,6 @@ GCHD::~GCHD() {
 
 	// deinitialize libusb
 	if (!libusb_) {
-		libusb_exit(NULL);
+		libusb_exit(nullptr);
 	}
 }

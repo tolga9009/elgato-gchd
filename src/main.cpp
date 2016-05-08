@@ -24,29 +24,29 @@
 #include <libusb-1.0/libusb.h>
 
 #include <core/gchd.hpp>
-#include <core/settings.hpp>
 
 // globals
 std::atomic<bool> isRunning;
 int fd = 0;
-std::string fifoPath = "/tmp/elgato_gchd.ts";
+std::string path = "/tmp/elgato_gchd.ts";
 
+// TODO stop GCHD aswell, when signal is received
 void sigHandler(int sig) {
         fprintf(stderr, "\nStop signal received.\n");
 
         switch(sig) {
                 case SIGINT:
-			isRunning = 0;
+			isRunning = false;
                         break;
                 case SIGTERM:
-			isRunning = 0;
+			isRunning = false;
                         break;
         }
 }
 
 void cleanUp() {
 	close(fd);
-	unlink(fifoPath.c_str());
+	unlink(path.c_str());
 
 	fprintf(stderr, "Terminating.\n");
 }
@@ -98,17 +98,23 @@ int main(int argc, char *argv[]) {
 	}
 
 	auto gchd = GCHD(&settings);
-	gchd.init(); // TODO check return value
 
-	// create and open FIFO
-	if (mkfifo(fifoPath.c_str(), 0644)) {
-		fprintf(stderr, "Error creating FIFO.\n");
+	// initialization
+	if(gchd.init()) {
+		return EXIT_FAILURE;
 	}
 
-	fprintf(stderr, "%s has been created. Waiting for user to open it.\n", fifoPath.c_str());
-	fd = open(fifoPath.c_str(), O_WRONLY);
+	// create FIFO
+	if (mkfifo(path.c_str(), 0644)) {
+		fprintf(stderr, "Error creating FIFO.\n");
+		return EXIT_FAILURE;
+	}
+
+	fprintf(stderr, "%s has been created. Waiting for user to open it.\n", path.c_str());
+	fd = open(path.c_str(), O_WRONLY);
 
 	// when FIFO file has been opened
+	isRunning = true;
 	fprintf(stderr, "Streaming data from device now.\n");
 
 	// receive audio and video from device
@@ -119,5 +125,5 @@ int main(int argc, char *argv[]) {
 		write(fd, (char *)data, DATA_BUF);
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }
