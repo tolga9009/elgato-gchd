@@ -5,10 +5,9 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#include "commands.h"
-#include "common.h"
+#include "gchd.hpp"
 
-void configure_dev_mode() {
+void GCHD::configure_dev_mode() {
 	int is_configured = 0;
 
 	read_config(0xbc, 0x0800, 0x0094, 4);
@@ -53,7 +52,7 @@ void configure_dev_mode() {
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
 
 	// load "idle" firmware
-	dlfirm(FW_MB86H57_H58_IDLE);
+	dlfirm(firmwareIdle_.c_str());
 
 	write_config2(0xbc, 0x0900, 0x0070, 0x00, 0x04);
 
@@ -530,7 +529,7 @@ configured_2:
 	scmd(SCMD_INIT, 0x00, 0x0000);
 
 	/* load "enc" firmware */
-	dlfirm(FW_MB86H57_H58_ENC);
+	dlfirm(firmwareEnc_.c_str());
 
 	read_config(0xbc, 0x0000, 0x0010, 2);
 	read_config(0xbc, 0x0000, 0x0012, 2);

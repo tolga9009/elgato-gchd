@@ -1,2 +1,2 @@
-*.o
-elgato-gchd
+build
+CMakeLists.txt.user
