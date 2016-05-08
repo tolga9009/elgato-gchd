@@ -6,6 +6,7 @@
  */
 
 #include <atomic>
+#include <iostream>
 #include <string>
 
 #include <fcntl.h>
@@ -24,11 +25,13 @@
 #include <libusb-1.0/libusb.h>
 
 #include <core/gchd.hpp>
+#include <process.hpp>
 
 // globals
 std::atomic<bool> isRunning;
 int fd = 0;
-std::string path = "/tmp/elgato_gchd.ts";
+std::string pidPath = "/var/run/gchd.pid";
+std::string fifoPath = "/tmp/gchd.ts";
 
 // TODO stop GCHD aswell, when signal is received
 void sigHandler(int sig) {
@@ -44,13 +47,6 @@ void sigHandler(int sig) {
         }
 }
 
-void cleanUp() {
-	close(fd);
-	unlink(path.c_str());
-
-	fprintf(stderr, "Terminating.\n");
-}
-
 int main(int argc, char *argv[]) {
 	// signal handling
 	signal(SIGINT, sigHandler);
@@ -59,7 +55,7 @@ int main(int argc, char *argv[]) {
 	// ignore SIGPIPE, else program terminates on unsuccessful write()
 	signal(SIGPIPE, SIG_IGN);
 
-	// object for storing settings, needed for GCHD constructor
+	// object for storing device settings, needed for GCHD constructor
 	Settings settings;
 
 	// handling command-line options
@@ -97,21 +93,25 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	auto process = Process();
+
+	// create PID file for single instance mechanism
+	if (process.createPid(pidPath)) {
+		std::cerr << "Error creating PID file." << std::endl;
+		return EXIT_FAILURE;
+	}
+
 	auto gchd = GCHD(&settings);
 
-	// initialization
+	// device initialization
 	if(gchd.init()) {
 		return EXIT_FAILURE;
 	}
 
-	// create FIFO
-	if (mkfifo(path.c_str(), 0644)) {
-		fprintf(stderr, "Error creating FIFO.\n");
+	// TODO check flag, if FIFO or record to HDD is preferred
+	if (process.createFifo(fifoPath)) {
 		return EXIT_FAILURE;
 	}
-
-	fprintf(stderr, "%s has been created. Waiting for user to open it.\n", path.c_str());
-	fd = open(path.c_str(), O_WRONLY);
 
 	// when FIFO file has been opened
 	isRunning = true;
@@ -124,6 +124,8 @@ int main(int argc, char *argv[]) {
 		gchd.stream(data, DATA_BUF);
 		write(fd, (char *)data, DATA_BUF);
 	}
+
+	fprintf(stderr, "Terminating.\n");
 
 	return EXIT_SUCCESS;
 }
