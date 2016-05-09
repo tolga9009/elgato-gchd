@@ -5,6 +5,7 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -59,7 +60,7 @@ int GCHD::init() {
 	}
 
 	// set device configuration
-	fprintf(stderr, "Initializing device.\n");
+	std::cerr << "Initializing device." << std::endl;
 	isInitialized_ = true;
 
 	switch (settings_->getInputSource()) {
@@ -115,7 +116,7 @@ int GCHD::checkFirmware() {
 		}
 	}
 
-	fprintf(stderr, "Firmware files missing.\n");
+	std::cerr << "Firmware files missing." << std::endl;
 
 	return 1;
 }
@@ -124,7 +125,7 @@ int GCHD::openDevice() {
 	libusb_ = libusb_init(nullptr);
 
 	if (libusb_) {
-		fprintf(stderr, "Error initializing libusb.\n");
+		std::cerr << "Error initializing libusb." << std::endl;
 		return 1;
 	}
 
@@ -152,25 +153,25 @@ int GCHD::openDevice() {
 	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHDNew;
-		fprintf(stderr, "This revision of the Elgato Game Capture HD is currently not supported.\n");
+		std::cerr << "This revision of the Elgato Game Capture HD is currently not supported." << std::endl;
 		return 1;
 	}
 
 	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD60;
-		fprintf(stderr, "The Elgato Game Capture HD60 is currently not supported.\n");
+		std::cerr << "The Elgato Game Capture HD60 is currently not supported." << std::endl;
 		return 1;
 	}
 
 	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60_S);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHD60S;
-		fprintf(stderr, "The Elgato Game Capture HD60 S is currently not supported.\n");
+		std::cerr << "The Elgato Game Capture HD60 S is currently not supported." << std::endl;
 		return 1;
 	}
 
-	fprintf(stderr, "Unable to find a supported device.\n");
+	std::cerr << "Unable to find a supported device." << std::endl;
 
 	return 1;
 }
@@ -181,12 +182,12 @@ int GCHD::getInterface() {
 	}
 
 	if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
-		fprintf(stderr, "Could not set configuration.\n");
+		std::cerr << "Could not set configuration." << std::endl;
 		return 1;
 	}
 
 	if (libusb_claim_interface(devh_, INTERFACE_NUM)) {
-		fprintf(stderr, "Failed to claim interface.\n");
+		std::cerr << "Failed to claim interface." << std::endl;
 		return 1;
 	}
 
@@ -196,9 +197,9 @@ int GCHD::getInterface() {
 void GCHD::closeDevice() {
 	if (devh_) {
 		if (isInitialized_) {
-			fprintf(stderr, "Your device is going to be reset. Please wait and do not interrupt or unplug your device.\n");
+			std::cerr << "Your device is going to be reset. Please wait and do not interrupt or unplug your device." << std::endl;
 			uninitDevice();
-			fprintf(stderr, "Device has been reset.\n");
+			std::cerr << "Device has been reset." << std::endl;
 		}
 
 		libusb_release_interface(devh_, INTERFACE_NUM);

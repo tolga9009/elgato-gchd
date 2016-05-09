@@ -86,13 +86,13 @@ int main(int argc, char *argv[]) {
 				std::cerr << "Unsupported resolution." << std::endl;
 				return EXIT_FAILURE;
 			case ':':
-				fprintf(stderr, "Missing argument.\n");
+				std::cerr << "Missing argument." << std::endl;
 				return EXIT_FAILURE;
 			case '?':
-				fprintf(stderr, "Unrecognized option.\n");
+				std::cerr << "Unrecognized option." << std::endl;
 				return EXIT_FAILURE;
 			default:
-				fprintf(stderr, "Unexpected error.\n");
+				std::cerr << "Unexpected error." << std::endl;
 				return EXIT_FAILURE;
 		}
 	}
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 		process.streamToDisk(&gchd, outputPath);
 	}
 
-	fprintf(stderr, "Terminating.\n");
+	std::cerr << "Terminating." << std::endl;
 
 	return EXIT_SUCCESS;
 }
