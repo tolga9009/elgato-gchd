@@ -6,12 +6,7 @@
  */
 
 #include <cstdio>
-#include <cstdlib>
 #include <vector>
-
-#include <unistd.h>
-
-#include <libusb-1.0/libusb.h>
 
 #include <core/gchd.hpp>
 

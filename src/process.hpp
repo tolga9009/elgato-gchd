@@ -9,7 +9,6 @@
 #define PROCESS_CLASS_H
 
 #include <atomic>
-#include <csignal>
 #include <string>
 
 #include <core/gchd.hpp>

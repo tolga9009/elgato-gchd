@@ -5,24 +5,11 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#include <atomic>
-#include <csignal>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <libusb-1.0/libusb.h>
 
 #include <core/gchd.hpp>
 #include <process.hpp>

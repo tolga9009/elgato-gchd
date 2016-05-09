@@ -6,23 +6,10 @@
  */
 
 #include <iostream>
-#include <string>
 #include <vector>
 
 #include <fcntl.h>
-#include <getopt.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <libusb-1.0/libusb.h>
 
 #include <core/gchd.hpp>
 
