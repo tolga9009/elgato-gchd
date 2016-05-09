@@ -85,20 +85,37 @@ void Process::destroyFifo() {
 	}
 }
 
-int Process::getFifoFd() {
-	return fifoFd_;
+void Process::streamToFifo(GCHD *gchd) {
+	// immediately return, if FIFO hasn't been opened yet
+	if (!fifoFd_) {
+		return;
+	}
+
+	setActive(true);
+	std::cerr << "Streaming data from device now." << std::endl;
+
+	// receive audio and video from device
+	while (isActive() && fifoFd_) {
+		unsigned char data[DATA_BUF] = {0};
+
+		gchd->stream(data, DATA_BUF);
+		write(fifoFd_, (char *)data, DATA_BUF);
+	}
 }
 
-// TODO stop GCHD aswell, when signal has been received
+void Process::streamToDisk(GCHD *gchd, std::__cxx11::string outputPath) {
+	// TODO implementation
+}
+
 void Process::sigHandler_(int sig) {
 	std::cerr << std::endl << "Stop signal received." << std::endl;
 
 	switch(sig) {
 		case SIGINT:
-			isActive_ = false;
+			setActive(false);
 			break;
 		case SIGTERM:
-			isActive_ = false;
+			setActive(false);
 			break;
 	}
 }

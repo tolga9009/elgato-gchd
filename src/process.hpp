@@ -12,15 +12,18 @@
 #include <csignal>
 #include <string>
 
+#include <core/gchd.hpp>
+
 class Process {
 	public:
-		bool isActive();
-		void setActive(bool isActive);
+		static bool isActive();
+		static void setActive(bool isActive);
 		int createPid(std::string pidPath);
 		void destroyPid();
 		int createFifo(std::string fifoPath);
 		void destroyFifo();
-		int getFifoFd();
+		void streamToFifo(GCHD *gchd);
+		void streamToDisk(GCHD *gchd, std::string outputPath);
 		Process();
 		~Process();
 

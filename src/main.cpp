@@ -36,27 +36,18 @@ int main(int argc, char *argv[]) {
 
 	// commandline-specific settings
 	std::string pidPath = "/var/run/gchd.pid";
-	std::string fifoPath = "/tmp/gchd.ts";
+	std::string outputPath = "/tmp/gchd.ts";
+	bool useFifo = true;
 
 	// handling command-line options
 	int opt;
 
-	while ((opt = getopt(argc, argv, ":r:i:")) != -1) {
+	// TODO show help information
+	while ((opt = getopt(argc, argv, ":di:o:p:r:")) != -1) {
 		switch (opt) {
-			case 'r':
-				if (std::string(optarg) == "SD") {
-					settings.setResolution(Resolution::Standard);
-					break;
-				} else if (std::string(optarg) == "720") {
-					settings.setResolution(Resolution::HD720);
-					break;
-				} else if (std::string(optarg) == "1080") {
-					settings.setResolution(Resolution::HD1080);
-					break;
-				}
-
-				std::cerr << "Unsupported resolution." << std::endl;
-				return EXIT_FAILURE;
+			case 'd':
+				useFifo = false;
+				break;
 			case 'i':
 				if (std::string(optarg) == "Composite") {
 					settings.setInputSource(InputSource::Composite);
@@ -73,6 +64,26 @@ int main(int argc, char *argv[]) {
 				}
 
 				std::cerr << "Unrecognized Input Source." << std::endl;
+				return EXIT_FAILURE;
+			case 'o':
+				outputPath = std::string(optarg);
+				break;
+			case 'p':
+				pidPath = std::string(optarg);
+				break;
+			case 'r':
+				if (std::string(optarg) == "SD") {
+					settings.setResolution(Resolution::Standard);
+					break;
+				} else if (std::string(optarg) == "720") {
+					settings.setResolution(Resolution::HD720);
+					break;
+				} else if (std::string(optarg) == "1080") {
+					settings.setResolution(Resolution::HD1080);
+					break;
+				}
+
+				std::cerr << "Unsupported resolution." << std::endl;
 				return EXIT_FAILURE;
 			case ':':
 				fprintf(stderr, "Missing argument.\n");
@@ -100,21 +111,15 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	// TODO check flag, if FIFO or record to HDD is set
-	if (process.createFifo(fifoPath)) {
-		return EXIT_FAILURE;
-	}
+	if (useFifo) {
+		if (process.createFifo(outputPath)) {
+			return EXIT_FAILURE;
+		}
 
-	// when FIFO file has been opened
-	process.setActive(true);
-	fprintf(stderr, "Streaming data from device now.\n");
-
-	// receive audio and video from device
-	while (process.isActive()) {
-		unsigned char data[DATA_BUF] = {0};
-
-		gchd.stream(data, DATA_BUF);
-		write(process.getFifoFd(), (char *)data, DATA_BUF);
+		// when FIFO file has been opened
+		process.streamToFifo(&gchd);
+	} else {
+		process.streamToDisk(&gchd, outputPath);
 	}
 
 	fprintf(stderr, "Terminating.\n");
