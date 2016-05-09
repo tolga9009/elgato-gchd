@@ -87,6 +87,11 @@ int GCHD::init() {
 }
 
 void GCHD::stream(unsigned char *data, int length) {
+	// this function requires an initialized device
+	if (!isInitialized_) {
+		return;
+	}
+
 	int transfer;
 
 	libusb_bulk_transfer(devh_, 0x81, data, length, &transfer, 5000);
@@ -116,7 +121,6 @@ int GCHD::checkFirmware() {
 }
 
 int GCHD::openDevice() {
-	devh_ = nullptr;
 	libusb_ = libusb_init(nullptr);
 
 	if (libusb_) {
@@ -204,6 +208,7 @@ void GCHD::closeDevice() {
 
 
 GCHD::GCHD(Settings *settings) {
+	devh_ = nullptr;
 	libusb_ = 1;
 	isInitialized_ = false;
 	deviceType_ = DeviceType::Unknown;

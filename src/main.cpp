@@ -6,12 +6,12 @@
  */
 
 #include <atomic>
+#include <csignal>
 #include <iostream>
 #include <string>
 
 #include <fcntl.h>
 #include <getopt.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -27,45 +27,21 @@
 #include <core/gchd.hpp>
 #include <process.hpp>
 
-// globals
-std::atomic<bool> isRunning;
-int fd = 0;
-std::string pidPath = "/var/run/gchd.pid";
-std::string fifoPath = "/tmp/gchd.ts";
-
-// TODO stop GCHD aswell, when signal is received
-void sigHandler(int sig) {
-	fprintf(stderr, "\nStop signal received.\n");
-
-	switch(sig) {
-		case SIGINT:
-			isRunning = false;
-			break;
-		case SIGTERM:
-			isRunning = false;
-			break;
-	}
-}
-
 int main(int argc, char *argv[]) {
-	// signal handling
-	signal(SIGINT, sigHandler);
-	signal(SIGTERM, sigHandler);
+	// object for managing runtime information
+	Process process;
 
-	// ignore SIGPIPE, else program terminates on unsuccessful write()
-	signal(SIGPIPE, SIG_IGN);
-
-	// object for storing device settings, needed for GCHD constructor
+	// object for storing device settings
 	Settings settings;
 
+	// commandline-specific settings
+	std::string pidPath = "/var/run/gchd.pid";
+	std::string fifoPath = "/tmp/gchd.ts";
+
 	// handling command-line options
-	static struct option longOptions[] = {
-	{"resolution", required_argument, 0, 'r'},
-};
+	int opt;
 
-	int opt, index;
-
-	while ((opt = getopt_long(argc, argv, "r:", longOptions, &index)) != -1) {
+	while ((opt = getopt(argc, argv, ":r:i:")) != -1) {
 		switch (opt) {
 			case 'r':
 				if (std::string(optarg) == "SD") {
@@ -79,7 +55,24 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 
-				fprintf(stderr, "Unsupported resolution.\n");
+				std::cerr << "Unsupported resolution." << std::endl;
+				return EXIT_FAILURE;
+			case 'i':
+				if (std::string(optarg) == "Composite") {
+					settings.setInputSource(InputSource::Composite);
+					break;
+				} else if (std::string(optarg) == "SVideo") {
+					settings.setInputSource(InputSource::SVideo);
+					break;
+				} else if (std::string(optarg) == "Component") {
+					settings.setInputSource(InputSource::Component);
+					break;
+				} else if (std::string(optarg) == "HDMI") {
+					settings.setInputSource(InputSource::HDMI);
+					break;
+				}
+
+				std::cerr << "Unrecognized Input Source." << std::endl;
 				return EXIT_FAILURE;
 			case ':':
 				fprintf(stderr, "Missing argument.\n");
@@ -93,36 +86,35 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	auto process = Process();
-
+	// TODO not ready for primetime yet, program needs to be restarted too
+	// often at the moment
 	// create PID file for single instance mechanism
-	if (process.createPid(pidPath)) {
-		std::cerr << "Error creating PID file." << std::endl;
-		return EXIT_FAILURE;
-	}
+//	if (process.createPid(pidPath)) {
+//		return EXIT_FAILURE;
+//	}
 
-	auto gchd = GCHD(&settings);
+	GCHD gchd(&settings);
 
 	// device initialization
 	if(gchd.init()) {
 		return EXIT_FAILURE;
 	}
 
-	// TODO check flag, if FIFO or record to HDD is preferred
+	// TODO check flag, if FIFO or record to HDD is set
 	if (process.createFifo(fifoPath)) {
 		return EXIT_FAILURE;
 	}
 
 	// when FIFO file has been opened
-	isRunning = true;
+	process.setActive(true);
 	fprintf(stderr, "Streaming data from device now.\n");
 
 	// receive audio and video from device
-	while (isRunning) {
+	while (process.isActive()) {
 		unsigned char data[DATA_BUF] = {0};
 
 		gchd.stream(data, DATA_BUF);
-		write(fd, (char *)data, DATA_BUF);
+		write(process.getFifoFd(), (char *)data, DATA_BUF);
 	}
 
 	fprintf(stderr, "Terminating.\n");
