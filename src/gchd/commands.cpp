@@ -352,5 +352,5 @@ void GCHD::receiveData() {
 	int transfer;
 	unsigned char data[DATA_BUF] = {0};
 
-	libusb_bulk_transfer(devh_, 0x81, data, DATA_BUF, &transfer, 5000);
+	libusb_bulk_transfer(devh_, 0x81, data, DATA_BUF, &transfer, TIMEOUT);
 }

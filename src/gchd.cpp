@@ -82,7 +82,7 @@ void GCHD::stream(unsigned char *data, int length) {
 
 	int transfer;
 
-	libusb_bulk_transfer(devh_, 0x81, data, length, &transfer, 5000);
+	libusb_bulk_transfer(devh_, 0x81, data, length, &transfer, TIMEOUT);
 }
 
 int GCHD::checkFirmware() {

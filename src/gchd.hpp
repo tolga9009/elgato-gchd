@@ -18,6 +18,7 @@
 // endpoints
 #define EP_OUT		0x02
 #define DATA_BUF	0x4000
+#define TIMEOUT		5000
 
 // system commands
 #define SCMD_IDLE		1
