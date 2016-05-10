@@ -5,7 +5,7 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#include <core/settings.hpp>
+#include <gchd/settings.hpp>
 
 InputSource Settings::getInputSource() {
 	return inputSource_;

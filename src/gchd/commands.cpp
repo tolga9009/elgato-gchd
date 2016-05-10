@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <vector>
 
-#include <core/gchd.hpp>
+#include <gchd.hpp>
 
 void GCHD::read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
 	std::vector<unsigned char> recv(wLength);

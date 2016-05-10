@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <core/gchd.hpp>
+#include <gchd.hpp>
 
 // USB VID & PIDs
 #define VENDOR_ELGATO		0x0fd9

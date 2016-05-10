@@ -5,7 +5,7 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#include <core/gchd.hpp>
+#include <gchd.hpp>
 
 void GCHD::configure_dev_576i() {
 	int is_configured = 0;

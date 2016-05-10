@@ -11,7 +11,7 @@
 
 #include <unistd.h>
 
-#include <core/gchd.hpp>
+#include <gchd.hpp>
 #include <process.hpp>
 #include <streamer.hpp>
 

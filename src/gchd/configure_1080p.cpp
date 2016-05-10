@@ -5,7 +5,7 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#include <core/gchd.hpp>
+#include <gchd.hpp>
 
 void GCHD::configure_dev_1080p() {
 	configure_dev_mode();

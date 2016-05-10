@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include <core/gchd.hpp>
+#include <gchd.hpp>
 #include <process.hpp>
 
 class Streamer {
