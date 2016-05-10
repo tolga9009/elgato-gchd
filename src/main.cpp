@@ -13,6 +13,7 @@
 
 #include <core/gchd.hpp>
 #include <process.hpp>
+#include <streamer.hpp>
 
 int main(int argc, char *argv[]) {
 	// object for managing runtime information
@@ -98,15 +99,18 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	// helper class for streaming audio and video from device
+	Streamer streamer(&process);
+
 	if (useFifo) {
-		if (process.createFifo(outputPath)) {
+		if (streamer.createFifo(outputPath)) {
 			return EXIT_FAILURE;
 		}
 
 		// when FIFO file has been opened
-		process.streamToFifo(&gchd);
+		streamer.streamToFifo(&gchd);
 	} else {
-		process.streamToDisk(&gchd, outputPath);
+		streamer.streamToDisk(&gchd, outputPath);
 	}
 
 	std::cerr << "Terminating." << std::endl;

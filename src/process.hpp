@@ -11,29 +11,20 @@
 #include <atomic>
 #include <string>
 
-#include <core/gchd.hpp>
-
 class Process {
 	public:
 		static bool isActive();
 		static void setActive(bool isActive);
 		int createPid(std::string pidPath);
 		void destroyPid();
-		int createFifo(std::string fifoPath);
-		void destroyFifo();
-		void streamToFifo(GCHD *gchd);
-		void streamToDisk(GCHD *gchd, std::string outputPath);
 		Process();
 		~Process();
 
 	private:
 		static std::atomic<bool> isActive_;
 		bool hasPid_;
-		bool hasFifo_;
 		int pidFd_;
-		int fifoFd_;
 		std::string pidPath_;
-		std::string fifoPath_;
 		static void sigHandler_(int sig);
 };
 

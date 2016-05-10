@@ -6,7 +6,6 @@
  */
 
 #include <csignal>
-#include <fstream>
 #include <iostream>
 
 #include <fcntl.h>
@@ -59,68 +58,6 @@ void Process::destroyPid() {
 	}
 }
 
-int Process::createFifo(std::string fifoPath) {
-	fifoPath_ = fifoPath;
-
-	if (mkfifo(fifoPath_.c_str(), 0644)) {
-		std::cerr << "Error creating FIFO." << std::endl;
-		return 1;
-	}
-
-	// TODO unblock, when signal has been received
-	hasFifo_ = true;
-	std::cerr << fifoPath << " has been created. Waiting for user to open it." << std::endl;
-	fifoFd_ = open(fifoPath_.c_str(), O_WRONLY);
-
-	return 0;
-}
-
-void Process::destroyFifo() {
-	if (fifoFd_) {
-		close(fifoFd_);
-	}
-
-	if (hasFifo_) {
-		unlink(fifoPath_.c_str());
-		hasFifo_ = false;
-	}
-}
-
-void Process::streamToFifo(GCHD *gchd) {
-	// immediately return, if FIFO hasn't been opened yet
-	if (!fifoFd_) {
-		return;
-	}
-
-	setActive(true);
-	std::cerr << "Streaming data from device now." << std::endl;
-
-	// receive audio and video from device
-	while (isActive() && fifoFd_) {
-		unsigned char data[DATA_BUF] = {0};
-
-		gchd->stream(data, DATA_BUF);
-		write(fifoFd_, (char *)data, DATA_BUF);
-	}
-}
-
-void Process::streamToDisk(GCHD *gchd, std::string outputPath) {
-	std::ofstream output(outputPath, std::ofstream::binary);
-
-	setActive(true);
-	std::cerr << "Streaming data from device now." << std::endl;
-
-	// receive audio and video from device
-	while (isActive() && fifoFd_) {
-		unsigned char data[DATA_BUF] = {0};
-
-		gchd->stream(data, DATA_BUF);
-		output.write((char *)data, DATA_BUF);
-	}
-
-	output.close();
-}
-
 void Process::sigHandler_(int sig) {
 	std::cerr << std::endl << "Stop signal received." << std::endl;
 
@@ -137,9 +74,7 @@ void Process::sigHandler_(int sig) {
 Process::Process() {
 	isActive_ = false;
 	hasPid_ = false;
-	hasFifo_ = false;
 	pidFd_ = 0;
-	fifoFd_ = 0;
 
 	// signal handling
 	struct sigaction action;
@@ -154,6 +89,5 @@ Process::Process() {
 }
 
 Process::~Process() {
-	destroyFifo();
 	destroyPid();
 }
