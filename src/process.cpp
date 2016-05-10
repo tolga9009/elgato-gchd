@@ -6,6 +6,7 @@
  */
 
 #include <csignal>
+#include <fstream>
 #include <iostream>
 
 #include <fcntl.h>
@@ -103,8 +104,21 @@ void Process::streamToFifo(GCHD *gchd) {
 	}
 }
 
-void Process::streamToDisk(GCHD *gchd, std::__cxx11::string outputPath) {
-	// TODO implementation
+void Process::streamToDisk(GCHD *gchd, std::string outputPath) {
+	std::ofstream output(outputPath, std::ofstream::binary);
+
+	setActive(true);
+	std::cerr << "Streaming data from device now." << std::endl;
+
+	// receive audio and video from device
+	while (isActive() && fifoFd_) {
+		unsigned char data[DATA_BUF] = {0};
+
+		gchd->stream(data, DATA_BUF);
+		output.write((char *)data, DATA_BUF);
+	}
+
+	output.close();
 }
 
 void Process::sigHandler_(int sig) {
