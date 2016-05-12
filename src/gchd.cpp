@@ -46,38 +46,13 @@ int GCHD::init() {
 		return 1;
 	}
 
-	// set device configuration
-	std::cerr << "Initializing device." << std::endl;
-	isInitialized_ = true;
-
-	switch (settings_->getInputSource()) {
-		case InputSource::Composite: configure_dev_576i(); break;
-		case InputSource::Component:
-			switch (settings_->getResolution()) {
-				case Resolution::Standard: configure_dev_component_576p(); break;
-				case Resolution::HD720: configure_dev_component_720p(); break;
-				case Resolution::HD1080: configure_dev_component_1080p(); break;
-				default: return 1;
-			}
-			break;
-		case InputSource::HDMI:
-			switch (settings_->getResolution()) {
-				case Resolution::HD720: configure_dev_720p(); break;
-				case Resolution::HD1080: configure_dev_1080p(); break;
-				default: return 1;
-			}
-			break;
-
-		default: return 1;
-	}
-
 	return 0;
 }
 
 void GCHD::stream(unsigned char *data, int length) {
 	// this function requires an initialized device
 	if (!isInitialized_) {
-		return;
+		initializeDevice();
 	}
 
 	int transfer;
@@ -179,6 +154,32 @@ int GCHD::getInterface() {
 	}
 
 	return 0;
+}
+
+void GCHD::initializeDevice() {
+	// set device configuration
+	std::cerr << "Initializing device." << std::endl;
+	isInitialized_ = true;
+
+	switch (settings_->getInputSource()) {
+		case InputSource::Composite: configure_dev_576i(); break;
+		case InputSource::Component:
+			switch (settings_->getResolution()) {
+				case Resolution::Standard: configure_dev_component_576p(); break;
+				case Resolution::HD720: configure_dev_component_720p(); break;
+				case Resolution::HD1080: configure_dev_component_1080p(); break;
+				default: return;
+			}
+			break;
+		case InputSource::HDMI:
+			switch (settings_->getResolution()) {
+				case Resolution::HD720: configure_dev_720p(); break;
+				case Resolution::HD1080: configure_dev_1080p(); break;
+				default: return;
+			}
+			break;
+		default: return;
+	}
 }
 
 void GCHD::closeDevice() {

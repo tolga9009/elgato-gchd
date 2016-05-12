@@ -49,6 +49,7 @@ class GCHD {
 		int checkFirmware();
 		int openDevice();
 		int getInterface();
+		void initializeDevice();
 		void closeDevice();
 		// init.h
 		void configure_dev_mode();
