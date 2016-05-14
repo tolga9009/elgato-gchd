@@ -31,27 +31,37 @@ int main(int argc, char *argv[]) {
 	int opt;
 
 	// TODO show help information
-	while ((opt = getopt(argc, argv, ":di:o:p:r:")) != -1) {
+	while ((opt = getopt(argc, argv, ":c:di:o:p:r:")) != -1) {
 		switch (opt) {
+			case 'c':
+				if (std::string(optarg) == "yuv") {
+					settings.setColorSpace(ColorSpace::YUV);
+					break;
+				} else if (std::string(optarg) == "rgb") {
+					settings.setColorSpace(ColorSpace::RGB);
+					break;
+				}
+
+				std::cerr << "Unknown colorspace argument.";
 			case 'd':
 				useFifo = false;
 				break;
 			case 'i':
-				if (std::string(optarg) == "Composite") {
+				if (std::string(optarg) == "composite") {
 					settings.setInputSource(InputSource::Composite);
 					break;
-				} else if (std::string(optarg) == "SVideo") {
+				} else if (std::string(optarg) == "svideo") {
 					settings.setInputSource(InputSource::SVideo);
 					break;
-				} else if (std::string(optarg) == "Component") {
+				} else if (std::string(optarg) == "component") {
 					settings.setInputSource(InputSource::Component);
 					break;
-				} else if (std::string(optarg) == "HDMI") {
+				} else if (std::string(optarg) == "hdmi") {
 					settings.setInputSource(InputSource::HDMI);
 					break;
 				}
 
-				std::cerr << "Unrecognized Input Source." << std::endl;
+				std::cerr << "Unknown input source argument." << std::endl;
 				return EXIT_FAILURE;
 			case 'o':
 				outputPath = std::string(optarg);
@@ -60,7 +70,7 @@ int main(int argc, char *argv[]) {
 				pidPath = std::string(optarg);
 				break;
 			case 'r':
-				if (std::string(optarg) == "SD") {
+				if (std::string(optarg) == "sd") {
 					settings.setResolution(Resolution::Standard);
 					break;
 				} else if (std::string(optarg) == "720") {
@@ -71,7 +81,7 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 
-				std::cerr << "Unsupported resolution." << std::endl;
+				std::cerr << "Unknown resolution argument." << std::endl;
 				return EXIT_FAILURE;
 			case ':':
 				std::cerr << "Missing argument." << std::endl;

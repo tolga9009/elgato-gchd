@@ -7,7 +7,7 @@
 
 #include <gchd.hpp>
 
-void GCHD::configure_dev_720p() {
+void GCHD::configure_dev_720p_rgb() {
 	configure_dev_mode();
 
 	write_config5(0xbd, 0x0000, 0x3300, 0xab, 0xa9, 0x0f, 0xa4, 0x55);

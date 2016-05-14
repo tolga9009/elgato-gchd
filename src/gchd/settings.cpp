@@ -7,6 +7,22 @@
 
 #include <gchd/settings.hpp>
 
+ColorSpace Settings::getColorSpace() {
+	return colorSpace_;
+}
+
+void Settings::setColorSpace(ColorSpace colorSpace) {
+	colorSpace_ = colorSpace;
+}
+
+HDMIColorSpace Settings::getHDMIColorSpace() {
+	return hdmiColorSpace_;
+}
+
+void Settings::setHDMIColorSpace(HDMIColorSpace hdmiColorSpace) {
+	hdmiColorSpace_ = hdmiColorSpace;
+}
+
 InputSource Settings::getInputSource() {
 	return inputSource_;
 }
@@ -21,14 +37,6 @@ Resolution Settings::getResolution() {
 
 void Settings::setResolution(Resolution resolution) {
 	resolution_ = resolution;
-}
-
-HDMIColorSpace Settings::getHDMIColorSpace() {
-	return hdmiColorSpace_;
-}
-
-void Settings::setHDMIColorSpace(HDMIColorSpace hdmiColorSpace) {
-	hdmiColorSpace_ = hdmiColorSpace;
 }
 
 bool Settings::getAnalogAudio() {
@@ -132,7 +140,8 @@ Settings::Settings() {
 	hue_ = 0;
 	analogAudioGain_ = 0;
 	digitalAudioGain_ = 0;
+	colorSpace_ = ColorSpace::YUV;
+	hdmiColorSpace_ = HDMIColorSpace::Limited;
 	inputSource_ = InputSource::HDMI;
 	resolution_ = Resolution::HD1080;
-	hdmiColorSpace_ = HDMIColorSpace::Limited;
 }

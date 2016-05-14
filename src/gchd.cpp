@@ -173,8 +173,20 @@ void GCHD::initializeDevice() {
 			break;
 		case InputSource::HDMI:
 			switch (settings_->getResolution()) {
-				case Resolution::HD720: configure_dev_720p(); break;
-				case Resolution::HD1080: configure_dev_1080p(); break;
+				case Resolution::HD720:
+					switch (settings_->getColorSpace()) {
+						//case ColorSpace::YUV: configure_dev_720p(); break;
+						case ColorSpace::RGB: configure_dev_720p_rgb(); break;
+						default: return;
+					}
+					break;
+				case Resolution::HD1080:
+					switch (settings_->getColorSpace()) {
+						case ColorSpace::YUV: configure_dev_1080p(); break;
+						case ColorSpace::RGB: configure_dev_1080p_rgb(); break;
+						default: return;
+					}
+					break;
 				default: return;
 			}
 			break;

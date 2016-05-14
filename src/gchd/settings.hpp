@@ -8,6 +8,18 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+enum class ColorSpace {
+	Unknown,
+	RGB,
+	YUV
+};
+
+enum class HDMIColorSpace {
+	Unknown,
+	Limited,
+	Full
+};
+
 enum class InputSource {
 	Unknown,
 	Composite,
@@ -23,20 +35,16 @@ enum class Resolution {
 	HD1080
 };
 
-enum class HDMIColorSpace {
-	Unknown,
-	Limited,
-	Full
-};
-
 class Settings {
 	public:
+		ColorSpace getColorSpace();
+		void setColorSpace(ColorSpace colorSpace);
+		HDMIColorSpace getHDMIColorSpace();
+		void setHDMIColorSpace(HDMIColorSpace hdmiColorSpace);
 		InputSource getInputSource();
 		void setInputSource(InputSource inputSource);
 		Resolution getResolution();
 		void setResolution(Resolution resolution);
-		HDMIColorSpace getHDMIColorSpace();
-		void setHDMIColorSpace(HDMIColorSpace hdmiColorSpace);
 		bool getAnalogAudio();
 		void setAnalogAudio(bool useAnalogAudio);
 		bool getHighFPS();
@@ -73,9 +81,10 @@ class Settings {
 		int hue_;
 		int analogAudioGain_;
 		int digitalAudioGain_;
+		ColorSpace colorSpace_;
+		HDMIColorSpace hdmiColorSpace_;
 		InputSource inputSource_;
 		Resolution resolution_;
-		HDMIColorSpace hdmiColorSpace_;
 };
 
 #endif
