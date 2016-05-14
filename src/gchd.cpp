@@ -175,7 +175,7 @@ void GCHD::initializeDevice() {
 			switch (settings_->getResolution()) {
 				case Resolution::HD720:
 					switch (settings_->getColorSpace()) {
-						//case ColorSpace::YUV: configure_dev_720p(); break;
+						case ColorSpace::YUV: configure_dev_720p(); break;
 						case ColorSpace::RGB: configure_dev_720p_rgb(); break;
 						default: return;
 					}

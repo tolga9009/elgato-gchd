@@ -54,6 +54,7 @@ class GCHD {
 		// init.h
 		void configure_dev_mode();
 		void configure_dev_576i();
+		void configure_dev_720p();
 		void configure_dev_720p_rgb();
 		void configure_dev_1080p();
 		void configure_dev_1080p_rgb();
