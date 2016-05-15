@@ -171,6 +171,7 @@ void GCHD::initializeDevice() {
 			break;
 		case InputSource::Component:
 			switch (settings_->getResolution()) {
+				case Resolution::NTSC: configure_dev_component_480p(); break;
 				case Resolution::PAL: configure_dev_component_576p(); break;
 				case Resolution::HD720: configure_dev_component_720p(); break;
 				case Resolution::HD1080: configure_dev_component_1080p(); break;

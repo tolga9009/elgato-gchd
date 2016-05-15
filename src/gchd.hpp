@@ -59,6 +59,7 @@ class GCHD {
 		void configure_dev_hdmi_720p_rgb();
 		void configure_dev_hdmi_1080p();
 		void configure_dev_hdmi_1080p_rgb();
+		void configure_dev_component_480p();
 		void configure_dev_component_576p();
 		void configure_dev_component_720p();
 		void configure_dev_component_1080i();
