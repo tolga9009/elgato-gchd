@@ -50,9 +50,6 @@ int main(int argc, char *argv[]) {
 				if (std::string(optarg) == "composite") {
 					settings.setInputSource(InputSource::Composite);
 					break;
-				} else if (std::string(optarg) == "svideo") {
-					settings.setInputSource(InputSource::SVideo);
-					break;
 				} else if (std::string(optarg) == "component") {
 					settings.setInputSource(InputSource::Component);
 					break;
@@ -70,8 +67,11 @@ int main(int argc, char *argv[]) {
 				pidPath = std::string(optarg);
 				break;
 			case 'r':
-				if (std::string(optarg) == "sd") {
-					settings.setResolution(Resolution::Standard);
+				if (std::string(optarg) == "ntsc") {
+					settings.setResolution(Resolution::NTSC);
+					break;
+				} else if (std::string(optarg) == "pal") {
+					settings.setResolution(Resolution::PAL);
 					break;
 				} else if (std::string(optarg) == "720") {
 					settings.setResolution(Resolution::HD720);

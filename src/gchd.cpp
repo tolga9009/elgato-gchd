@@ -162,10 +162,16 @@ void GCHD::initializeDevice() {
 	isInitialized_ = true;
 
 	switch (settings_->getInputSource()) {
-		case InputSource::Composite: configure_dev_composite_576i(); break;
+		case InputSource::Composite:
+			switch (settings_->getResolution()) {
+				case Resolution::NTSC: configure_dev_composite_480i(); break;
+				case Resolution::PAL: configure_dev_composite_576i(); break;
+				default: return;
+			}
+			break;
 		case InputSource::Component:
 			switch (settings_->getResolution()) {
-				case Resolution::Standard: configure_dev_component_576p(); break;
+				case Resolution::PAL: configure_dev_component_576p(); break;
 				case Resolution::HD720: configure_dev_component_720p(); break;
 				case Resolution::HD1080: configure_dev_component_1080p(); break;
 				default: return;

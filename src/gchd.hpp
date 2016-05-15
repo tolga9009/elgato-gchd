@@ -53,6 +53,7 @@ class GCHD {
 		void closeDevice();
 		// init.h
 		void configure_dev_mode();
+		void configure_dev_composite_480i();
 		void configure_dev_composite_576i();
 		void configure_dev_hdmi_720p();
 		void configure_dev_hdmi_720p_rgb();

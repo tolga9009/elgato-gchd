@@ -23,14 +23,14 @@ enum class HDMIColorSpace {
 enum class InputSource {
 	Unknown,
 	Composite,
-	SVideo,
 	Component,
 	HDMI
 };
 
 enum class Resolution {
 	Unknown,
-	Standard,
+	NTSC,
+	PAL,
 	HD720,
 	HD1080
 };
