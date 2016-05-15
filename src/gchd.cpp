@@ -162,7 +162,7 @@ void GCHD::initializeDevice() {
 	isInitialized_ = true;
 
 	switch (settings_->getInputSource()) {
-		case InputSource::Composite: configure_dev_576i(); break;
+		case InputSource::Composite: configure_dev_composite_576i(); break;
 		case InputSource::Component:
 			switch (settings_->getResolution()) {
 				case Resolution::Standard: configure_dev_component_576p(); break;
@@ -175,15 +175,15 @@ void GCHD::initializeDevice() {
 			switch (settings_->getResolution()) {
 				case Resolution::HD720:
 					switch (settings_->getColorSpace()) {
-						case ColorSpace::YUV: configure_dev_720p(); break;
-						case ColorSpace::RGB: configure_dev_720p_rgb(); break;
+						case ColorSpace::YUV: configure_dev_hdmi_720p(); break;
+						case ColorSpace::RGB: configure_dev_hdmi_720p_rgb(); break;
 						default: return;
 					}
 					break;
 				case Resolution::HD1080:
 					switch (settings_->getColorSpace()) {
-						case ColorSpace::YUV: configure_dev_1080p(); break;
-						case ColorSpace::RGB: configure_dev_1080p_rgb(); break;
+						case ColorSpace::YUV: configure_dev_hdmi_1080p(); break;
+						case ColorSpace::RGB: configure_dev_hdmi_1080p_rgb(); break;
 						default: return;
 					}
 					break;

@@ -7,7 +7,7 @@
 
 #include <gchd.hpp>
 
-void GCHD::configure_dev_576i() {
+void GCHD::configure_dev_composite_576i() {
 	int is_configured = 0;
 
 	read_config(0xbc, 0x0800, 0x0094, 4);
