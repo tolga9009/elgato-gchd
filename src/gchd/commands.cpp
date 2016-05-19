@@ -13,13 +13,13 @@
 void GCHD::read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
 	std::vector<unsigned char> recv(wLength);
 
-	libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), recv.size(), 0);
+	libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), static_cast<uint16_t>(recv.size()), 0);
 }
 
 int GCHD::read_config4(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3) {
 	std::vector<unsigned char> recv(4);
 
-	libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), recv.size(), 0);
+	libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), static_cast<uint16_t>(recv.size()), 0);
 
 	if (recv[0] == data0 && recv[1] == data1 && recv[2] == data2 && recv[3] == data3) {
 		return 1;
@@ -204,21 +204,21 @@ void GCHD::dlfirm(const char *file) {
 
 	// get filesize
 	fseek(bin, 0L, SEEK_END);
-	long filesize = ftell(bin);
+	auto filesize = ftell(bin);
 	rewind(bin);
 
 	// read firmware from file to buffer and bulk transfer to device
-	for (int i = 0; i <= filesize; i += DATA_BUF) {
+	for (auto i = 0; i <= filesize; i += DATA_BUF) {
 		unsigned char data[DATA_BUF] = {0};
-		int bytes_remain = filesize - i;
+		auto bytes_remain = filesize - i;
 
 		if ((bytes_remain) > DATA_BUF) {
 			bytes_remain = DATA_BUF;
 		}
 
-		fread(data, bytes_remain, 1, bin);
+		fread(data, static_cast<unsigned long>(bytes_remain), 1, bin);
 
-		libusb_bulk_transfer(devh_, EP_OUT, data, bytes_remain, &transfer, 0);
+		libusb_bulk_transfer(devh_, EP_OUT, data, static_cast<int>(bytes_remain), &transfer, 0);
 	}
 
 	fclose(bin);
