@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <libusb-1.0/libusb.h>
 
@@ -39,7 +40,7 @@ enum class DeviceType {
 class GCHD {
 	public:
 		int init();
-		void stream(unsigned char *data, int length);
+		void stream(std::vector<unsigned char> *buffer, int size);
 		GCHD(Settings *settings);
 		~GCHD();
 

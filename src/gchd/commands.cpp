@@ -6,7 +6,6 @@
  */
 
 #include <cstdio>
-#include <vector>
 
 #include <gchd.hpp>
 
@@ -194,7 +193,7 @@ void GCHD::slsi(uint16_t wIndex, uint16_t data) {
 /**
  * Loads firmware to the device
  *
- * @param file relative path to binary firmware file
+ * @param file path to binary firmware file
  */
 void GCHD::dlfirm(const char *file) {
 	int transfer;
@@ -212,7 +211,7 @@ void GCHD::dlfirm(const char *file) {
 		unsigned char data[DATA_BUF] = {0};
 		auto bytes_remain = filesize - i;
 
-		if ((bytes_remain) > DATA_BUF) {
+		if (bytes_remain > DATA_BUF) {
 			bytes_remain = DATA_BUF;
 		}
 
@@ -235,8 +234,10 @@ void GCHD::uninitDevice() {
 	 * I'm working with. Receive empty data, after setting state change to
 	 * null transfer.
 	 */
+	std::vector<unsigned char> buffer(DATA_BUF);
+
 	for (int i = 0; i < 5000; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);
 	}
 
 	/*
@@ -248,51 +249,51 @@ void GCHD::uninitDevice() {
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	read_config(0xbc, 0x0900, 0x0074, 2);
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	read_config(0xbc, 0x0900, 0x01b0, 2);
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	write_config2(0xbc, 0x0900, 0x0074, 0x00, 0x04);
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
 
 	for (int i = 0; i < 50; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	// state change - stop encoding
 	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
 
 	for (int i = 0; i < 5; i++) {
-		receiveData();
+		stream(&buffer, DATA_BUF);;
 	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
@@ -396,11 +397,4 @@ void GCHD::uninitDevice() {
 
 	write_config2(0xbc, 0x0900, 0x0074, 0x00, 0x04);
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
-}
-
-void GCHD::receiveData() {
-	int transfer;
-	unsigned char data[DATA_BUF] = {0};
-
-	libusb_bulk_transfer(devh_, 0x81, data, DATA_BUF, &transfer, TIMEOUT);
 }

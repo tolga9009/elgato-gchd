@@ -6,7 +6,6 @@
  */
 
 #include <iostream>
-#include <vector>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -49,7 +48,7 @@ int GCHD::init() {
 	return 0;
 }
 
-void GCHD::stream(unsigned char *data, int length) {
+void GCHD::stream(std::vector<unsigned char> *buffer, int size) {
 	// this function requires an initialized device
 	if (!isInitialized_) {
 		setupConfiguration();
@@ -57,7 +56,7 @@ void GCHD::stream(unsigned char *data, int length) {
 
 	int transfer;
 
-	libusb_bulk_transfer(devh_, 0x81, data, length, &transfer, TIMEOUT);
+	libusb_bulk_transfer(devh_, 0x81, buffer->data(), size, &transfer, TIMEOUT);
 }
 
 int GCHD::checkFirmware() {

@@ -53,10 +53,10 @@ void Streamer::streamToFifo(GCHD *gchd) {
 
 	// receive audio and video from device
 	while (process_->isActive() && fifoFd_) {
-		unsigned char data[DATA_BUF] = {0};
+		std::vector<unsigned char> buffer(DATA_BUF);
 
-		gchd->stream(data, DATA_BUF);
-		write(fifoFd_, (char *)data, DATA_BUF);
+		gchd->stream(&buffer, DATA_BUF);
+		write(fifoFd_, buffer.data(), DATA_BUF);
 	}
 }
 
@@ -68,10 +68,10 @@ void Streamer::streamToDisk(GCHD *gchd, std::string outputPath) {
 
 	// receive audio and video from device
 	while (process_->isActive() && fifoFd_) {
-		unsigned char data[DATA_BUF] = {0};
+		std::vector<unsigned char> buffer(DATA_BUF);
 
-		gchd->stream(data, DATA_BUF);
-		output.write((char *)data, DATA_BUF);
+		gchd->stream(&buffer, DATA_BUF);
+		output.write(reinterpret_cast<char *>(buffer.data()), DATA_BUF);
 	}
 
 	output.close();
