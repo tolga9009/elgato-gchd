@@ -15,6 +15,8 @@ class Process {
 	public:
 		static bool isActive();
 		static void setActive(bool isActive);
+		std::string getName();
+		void setName(std::string name);
 		int createPid(std::string pidPath);
 		void destroyPid();
 		Process();
@@ -24,6 +26,7 @@ class Process {
 		static std::atomic<bool> isActive_;
 		bool hasPid_;
 		int pidFd_;
+		std::string name_;
 		std::string pidPath_;
 		static void sigHandler_(int sig);
 };

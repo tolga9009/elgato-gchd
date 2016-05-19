@@ -16,8 +16,8 @@
 #include <process.hpp>
 #include <streamer.hpp>
 
-void help(std::string program) {
-	std::cerr << "Usage: " << program << " [options]" << std::endl
+void help(std::string name) {
+	std::cerr << "Usage: " << name << " [options]" << std::endl
 		  << std::endl
 		  << "Options:" << std::endl
 		  << "  -c <color-space>   Color Space settings [default: yuv]" << std::endl
@@ -28,7 +28,7 @@ void help(std::string program) {
 		  << "  -r <resolution>    Resolution of Input Source [default: 1080]" << std::endl;
 }
 
-void usage(std::string program, std::string optarg, std::string option, const std::vector<std::string> arguments) {
+void usage(std::string name, std::string optarg, std::string option, const std::vector<std::string> arguments) {
 	std::cerr << "Invalid argument '" << optarg << "' for '" << option << "'" << std::endl
 		  << "Valid arguments are:" << std::endl;
 
@@ -37,20 +37,15 @@ void usage(std::string program, std::string optarg, std::string option, const st
 		std::cerr << "  - '" << it << "'" << std::endl;
 	}
 
-	std::cerr << "Try '" << program << " -h' for more information." << std::endl;
+	std::cerr << "Try '" << name << " -h' for more information." << std::endl;
 }
 
 int main(int argc, char *argv[]) {
-	// set program name
-	// TODO move to Process class
-	std::string program(argv[0]);
-
-	if (program.empty()) {
-		program = "gchd";
-	}
-
 	// object for managing runtime information
 	Process process;
+
+	// set program name
+	process.setName(argv[0]);
 
 	// object for storing device settings
 	Settings settings;
@@ -75,14 +70,14 @@ int main(int argc, char *argv[]) {
 				}
 
 				const std::vector<std::string> arguments = {"yuv", "rgb"};
-				usage(program, optarg, "-c", arguments);
+				usage(process.getName(), optarg, "-c", arguments);
 				return EXIT_FAILURE;
 			}
 			case 'd':
 				useFifo = false;
 				break;
 			case 'h':
-				help(program);
+				help(process.getName());
 				return EXIT_SUCCESS;
 			case 'i': {
 				if (std::string(optarg) == "composite") {
@@ -97,7 +92,7 @@ int main(int argc, char *argv[]) {
 				}
 
 				const std::vector<std::string> arguments = {"composite", "component", "hdmi"};
-				usage(program, optarg, "-i", arguments);
+				usage(process.getName(), optarg, "-i", arguments);
 				return EXIT_FAILURE;
 			}
 			case 'o':
@@ -122,7 +117,7 @@ int main(int argc, char *argv[]) {
 				}
 
 				const std::vector<std::string> arguments = {"ntsc", "pal", "720", "1080"};
-				usage(program, optarg, "-r", arguments);
+				usage(process.getName(), optarg, "-r", arguments);
 				return EXIT_FAILURE;
 			}
 			case ':':

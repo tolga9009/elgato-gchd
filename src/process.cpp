@@ -26,6 +26,18 @@ void Process::setActive(bool isActive) {
 	isActive_ = isActive;
 }
 
+std::string Process::getName() {
+	if (name_.empty()) {
+		name_ = "gchd";
+	}
+
+	return name_;
+}
+
+void Process::setName(std::string name) {
+	name_ = name;
+}
+
 int Process::createPid(std::string pidPath) {
 	pidPath_ = pidPath;
 	pidFd_ = open(pidPath_.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
