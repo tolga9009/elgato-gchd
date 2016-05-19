@@ -7,8 +7,8 @@
 
 #include <gchd.hpp>
 
-void GCHD::configure_dev_hdmi_1080p() {
-	configure_dev_mode();
+void GCHD::configureHdmi1080p() {
+	bootDevice();
 
 	write_config5(0xbd, 0x0000, 0x3300, 0xab, 0xa9, 0x0f, 0xa4, 0x55);
 	write_config2(0xbc, 0x0900, 0x0014, 0x00, 0x06);

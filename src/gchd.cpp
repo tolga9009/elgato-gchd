@@ -52,7 +52,7 @@ int GCHD::init() {
 void GCHD::stream(unsigned char *data, int length) {
 	// this function requires an initialized device
 	if (!isInitialized_) {
-		initializeDevice();
+		setupConfiguration();
 	}
 
 	int transfer;
@@ -156,7 +156,7 @@ int GCHD::getInterface() {
 	return 0;
 }
 
-void GCHD::initializeDevice() {
+void GCHD::setupConfiguration() {
 	// set device configuration
 	std::cerr << "Initializing device." << std::endl;
 	isInitialized_ = true;
@@ -164,17 +164,17 @@ void GCHD::initializeDevice() {
 	switch (settings_->getInputSource()) {
 		case InputSource::Composite:
 			switch (settings_->getResolution()) {
-				case Resolution::NTSC: configure_dev_composite_480i(); break;
-				case Resolution::PAL: configure_dev_composite_576i(); break;
+				case Resolution::NTSC: configureComposite480i(); break;
+				case Resolution::PAL: configureComposite576i(); break;
 				default: return;
 			}
 			break;
 		case InputSource::Component:
 			switch (settings_->getResolution()) {
-				case Resolution::NTSC: configure_dev_component_480p(); break;
-				case Resolution::PAL: configure_dev_component_576p(); break;
-				case Resolution::HD720: configure_dev_component_720p(); break;
-				case Resolution::HD1080: configure_dev_component_1080p(); break;
+				case Resolution::NTSC: configureComponent480p(); break;
+				case Resolution::PAL: configureComponent576p(); break;
+				case Resolution::HD720: configureComponent720p(); break;
+				case Resolution::HD1080: configureComponent1080p(); break;
 				default: return;
 			}
 			break;
@@ -182,15 +182,15 @@ void GCHD::initializeDevice() {
 			switch (settings_->getResolution()) {
 				case Resolution::HD720:
 					switch (settings_->getColorSpace()) {
-						case ColorSpace::YUV: configure_dev_hdmi_720p(); break;
-						case ColorSpace::RGB: configure_dev_hdmi_720p_rgb(); break;
+						case ColorSpace::YUV: configureHdmi720p(); break;
+						case ColorSpace::RGB: configureHdmi720pRgb(); break;
 						default: return;
 					}
 					break;
 				case Resolution::HD1080:
 					switch (settings_->getColorSpace()) {
-						case ColorSpace::YUV: configure_dev_hdmi_1080p(); break;
-						case ColorSpace::RGB: configure_dev_hdmi_1080p_rgb(); break;
+						case ColorSpace::YUV: configureHdmi1080p(); break;
+						case ColorSpace::RGB: configureHdmi1080pRgb(); break;
 						default: return;
 					}
 					break;
