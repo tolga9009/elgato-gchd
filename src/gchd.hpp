@@ -24,6 +24,9 @@
 #define SCMD_IDLE		1
 #define SCMD_INIT		4
 #define SCMD_STATE_CHANGE	5
+#define SCMD_STATE_STOP		0x0001
+#define SCMD_STATE_START	0x0002
+#define SCMD_STATE_NULL		0x0004
 
 enum class DeviceType {
 	Unknown,

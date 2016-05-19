@@ -61,11 +61,10 @@ void GCHD::stream(unsigned char *data, int length) {
 }
 
 int GCHD::checkFirmware() {
-	// TODO check in /usr/lib/firmware, /usr/local/lib/firmware and ./
 	if (deviceType_ == DeviceType::GameCaptureHD) {
-		std::vector<std::string> list = {"/usr/lib/firmware/gchd/", "/usr/local/lib/firmware/gchd/", "./"};
+		std::vector<std::string> locationList = {"/usr/lib/firmware/gchd/", "/usr/local/lib/firmware/gchd/", "./"};
 
-		for (auto it : list) {
+		for (auto it : locationList) {
 			std::string idle = it + FW_MB86H57_H58_IDLE;
 			std::string enc = it + FW_MB86H57_H58_ENC;
 

@@ -226,21 +226,25 @@ void GCHD::dlfirm(const char *file) {
 
 void GCHD::uninitDevice() {
 	// state change - output null
-	scmd(SCMD_STATE_CHANGE, 0x00, 0x0004);
+	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_NULL);
 
-	// usually, this is done by a seperate thread, which runs in parallel.
-	// I'm just quickly hacking a way around it, to test some stuff. Taking
-	// a big, random number, which is slightly based on the USB traffic logs
-	// I'm working with. Receive empty data, after setting state change to
-	// null transfer.
+	/*
+	 * usually, this is done by a seperate thread, which runs in parallel.
+	 * I'm just quickly hacking a way around it, to test some stuff. Taking
+	 * a big, random number, which is slightly based on the USB traffic logs
+	 * I'm working with. Receive empty data, after setting state change to
+	 * null transfer.
+	 */
 	for (int i = 0; i < 5000; i++) {
 		receiveData();
 	}
 
-	// we probably need some sleeps here and receive null output, to give
-	// the device enough time to gracefully reset. Else, the next scmd()
-	// command seems to be ignored and we're leaving the device in an
-	// undefined state.
+	/*
+	 * we probably need some sleeps here and receive null output, to give
+	 * the device enough time to gracefully reset. Else, the next scmd()
+	 * command seems to be ignored and we're leaving the device in an
+	 * undefined state.
+	 */
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	for (int i = 0; i < 50; i++) {
@@ -285,7 +289,7 @@ void GCHD::uninitDevice() {
 	}
 
 	// state change - stop encoding
-	scmd(SCMD_STATE_CHANGE, 0x00, 0x0001);
+	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
 
 	for (int i = 0; i < 5; i++) {
 		receiveData();

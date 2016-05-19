@@ -9849,5 +9849,5 @@ configured_2:
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	// state change - start encoding
-	scmd(SCMD_STATE_CHANGE, 0x00, 0x0002);
+	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_START);
 }
