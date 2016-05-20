@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
 //		return EXIT_FAILURE;
 //	}
 
-	GCHD gchd(&settings);
+	GCHD gchd(&process, &settings);
 
 	// device initialization
 	if(gchd.init()) {

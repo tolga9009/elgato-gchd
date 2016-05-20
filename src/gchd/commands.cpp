@@ -237,7 +237,7 @@ void GCHD::uninitDevice() {
 	std::vector<unsigned char> buffer(DATA_BUF);
 
 	for (int i = 0; i < 5000; i++) {
-		stream(&buffer, DATA_BUF);
+		stream(&buffer);
 	}
 
 	/*
@@ -249,51 +249,51 @@ void GCHD::uninitDevice() {
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	read_config(0xbc, 0x0900, 0x0074, 2);
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	read_config(0xbc, 0x0900, 0x01b0, 2);
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);
 
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	write_config2(0xbc, 0x0900, 0x0074, 0x00, 0x04);
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	write_config2(0xbc, 0x0900, 0x01b0, 0x00, 0x00);
 
 	for (int i = 0; i < 50; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	// state change - stop encoding
 	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
 
 	for (int i = 0; i < 5; i++) {
-		stream(&buffer, DATA_BUF);;
+		stream(&buffer);
 	}
 
 	read_config(0xbc, 0x0800, 0x2008, 2);

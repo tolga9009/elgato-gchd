@@ -45,18 +45,53 @@ int GCHD::init() {
 		return 1;
 	}
 
+	// activate process and configure device
+	process_->setActive(true);
+	setupConfiguration();
+
+	// start receive thread
+	std::cerr << "Starting receive thread." << std::endl;
+	writerThread_ = std::thread(&GCHD::writer, this);
+
 	return 0;
 }
 
-void GCHD::stream(std::vector<unsigned char> *buffer, int size) {
-	// this function requires an initialized device
+std::condition_variable *GCHD::getCv() {
+	return &cv_;
+}
+
+std::mutex *GCHD::getMutex() {
+	return &mutex_;
+}
+
+std::queue<std::vector<unsigned char>> *GCHD::getQueue() {
+	return &queue_;
+}
+
+void GCHD::writer() {
+	while(process_->isActive()) {
+		std::vector<unsigned char> buffer(DATA_BUF);
+		stream(&buffer);
+		std::unique_lock<std::mutex> lock(mutex_);
+
+		if (queue_.size() > MAX_QUEUE) {
+			queue_.pop();
+		}
+
+		queue_.push(buffer);
+		lock.unlock();
+		cv_.notify_one();
+	}
+}
+
+void GCHD::stream(std::vector<unsigned char> *buffer) {
 	if (!isInitialized_) {
-		setupConfiguration();
+		return;
 	}
 
 	int transfer;
 
-	libusb_bulk_transfer(devh_, 0x81, buffer->data(), size, &transfer, TIMEOUT);
+	libusb_bulk_transfer(devh_, 0x81, buffer->data(), static_cast<int>(buffer->size()), &transfer, TIMEOUT);
 }
 
 int GCHD::checkFirmware() {
@@ -202,7 +237,9 @@ void GCHD::setupConfiguration() {
 void GCHD::closeDevice() {
 	if (devh_) {
 		if (isInitialized_) {
-			std::cerr << "Your device is going to be reset. Please wait and do not interrupt or unplug your device." << std::endl;
+			std::cerr << "Stopping receive thread." << std::endl;
+			writerThread_.join();
+			std::cerr << "Resetting device - this may take a while." << std::endl;
 			uninitDevice();
 			std::cerr << "Device has been reset." << std::endl;
 		}
@@ -213,11 +250,12 @@ void GCHD::closeDevice() {
 }
 
 
-GCHD::GCHD(Settings *settings) {
+GCHD::GCHD(Process *process, Settings *settings) {
 	devh_ = nullptr;
 	libusb_ = 1;
 	isInitialized_ = false;
 	deviceType_ = DeviceType::Unknown;
+	process_ = process;
 	settings_ = settings;
 }
 

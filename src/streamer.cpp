@@ -23,9 +23,8 @@ int Streamer::createFifo(std::string fifoPath) {
 		return 1;
 	}
 
-	// TODO unblock, when signal has been received
 	hasFifo_ = true;
-	std::cerr << fifoPath << " has been created. Waiting for user to open it." << std::endl;
+	std::cerr << fifoPath << " has been created." << std::endl;
 	fifoFd_ = open(fifoPath_.c_str(), O_WRONLY);
 
 	return 0;
@@ -48,29 +47,40 @@ void Streamer::streamToFifo(GCHD *gchd) {
 		return;
 	}
 
-	process_->setActive(true);
 	std::cerr << "Streaming data from device now." << std::endl;
 
-	// receive audio and video from device
 	while (process_->isActive() && fifoFd_) {
 		std::vector<unsigned char> buffer(DATA_BUF);
+		std::unique_lock<std::mutex> lock(*gchd->getMutex());
 
-		gchd->stream(&buffer, DATA_BUF);
-		write(fifoFd_, buffer.data(), DATA_BUF);
+		while(gchd->getQueue()->empty()) {
+			gchd->getCv()->wait(lock);
+		}
+
+		buffer = gchd->getQueue()->front();
+		gchd->getQueue()->pop();
+		lock.unlock();
+		write(fifoFd_, reinterpret_cast<char *>(buffer.data()), DATA_BUF);
 	}
 }
 
 void Streamer::streamToDisk(GCHD *gchd, std::string outputPath) {
 	std::ofstream output(outputPath, std::ofstream::binary);
-
-	process_->setActive(true);
 	std::cerr << "Streaming data from device now." << std::endl;
 
-	// receive audio and video from device
-	while (process_->isActive() && fifoFd_) {
+	while (process_->isActive()) {
 		std::vector<unsigned char> buffer(DATA_BUF);
+		std::unique_lock<std::mutex> lock(*gchd->getMutex());
 
-		gchd->stream(&buffer, DATA_BUF);
+		while(gchd->getQueue()->empty()) {
+			gchd->getCv()->wait(lock);
+		}
+
+		buffer = gchd->getQueue()->front();
+		gchd->getQueue()->pop();
+		lock.unlock();
+
+		// TODO reinterpret really needed?
 		output.write(reinterpret_cast<char *>(buffer.data()), DATA_BUF);
 	}
 
