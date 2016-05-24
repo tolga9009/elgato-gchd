@@ -8,6 +8,7 @@
 #ifndef STREAMER_CLASS_H
 #define STREAMER_CLASS_H
 
+#include <fstream>
 #include <string>
 
 #include <gchd.hpp>
@@ -15,17 +16,23 @@
 
 class Streamer {
 	public:
-		int createFifo(std::string fifoPath);
-		void destroyFifo();
-		void streamToFifo(GCHD *gchd);
-		void streamToDisk(GCHD *gchd, std::string outputPath);
-		Streamer(Process *process);
+		int enableDisk(std::string diskPath);
+		void disableDisk();
+		int enableFifo(std::string fifoPath);
+		void disableFifo();
+		int enableSocket(std::string ip, std::string port);
+		void disableSocket();
+		void loop();
+		Streamer(GCHD *gchd, Process *process);
 		~Streamer();
 
 	private:
 		bool hasFifo_;
 		int fifoFd_;
+		int socketFd_;
+		std::ofstream diskStream_;
 		std::string fifoPath_;
+		GCHD *gchd_;
 		Process *process_;
 };
 

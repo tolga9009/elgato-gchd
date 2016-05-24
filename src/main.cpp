@@ -16,6 +16,8 @@
 #include <process.hpp>
 #include <streamer.hpp>
 
+#define PORT_NUM	"57384"
+
 void help(std::string name) {
 	std::cerr << "Usage: " << name << " [options]" << std::endl
 		  << std::endl
@@ -53,7 +55,9 @@ int main(int argc, char *argv[]) {
 	// commandline-specific settings
 	std::string pidPath = "/var/run/gchd.pid";
 	std::string outputPath = "/tmp/gchd.ts";
+	bool useDisk = false;
 	bool useFifo = true;
+	bool useSocket = false;
 
 	// handling command-line options
 	int opt;
@@ -147,20 +151,27 @@ int main(int argc, char *argv[]) {
 	}
 
 	// helper class for streaming audio and video from device
-	Streamer streamer(&process);
+	Streamer streamer(&gchd, &process);
 
-	// TODO move to Streamer class. Let it decide, what to do.
-	if (useFifo) {
-		if (streamer.createFifo(outputPath)) {
+	if (useDisk) {
+		if (streamer.enableDisk(outputPath)) {
 			return EXIT_FAILURE;
 		}
-
-		// when FIFO file has been opened
-		streamer.streamToFifo(&gchd);
-	} else {
-		streamer.streamToDisk(&gchd, outputPath);
 	}
 
+	if (useFifo) {
+		if (streamer.enableFifo(outputPath)) {
+			return EXIT_FAILURE;
+		}
+	}
+
+	if (useSocket) {
+		if (streamer.enableSocket(nullptr, PORT_NUM)) {
+			return EXIT_FAILURE;
+		}
+	}
+
+	streamer.loop();
 	std::cerr << "Terminating." << std::endl;
 
 	return EXIT_SUCCESS;

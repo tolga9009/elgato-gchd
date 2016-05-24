@@ -5,17 +5,37 @@
  * MIT License. For more information, see LICENSE file.
  */
 
-#include <fstream>
 #include <iostream>
 
 #include <fcntl.h>
+#include <netdb.h>
 #include <unistd.h>
 
+#include <sys/socket.h>
 #include <sys/stat.h>
 
 #include <streamer.hpp>
 
-int Streamer::createFifo(std::string fifoPath) {
+int Streamer::enableDisk(std::string diskPath) {
+	diskStream_.open(diskPath, std::ofstream::binary);
+
+	if (diskStream_.fail()) {
+		std::cerr << "Can't open " << diskPath << std::endl;
+		return 1;
+	}
+
+	std::cerr << "Saving to disk: " << diskPath << std::endl;
+
+	return 0;
+}
+
+void Streamer::disableDisk() {
+	if (diskStream_.is_open()) {
+		diskStream_.close();
+	}
+}
+
+int Streamer::enableFifo(std::string fifoPath) {
 	fifoPath_ = fifoPath;
 
 	if (mkfifo(fifoPath_.c_str(), 0644)) {
@@ -24,15 +44,20 @@ int Streamer::createFifo(std::string fifoPath) {
 	}
 
 	hasFifo_ = true;
-	std::cerr << fifoPath << " has been created." << std::endl;
+	std::cerr << "FIFO: " << fifoPath << " has been created." << std::endl;
 	fifoFd_ = open(fifoPath_.c_str(), O_WRONLY);
+
+	if (fifoFd_ < 0) {
+		std::cerr << "Can't open FIFO for writing." << std::endl;
+	}
 
 	return 0;
 }
 
-void Streamer::destroyFifo() {
+void Streamer::disableFifo() {
 	if (fifoFd_) {
 		close(fifoFd_);
+		fifoFd_ = -1;
 	}
 
 	if (hasFifo_) {
@@ -41,58 +66,90 @@ void Streamer::destroyFifo() {
 	}
 }
 
-void Streamer::streamToFifo(GCHD *gchd) {
-	// immediately return, if FIFO hasn't been opened yet
-	if (!fifoFd_) {
-		return;
+int Streamer::enableSocket(std::string ip, std::string port) {
+	struct addrinfo hints = {};
+	struct addrinfo *result, *entry;
+
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_flags = AI_PASSIVE;
+
+	auto ret = getaddrinfo(ip.c_str(), port.c_str(), &hints, &result);
+
+	if (ret) {
+		std::cerr << "Socket error: " << gai_strerror(ret) << std::endl;
+		return 1;
 	}
 
-	std::cerr << "Streaming data from device now." << std::endl;
+	for (entry = result; entry != nullptr; entry = entry->ai_next) {
+		socketFd_ = socket(entry->ai_family, entry->ai_socktype, entry->ai_protocol);
 
-	while (process_->isActive() && fifoFd_) {
-		std::vector<unsigned char> buffer(DATA_BUF);
-		std::unique_lock<std::mutex> lock(*gchd->getMutex());
-
-		while(gchd->getQueue()->empty()) {
-			gchd->getCv()->wait(lock);
+		if (socketFd_ < 0) {
+			// error, try next iteration
+			continue;
 		}
 
-		buffer = gchd->getQueue()->front();
-		gchd->getQueue()->pop();
-		lock.unlock();
-		write(fifoFd_, reinterpret_cast<char *>(buffer.data()), DATA_BUF);
+		if (connect(socketFd_, entry->ai_addr, entry->ai_addrlen) != -1) {
+			// success
+			break;
+		}
+
+		close(socketFd_);
+		socketFd_ = -1;
+		return 1;
+	}
+
+	freeaddrinfo(result);
+
+	return 0;
+}
+
+void Streamer::disableSocket() {
+	if (socketFd_ != -1) {
+		close(socketFd_);
+		socketFd_ = -1;
 	}
 }
 
-void Streamer::streamToDisk(GCHD *gchd, std::string outputPath) {
-	std::ofstream output(outputPath, std::ofstream::binary);
-	std::cerr << "Streaming data from device now." << std::endl;
+void Streamer::loop() {
+	std::cerr << "Streamer has been started." << std::endl;
 
 	while (process_->isActive()) {
 		std::vector<unsigned char> buffer(DATA_BUF);
-		std::unique_lock<std::mutex> lock(*gchd->getMutex());
+		std::unique_lock<std::mutex> lock(*gchd_->getMutex());
 
-		while(gchd->getQueue()->empty()) {
-			gchd->getCv()->wait(lock);
+		while(gchd_->getQueue()->empty()) {
+			gchd_->getCv()->wait(lock);
 		}
 
-		buffer = gchd->getQueue()->front();
-		gchd->getQueue()->pop();
+		buffer = gchd_->getQueue()->front();
+		gchd_->getQueue()->pop();
 		lock.unlock();
 
-		// TODO reinterpret really needed?
-		output.write(reinterpret_cast<char *>(buffer.data()), DATA_BUF);
-	}
+		if (diskStream_.is_open()) {
+			diskStream_.write(reinterpret_cast<char *>(buffer.data()), DATA_BUF);
+		}
 
-	output.close();
+		if (hasFifo_ && fifoFd_ != -1) {
+			write(fifoFd_, buffer.data(), DATA_BUF);
+		}
+
+		if (socketFd_ != -1) {
+			write(socketFd_, buffer.data(), DATA_BUF);
+		}
+	}
 }
 
-Streamer::Streamer(Process *process) {
+Streamer::Streamer(GCHD *gchd, Process *process) {
 	hasFifo_ = false;
-	fifoFd_ = 0;
+	fifoFd_ = -1;
+	socketFd_ = -1;
+	gchd_ = gchd;
 	process_ = process;
 }
 
 Streamer::~Streamer() {
-	destroyFifo();
+	disableDisk();
+	disableFifo();
+	disableSocket();
 }
