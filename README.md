@@ -112,11 +112,14 @@ Usage: gchd [options]
 
 Options:
   -c <color-space>   Color Space settings [default: yuv]
-  -d                 Capture to <output> instead of using FIFO
+  -f <format>        Format for <output> [default: fifo]
+  -h                 Print this screen
   -i <input-source>  Input Source [default: hdmi]
+  -n <ip-address>    IP address for UDP streaming [default: 0.0.0.0]
   -o <output>        Output Path [default: /tmp/gchd.ts]
-  -p <pid-path>      PID path [default: /var/run/gchd.pid]
+  -p <port>          Port for UDP streaming [default: 57384]
   -r <resolution>    Resolution of Input Source [default: 1080]
+  -P <pid-path>      PID path [default: /var/run/gchd.pid]
 ```
 
 Options for `<color-space>` are `yuv` and `rgb`. Consoles and PCs output in
@@ -124,26 +127,36 @@ either format and usually don't support switching Color Spaces. If this option
 is set incorrectly, your capture will either have a green or purple tint.
 Default is set to `yuv`.
 
-If `-d` flag is set, this driver will capture footage to `<output>`, instead
-of creating a FIFO. This is only recommended, if you plan to capture video
-directly to your disk anyway. For most cases, a FIFO will suit better (default).
-Please note, that FIFOs won't grow in size, making them optimal for streaming
-and more controlled capturing on systems with limited amount of memory or SSDs.
+Options for `<format>` are `disk`, `fifo` and `socket`. Use `disk`, if you want
+to directly record to your harddrive. Else, FIFO will cover almost all use cases
+(default). Please note, that FIFOs won't grow in size, making them optimal for
+streaming and more controlled capturing on systems with limited amount of memory
+or SSDs. When set to `socket`, this driver will stream the output via UDP to
+`<ip-address>`:`<port>` (default `0.0.0.0:57384`).
 
 Options for `<input-source>` are `composite`, `component` and `hdmi`. Choose,
 whichever source you're using. Some Resolutions are not available on all Input
 Sources.
 
+You can specify `<ip-address>` using `-n` option. The driver will stream to this
+IP address, instead of default `0.0.0.0`. Please note, UDP streaming is highly
+experimental at this point. Unicast works well, but Multicasting has performance
+issues, causing artefacts. Multicast IPs are in the range of `224.0.0.0` -
+`239.255.255.255` (RFC 5771).
+
 `<output>` sets the location either for the FIFO or the capture file,
 depending on whether `-d` has been set or not.
+
+You can change the default `<port>` using `-p` option. Default is set in private
+port range (RFC 6335) to `57384` (EGCHD).
+
+Options for `<resolution>` are `ntsc`, `pal`, `720` and `1080`. Use whichever
+resolution your input source has.
 
 `<pid-path>` is unused at the moment. Once implemented, it will provide a
 single-instance mechanism, which will prevent this driver from opening multiple
 times. You can use this option in the future, if you're running this driver as a
 non-root user and don't have write access to the default `<pid-path>` location.
-
-Options for `<resolution>` are `ntsc`, `pal`, `720` and `1080`. Use whichever
-resolution your input source has.
 
 
 ### General
