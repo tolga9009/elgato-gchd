@@ -64,13 +64,13 @@ std::mutex *GCHD::getMutex() {
 	return &mutex_;
 }
 
-std::queue<std::vector<unsigned char>> *GCHD::getQueue() {
+std::queue<std::array<unsigned char, DATA_BUF>> *GCHD::getQueue() {
 	return &queue_;
 }
 
 void GCHD::writer() {
 	while(process_->isActive()) {
-		std::vector<unsigned char> buffer(DATA_BUF);
+		std::array<unsigned char, DATA_BUF> buffer;
 		stream(&buffer);
 		std::unique_lock<std::mutex> lock(mutex_);
 
@@ -84,7 +84,7 @@ void GCHD::writer() {
 	}
 }
 
-void GCHD::stream(std::vector<unsigned char> *buffer) {
+void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer) {
 	if (!isInitialized_) {
 		return;
 	}

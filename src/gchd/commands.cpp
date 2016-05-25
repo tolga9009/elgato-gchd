@@ -6,6 +6,7 @@
  */
 
 #include <cstdio>
+#include <vector>
 
 #include <gchd.hpp>
 
@@ -16,7 +17,7 @@ void GCHD::read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint1
 }
 
 int GCHD::read_config4(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char data0, unsigned char data1, unsigned char data2, unsigned char data3) {
-	std::vector<unsigned char> recv(4);
+	std::array<unsigned char, 4> recv;
 
 	libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), static_cast<uint16_t>(recv.size()), 0);
 
@@ -234,7 +235,7 @@ void GCHD::uninitDevice() {
 	 * I'm working with. Receive empty data, after setting state change to
 	 * null transfer.
 	 */
-	std::vector<unsigned char> buffer(DATA_BUF);
+	std::array<unsigned char, DATA_BUF> buffer;
 
 	for (int i = 0; i < 5000; i++) {
 		stream(&buffer);

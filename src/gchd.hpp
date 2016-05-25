@@ -8,13 +8,13 @@
 #ifndef GCHD_H
 #define GCHD_H
 
+#include <array>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
-#include <vector>
 
 #include <libusb-1.0/libusb.h>
 
@@ -48,7 +48,7 @@ class GCHD {
 		int init();
 		std::condition_variable *getCv();
 		std::mutex *getMutex();
-		std::queue<std::vector<unsigned char>> *getQueue();
+		std::queue<std::array<unsigned char, DATA_BUF>> *getQueue();
 		GCHD(Process *process, Settings *settings);
 		~GCHD();
 
@@ -57,7 +57,7 @@ class GCHD {
 		bool isInitialized_;
 		std::condition_variable cv_;
 		std::mutex mutex_;
-		std::queue<std::vector<unsigned char>> queue_;
+		std::queue<std::array<unsigned char, DATA_BUF>> queue_;
 		std::string firmwareIdle_;
 		std::string firmwareEnc_;
 		std::thread writerThread_;
@@ -67,7 +67,7 @@ class GCHD {
 		int getInterface();
 		void setupConfiguration();
 		void bootDevice();
-		void stream(std::vector<unsigned char> *buffer);
+		void stream(std::array<unsigned char, DATA_BUF> *buffer);
 		void writer();
 		void closeDevice();
 		void configureComposite480i();

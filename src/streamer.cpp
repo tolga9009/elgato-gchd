@@ -124,7 +124,7 @@ void Streamer::loop() {
 	std::cerr << "Streamer has been started." << std::endl;
 
 	while (process_->isActive()) {
-		std::vector<unsigned char> buffer(DATA_BUF);
+		std::array<unsigned char, DATA_BUF> buffer;
 		std::unique_lock<std::mutex> lock(*gchd_->getMutex());
 
 		while(gchd_->getQueue()->empty()) {
