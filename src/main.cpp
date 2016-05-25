@@ -23,11 +23,14 @@ void help(std::string name) {
 		  << std::endl
 		  << "Options:" << std::endl
 		  << "  -c <color-space>   Color Space settings [default: yuv]" << std::endl
-		  << "  -d                 Capture to <output> instead of using FIFO" << std::endl
+		  << "  -f <format>        Format for <output> [default: fifo]" << std::endl
+		  << "  -h                 Print this screen" << std::endl
 		  << "  -i <input-source>  Input Source [default: hdmi]" << std::endl
+		  << "  -n <ip-address>    IP address for UDP streaming [default: 0.0.0.0]" << std::endl
 		  << "  -o <output>        Output Path [default: /tmp/gchd.ts]" << std::endl
-		  << "  -p <pid-path>      PID path [default: /var/run/gchd.pid]" << std::endl
-		  << "  -r <resolution>    Resolution of Input Source [default: 1080]" << std::endl;
+		  << "  -p <port>          Port for UDP streaming [default: " << PORT_NUM << "]" << std::endl
+		  << "  -r <resolution>    Resolution of Input Source [default: 1080]" << std::endl
+		  << "  -P <pid-path>      PID path [default: /var/run/gchd.pid]" << std::endl;
 }
 
 void usage(std::string name, std::string optarg, std::string option, const std::vector<std::string> arguments) {
@@ -53,16 +56,18 @@ int main(int argc, char *argv[]) {
 	Settings settings;
 
 	// commandline-specific settings
-	std::string pidPath = "/var/run/gchd.pid";
-	std::string outputPath = "/tmp/gchd.ts";
 	bool useDisk = false;
 	bool useFifo = true;
 	bool useSocket = false;
+	std::string ip;
+	std::string port = PORT_NUM;
+	std::string outputPath = "/tmp/gchd.ts";
+	std::string pidPath = "/var/run/gchd.pid";
 
 	// handling command-line options
 	int opt;
 
-	while ((opt = getopt(argc, argv, ":c:dhi:o:p:r:")) != -1) {
+	while ((opt = getopt(argc, argv, ":c:f:hi:n:o:p:r:P:")) != -1) {
 		switch (opt) {
 			case 'c': {
 				if (std::string(optarg) == "yuv") {
@@ -77,9 +82,29 @@ int main(int argc, char *argv[]) {
 				usage(process.getName(), optarg, "-c", arguments);
 				return EXIT_FAILURE;
 			}
-			case 'd':
-				useFifo = false;
-				break;
+			case 'f': {
+				// TODO formats can be set independently, but more testing needed first
+				if (std::string(optarg) == "disk") {
+					useDisk = true;
+					useFifo = false;
+					useSocket = false;
+					break;
+				} else if (std::string(optarg) == "fifo") {
+					useDisk = false;
+					useFifo = true;
+					useSocket = false;
+					break;
+				} else if (std::string(optarg) == "socket") {
+					useDisk = false;
+					useFifo = false;
+					useSocket = true;
+					break;
+				}
+
+				const std::vector<std::string> arguments = {"disk", "fifo", "socket"};
+				usage(process.getName(), optarg, "-f", arguments);
+				return EXIT_FAILURE;
+			}
 			case 'h':
 				help(process.getName());
 				return EXIT_SUCCESS;
@@ -99,11 +124,14 @@ int main(int argc, char *argv[]) {
 				usage(process.getName(), optarg, "-i", arguments);
 				return EXIT_FAILURE;
 			}
+			case 'n':
+				ip = std::string(optarg);
+				break;
 			case 'o':
 				outputPath = std::string(optarg);
 				break;
 			case 'p':
-				pidPath = std::string(optarg);
+				port = std::string(optarg);
 				break;
 			case 'r': {
 				if (std::string(optarg) == "ntsc") {
@@ -124,6 +152,9 @@ int main(int argc, char *argv[]) {
 				usage(process.getName(), optarg, "-r", arguments);
 				return EXIT_FAILURE;
 			}
+			case 'P':
+				pidPath = std::string(optarg);
+				break;
 			case ':':
 				std::cerr << "Missing argument." << std::endl;
 				return EXIT_FAILURE;
@@ -166,7 +197,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (useSocket) {
-		if (streamer.enableSocket(nullptr, PORT_NUM)) {
+		if (streamer.enableSocket(ip, port)) {
 			return EXIT_FAILURE;
 		}
 	}

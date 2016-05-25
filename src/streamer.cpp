@@ -74,7 +74,16 @@ int Streamer::enableSocket(std::string ip, std::string port) {
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	auto ret = getaddrinfo(ip.c_str(), port.c_str(), &hints, &result);
+	// if <ip> is unconfigured, set it to nullptr, effectively IP 0.0.0.0
+	const char *ipAddress;
+
+	if (ip.empty()) {
+		ipAddress = nullptr;
+	} else {
+		ipAddress = ip.c_str();
+	}
+
+	auto ret = getaddrinfo(ipAddress, port.c_str(), &hints, &result);
 
 	if (ret) {
 		std::cerr << "Socket error: " << gai_strerror(ret) << std::endl;
