@@ -96,7 +96,7 @@ void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer) {
 
 int GCHD::checkFirmware() {
 	if (deviceType_ == DeviceType::GameCaptureHD) {
-		std::vector<std::string> locationList = {"/usr/lib/firmware/gchd/", "/usr/local/lib/firmware/gchd/", "./"};
+		std::vector<std::string> locationList = {"/usr/lib/firmware/gchd/", "/usr/local/lib/firmware/gchd/", "./", "/Applications/Game Capture HD.app/Contents/Resources/Firmware/Beddo/"};
 
 		for (auto it : locationList) {
 			std::string idle = it + FW_MB86H57_H58_IDLE;
