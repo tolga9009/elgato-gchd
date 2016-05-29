@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <utility>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -69,17 +70,26 @@ std::queue<std::array<unsigned char, DATA_BUF>> *GCHD::getQueue() {
 }
 
 void GCHD::writer() {
+	std::array<unsigned char, DATA_BUF> buffer;
+
 	while(process_->isActive()) {
-		std::array<unsigned char, DATA_BUF> buffer;
 		stream(&buffer);
+
 		std::unique_lock<std::mutex> lock(mutex_);
 
+		/*
+		 * TODO start filling queue, when readers are available. Else
+		 * drop data, to keep lag as small as possible.
+		 */
+		// if queue size exceeds maximum, discard old data
 		if (queue_.size() > MAX_QUEUE) {
 			queue_.pop();
 		}
 
-		queue_.push(buffer);
+		queue_.push(std::move(buffer));
 		lock.unlock();
+
+		// notify reader thread
 		cv_.notify_one();
 	}
 }

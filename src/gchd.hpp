@@ -23,9 +23,9 @@
 
 // constants
 #define EP_OUT		0x02
-#define DATA_BUF	0x4000
+#define DATA_BUF	0xf000
 #define TIMEOUT		5000
-#define MAX_QUEUE	8
+#define MAX_QUEUE	3
 
 // system commands
 #define SCMD_IDLE		1

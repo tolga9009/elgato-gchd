@@ -21,6 +21,7 @@ int Streamer::enableDisk(std::string diskPath) {
 
 	if (diskStream_.fail()) {
 		std::cerr << "Can't open " << diskPath << std::endl;
+
 		return 1;
 	}
 
@@ -40,6 +41,7 @@ int Streamer::enableFifo(std::string fifoPath) {
 
 	if (mkfifo(fifoPath_.c_str(), 0644)) {
 		std::cerr << "Error creating FIFO." << std::endl;
+
 		return 1;
 	}
 
@@ -87,6 +89,7 @@ int Streamer::enableSocket(std::string ip, std::string port) {
 
 	if (ret) {
 		std::cerr << "Socket error: " << gai_strerror(ret) << std::endl;
+
 		return 1;
 	}
 
@@ -105,6 +108,7 @@ int Streamer::enableSocket(std::string ip, std::string port) {
 
 		close(socketFd_);
 		socketFd_ = -1;
+
 		return 1;
 	}
 
@@ -124,27 +128,30 @@ void Streamer::loop() {
 	std::cerr << "Streamer has been started." << std::endl;
 
 	while (process_->isActive()) {
-		std::array<unsigned char, DATA_BUF> buffer;
+		std::queue<std::array<unsigned char, DATA_BUF>> queue;
 		std::unique_lock<std::mutex> lock(*gchd_->getMutex());
 
-		while(gchd_->getQueue()->empty()) {
+		while(process_->isActive() && gchd_->getQueue()->empty()) {
 			gchd_->getCv()->wait(lock);
 		}
 
-		buffer = gchd_->getQueue()->front();
-		gchd_->getQueue()->pop();
+		gchd_->getQueue()->swap(queue);
 		lock.unlock();
 
-		if (diskStream_.is_open()) {
-			diskStream_.write(reinterpret_cast<char *>(buffer.data()), DATA_BUF);
-		}
+		while(process_->isActive() && !queue.empty()) {
+			if (diskStream_.is_open()) {
+				diskStream_.write(reinterpret_cast<char *>(queue.front().data()), DATA_BUF);
+			}
 
-		if (hasFifo_ && fifoFd_ != -1) {
-			write(fifoFd_, buffer.data(), DATA_BUF);
-		}
+			if (hasFifo_ && fifoFd_ != -1) {
+				write(fifoFd_, queue.front().data(), DATA_BUF);
+			}
 
-		if (socketFd_ != -1) {
-			write(socketFd_, buffer.data(), DATA_BUF);
+			if (socketFd_ != -1) {
+				write(socketFd_, queue.front().data(), DATA_BUF);
+			}
+
+			queue.pop();
 		}
 	}
 }
