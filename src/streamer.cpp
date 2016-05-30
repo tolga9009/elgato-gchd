@@ -5,7 +5,9 @@
  * MIT License. For more information, see LICENSE file.
  */
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 #include <fcntl.h>
 #include <netdb.h>
@@ -15,6 +17,8 @@
 #include <sys/stat.h>
 
 #include <streamer.hpp>
+
+constexpr auto LOOP_WAIT = 1000;
 
 int Streamer::enableDisk(std::string diskPath) {
 	diskStream_.open(diskPath, std::ofstream::binary);
@@ -45,9 +49,8 @@ int Streamer::enableFifo(std::string fifoPath) {
 		return 1;
 	}
 
-	hasFifo_ = true;
 	std::cerr << "FIFO: " << fifoPath << " has been created." << std::endl;
-	fifoFd_ = open(fifoPath_.c_str(), O_WRONLY);
+	fifoFd_ = open(fifoPath_.c_str(), O_RDWR | O_NONBLOCK);
 
 	if (fifoFd_ < 0) {
 		std::cerr << "Can't open FIFO for writing." << std::endl;
@@ -60,11 +63,7 @@ void Streamer::disableFifo() {
 	if (fifoFd_) {
 		close(fifoFd_);
 		fifoFd_ = -1;
-	}
-
-	if (hasFifo_) {
 		unlink(fifoPath_.c_str());
-		hasFifo_ = false;
 	}
 }
 
@@ -125,34 +124,27 @@ void Streamer::disableSocket() {
 }
 
 void Streamer::loop() {
+	std::array<unsigned char, DATA_BUF> buffer;
+
 	std::cerr << "Streamer has been started." << std::endl;
 
 	while (process_->isActive()) {
-		std::queue<std::array<unsigned char, DATA_BUF>> queue;
-		std::unique_lock<std::mutex> lock(*gchd_->getMutex());
+		gchd_->stream(&buffer);
 
-		while(process_->isActive() && gchd_->getQueue()->empty()) {
-			gchd_->getCv()->wait(lock);
+		if (diskStream_.is_open()) {
+			diskStream_.write(reinterpret_cast<char *>(buffer.data()), buffer.size());
 		}
 
-		gchd_->getQueue()->swap(queue);
-		lock.unlock();
-
-		while(process_->isActive() && !queue.empty()) {
-			if (diskStream_.is_open()) {
-				diskStream_.write(reinterpret_cast<char *>(queue.front().data()), DATA_BUF);
-			}
-
-			if (hasFifo_ && fifoFd_ != -1) {
-				write(fifoFd_, queue.front().data(), DATA_BUF);
-			}
-
-			if (socketFd_ != -1) {
-				write(socketFd_, queue.front().data(), DATA_BUF);
-			}
-
-			queue.pop();
+		// TODO check and correctly handle return values
+		if (fifoFd_ != -1) {
+			write(fifoFd_, buffer.data(), buffer.size());
 		}
+
+		if (socketFd_ != -1) {
+			write(socketFd_, buffer.data(), buffer.size());
+		}
+
+		std::this_thread::sleep_for(std::chrono::microseconds(LOOP_WAIT));
 	}
 }
 

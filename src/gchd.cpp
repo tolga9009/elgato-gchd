@@ -6,7 +6,7 @@
  */
 
 #include <iostream>
-#include <utility>
+#include <vector>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -50,48 +50,7 @@ int GCHD::init() {
 	process_->setActive(true);
 	setupConfiguration();
 
-	// start receive thread
-	std::cerr << "Starting receive thread." << std::endl;
-	writerThread_ = std::thread(&GCHD::writer, this);
-
 	return 0;
-}
-
-std::condition_variable *GCHD::getCv() {
-	return &cv_;
-}
-
-std::mutex *GCHD::getMutex() {
-	return &mutex_;
-}
-
-std::queue<std::array<unsigned char, DATA_BUF>> *GCHD::getQueue() {
-	return &queue_;
-}
-
-void GCHD::writer() {
-	std::array<unsigned char, DATA_BUF> buffer;
-
-	while(process_->isActive()) {
-		stream(&buffer);
-
-		std::unique_lock<std::mutex> lock(mutex_);
-
-		/*
-		 * TODO start filling queue, when readers are available. Else
-		 * drop data, to keep lag as small as possible.
-		 */
-		// if queue size exceeds maximum, discard old data
-		if (queue_.size() > MAX_QUEUE) {
-			queue_.pop();
-		}
-
-		queue_.push(std::move(buffer));
-		lock.unlock();
-
-		// notify reader thread
-		cv_.notify_one();
-	}
 }
 
 void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer) {
@@ -247,8 +206,6 @@ void GCHD::setupConfiguration() {
 void GCHD::closeDevice() {
 	if (devh_) {
 		if (isInitialized_) {
-			std::cerr << "Stopping receive thread." << std::endl;
-			writerThread_.join();
 			std::cerr << "Resetting device - this may take a while." << std::endl;
 			uninitDevice();
 			std::cerr << "Device has been reset." << std::endl;

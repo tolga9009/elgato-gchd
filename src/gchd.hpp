@@ -9,12 +9,8 @@
 #define GCHD_H
 
 #include <array>
-#include <condition_variable>
 #include <cstdint>
-#include <mutex>
-#include <queue>
 #include <string>
-#include <thread>
 
 #include <libusb-1.0/libusb.h>
 
@@ -23,8 +19,8 @@
 
 // constants
 #define EP_OUT		0x02
-#define DATA_BUF	0xf000
-#define TIMEOUT		5000
+#define DATA_BUF	0x4000
+#define TIMEOUT		5000 // TODO measure and set more reasonable timeout
 #define MAX_QUEUE	3
 
 // system commands
@@ -46,29 +42,21 @@ enum class DeviceType {
 class GCHD {
 	public:
 		int init();
-		std::condition_variable *getCv();
-		std::mutex *getMutex();
-		std::queue<std::array<unsigned char, DATA_BUF>> *getQueue();
+		void stream(std::array<unsigned char, DATA_BUF> *buffer);
 		GCHD(Process *process, Settings *settings);
 		~GCHD();
 
 	private:
 		int libusb_;
 		bool isInitialized_;
-		std::condition_variable cv_;
-		std::mutex mutex_;
-		std::queue<std::array<unsigned char, DATA_BUF>> queue_;
 		std::string firmwareIdle_;
 		std::string firmwareEnc_;
-		std::thread writerThread_;
 		struct libusb_device_handle *devh_;
 		int checkFirmware();
 		int openDevice();
 		int getInterface();
 		void setupConfiguration();
 		void bootDevice();
-		void stream(std::array<unsigned char, DATA_BUF> *buffer);
-		void writer();
 		void closeDevice();
 		void configureComposite480i();
 		void configureComposite576i();

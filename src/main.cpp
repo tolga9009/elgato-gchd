@@ -56,13 +56,17 @@ int main(int argc, char *argv[]) {
 	Settings settings;
 
 	// commandline-specific settings
-	bool useDisk = false;
-	bool useFifo = true;
-	bool useSocket = false;
 	std::string ip;
 	std::string port = PORT_NUM;
 	std::string outputPath = "/tmp/gchd.ts";
 	std::string pidPath = "/var/run/gchd.pid";
+
+	// output format, default is set to FIFO
+	enum class Format {
+		Disk,
+		FIFO,
+		Socket
+	} format = Format::FIFO;
 
 	// handling command-line options
 	int opt;
@@ -83,21 +87,14 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 			case 'f': {
-				// TODO formats can be set independently, but more testing needed first
 				if (std::string(optarg) == "disk") {
-					useDisk = true;
-					useFifo = false;
-					useSocket = false;
+					format = Format::Disk;
 					break;
 				} else if (std::string(optarg) == "fifo") {
-					useDisk = false;
-					useFifo = true;
-					useSocket = false;
+					format = Format::FIFO;
 					break;
 				} else if (std::string(optarg) == "socket") {
-					useDisk = false;
-					useFifo = false;
-					useSocket = true;
+					format = Format::Socket;
 					break;
 				}
 
@@ -176,34 +173,36 @@ int main(int argc, char *argv[]) {
 
 	GCHD gchd(&process, &settings);
 
-	// device initialization
+	// helper class for streaming audio and video from device
+	Streamer streamer(&gchd, &process);
+
+	switch (format) {
+		case Format::Disk:
+			if (streamer.enableDisk(outputPath)) {
+				return EXIT_FAILURE;
+			}
+
+			break;
+		case Format::FIFO:
+			if (streamer.enableFifo(outputPath)) {
+				return EXIT_FAILURE;
+			}
+
+			break;
+		case Format::Socket:
+			if (streamer.enableSocket(ip, port)) {
+				return EXIT_FAILURE;
+			}
+
+			break;
+	}
+
+	// immediately start receive loop after device init
 	if(gchd.init()) {
 		return EXIT_FAILURE;
 	}
 
-	// helper class for streaming audio and video from device
-	Streamer streamer(&gchd, &process);
-
-	if (useDisk) {
-		if (streamer.enableDisk(outputPath)) {
-			return EXIT_FAILURE;
-		}
-	}
-
-	if (useFifo) {
-		if (streamer.enableFifo(outputPath)) {
-			return EXIT_FAILURE;
-		}
-	}
-
-	if (useSocket) {
-		if (streamer.enableSocket(ip, port)) {
-			return EXIT_FAILURE;
-		}
-	}
-
 	streamer.loop();
-	std::cerr << "Terminating." << std::endl;
 
 	return EXIT_SUCCESS;
 }
