@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
 	// commandline-specific settings
 	std::string ip;
 	std::string port = PORT_NUM;
-	std::string outputPath = "/tmp/gchd.ts";
-	std::string pidPath = "/var/run/gchd.pid";
+	std::string output = "/tmp/gchd.ts";
+	std::string pid = "/var/run/gchd.pid";
 
 	// output format, default is set to FIFO
 	enum class Format {
@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 				ip = std::string(optarg);
 				break;
 			case 'o':
-				outputPath = std::string(optarg);
+				output = std::string(optarg);
 				break;
 			case 'p':
 				port = std::string(optarg);
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 			case 'P':
-				pidPath = std::string(optarg);
+				pid = std::string(optarg);
 				break;
 			case ':':
 				std::cerr << "Missing argument." << std::endl;
@@ -178,13 +178,13 @@ int main(int argc, char *argv[]) {
 
 	switch (format) {
 		case Format::Disk:
-			if (streamer.enableDisk(outputPath)) {
+			if (streamer.enableDisk(output)) {
 				return EXIT_FAILURE;
 			}
 
 			break;
 		case Format::FIFO:
-			if (streamer.enableFifo(outputPath)) {
+			if (streamer.fifo.enable(output)) {
 				return EXIT_FAILURE;
 			}
 

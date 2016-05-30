@@ -93,11 +93,6 @@ Process::Process() {
 	action.sa_handler = sigHandler_;
 	sigaction(SIGINT, &action, nullptr);
 	sigaction(SIGTERM, &action, nullptr);
-
-	// ignore SIGPIPE, else program terminates on unsuccessful write()
-	struct sigaction ignore;
-	ignore.sa_handler = SIG_IGN;
-	sigaction(SIGPIPE, &ignore, nullptr);
 }
 
 Process::~Process() {

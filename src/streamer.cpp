@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <queue>
 #include <thread>
 
 #include <fcntl.h>
@@ -17,8 +18,6 @@
 #include <sys/stat.h>
 
 #include <streamer.hpp>
-
-constexpr auto LOOP_WAIT = 1000;
 
 int Streamer::enableDisk(std::string diskPath) {
 	diskStream_.open(diskPath, std::ofstream::binary);
@@ -37,33 +36,6 @@ int Streamer::enableDisk(std::string diskPath) {
 void Streamer::disableDisk() {
 	if (diskStream_.is_open()) {
 		diskStream_.close();
-	}
-}
-
-int Streamer::enableFifo(std::string fifoPath) {
-	fifoPath_ = fifoPath;
-
-	if (mkfifo(fifoPath_.c_str(), 0644)) {
-		std::cerr << "Error creating FIFO." << std::endl;
-
-		return 1;
-	}
-
-	std::cerr << "FIFO: " << fifoPath << " has been created." << std::endl;
-	fifoFd_ = open(fifoPath_.c_str(), O_RDWR | O_NONBLOCK);
-
-	if (fifoFd_ < 0) {
-		std::cerr << "Can't open FIFO for writing." << std::endl;
-	}
-
-	return 0;
-}
-
-void Streamer::disableFifo() {
-	if (fifoFd_) {
-		close(fifoFd_);
-		fifoFd_ = -1;
-		unlink(fifoPath_.c_str());
 	}
 }
 
@@ -113,6 +85,22 @@ int Streamer::enableSocket(std::string ip, std::string port) {
 
 	freeaddrinfo(result);
 
+	auto flags = fcntl(socketFd_, F_GETFL);
+
+	if (flags == -1) {
+		std::cerr << "Socket error: fcntl get flags." << std::endl;
+
+		return 1;
+	}
+
+	flags |= O_NONBLOCK;
+
+	if (fcntl(socketFd_, F_SETFL, flags) == -1) {
+		std::cerr << "Socket error: fcntl set flags." << std::endl;
+
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -125,6 +113,7 @@ void Streamer::disableSocket() {
 
 void Streamer::loop() {
 	std::array<unsigned char, DATA_BUF> buffer;
+	std::queue<std::array<unsigned char, DATA_BUF>> fifoQueue;
 
 	std::cerr << "Streamer has been started." << std::endl;
 
@@ -135,22 +124,15 @@ void Streamer::loop() {
 			diskStream_.write(reinterpret_cast<char *>(buffer.data()), buffer.size());
 		}
 
-		// TODO check and correctly handle return values
-		if (fifoFd_ != -1) {
-			write(fifoFd_, buffer.data(), buffer.size());
-		}
+		fifo.output(&buffer);
 
 		if (socketFd_ != -1) {
 			write(socketFd_, buffer.data(), buffer.size());
 		}
-
-		std::this_thread::sleep_for(std::chrono::microseconds(LOOP_WAIT));
 	}
 }
 
 Streamer::Streamer(GCHD *gchd, Process *process) {
-	hasFifo_ = false;
-	fifoFd_ = -1;
 	socketFd_ = -1;
 	gchd_ = gchd;
 	process_ = process;
@@ -158,6 +140,5 @@ Streamer::Streamer(GCHD *gchd, Process *process) {
 
 Streamer::~Streamer() {
 	disableDisk();
-	disableFifo();
 	disableSocket();
 }
