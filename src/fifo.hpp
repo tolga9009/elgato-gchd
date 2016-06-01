@@ -9,10 +9,7 @@
 #define FIFO_CLASS_H
 
 #include <array>
-#include <queue>
 #include <string>
-
-#include <poll.h>
 
 #include <gchd.hpp>
 
@@ -26,11 +23,7 @@ class Fifo {
 
 	private:
 		int fd_;
-		long bytesWritten_;
 		std::string output_;
-		std::queue<std::array<unsigned char, DATA_BUF>> queue_;
-		struct pollfd pollFd_;
-		int handleWrite(std::array<unsigned char, DATA_BUF> *buffer);
 };
 
 #endif
