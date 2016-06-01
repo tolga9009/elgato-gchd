@@ -5,17 +5,13 @@
  * MIT License. For more information, see LICENSE file.
  */
 
-#include <chrono>
 #include <iostream>
-#include <queue>
-#include <thread>
 
 #include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
 
 #include <sys/socket.h>
-#include <sys/stat.h>
 
 #include <streamer.hpp>
 
@@ -113,7 +109,6 @@ void Streamer::disableSocket() {
 
 void Streamer::loop() {
 	std::array<unsigned char, DATA_BUF> buffer;
-	std::queue<std::array<unsigned char, DATA_BUF>> fifoQueue;
 
 	std::cerr << "Streamer has been started." << std::endl;
 
