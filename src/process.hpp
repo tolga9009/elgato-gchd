@@ -28,7 +28,7 @@ class Process {
 		int pidFd_;
 		std::string name_;
 		std::string pidPath_;
-		static void sigHandler_(int sig);
+		static void sigHandler(int sig);
 };
 
 #endif

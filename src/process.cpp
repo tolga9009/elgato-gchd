@@ -44,18 +44,20 @@ int Process::createPid(std::string pidPath) {
 
 	if (pidFd_ < 0) {
 		std::cerr << "PID file could not be created." << std::endl;
+
 		return -1;
 	}
 
 	if (flock(pidFd_, LOCK_EX | LOCK_NB) < 0) {
 		std::cerr << "Could not lock PID file, another instance is already running." << std::endl;
 		close(pidFd_);
+
 		return -1;
 	}
 
 	hasPid_ = true;
 
-	return pidFd_;
+	return 0;
 }
 
 void Process::destroyPid() {
@@ -70,7 +72,7 @@ void Process::destroyPid() {
 	}
 }
 
-void Process::sigHandler_(int sig) {
+void Process::sigHandler(int sig) {
 	std::cerr << std::endl << "Stop signal received." << std::endl;
 
 	switch(sig) {
@@ -90,7 +92,7 @@ Process::Process() {
 
 	// signal handling
 	struct sigaction action;
-	action.sa_handler = sigHandler_;
+	action.sa_handler = sigHandler;
 	sigaction(SIGINT, &action, nullptr);
 	sigaction(SIGTERM, &action, nullptr);
 }
