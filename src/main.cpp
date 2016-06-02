@@ -178,7 +178,7 @@ int main(int argc, char *argv[]) {
 
 	switch (format) {
 		case Format::Disk:
-			if (streamer.enableDisk(output)) {
+			if (streamer.disk.enable(output)) {
 				return EXIT_FAILURE;
 			}
 

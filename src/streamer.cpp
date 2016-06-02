@@ -5,35 +5,10 @@
  * MIT License. For more information, see LICENSE file.
  */
 
+#include <array>
 #include <iostream>
 
-#include <fcntl.h>
-#include <netdb.h>
-#include <unistd.h>
-
-#include <sys/socket.h>
-
 #include <streamer.hpp>
-
-int Streamer::enableDisk(std::string diskPath) {
-	diskStream_.open(diskPath, std::ofstream::binary);
-
-	if (diskStream_.fail()) {
-		std::cerr << "Can't open " << diskPath << std::endl;
-
-		return 1;
-	}
-
-	std::cerr << "Saving to disk: " << diskPath << std::endl;
-
-	return 0;
-}
-
-void Streamer::disableDisk() {
-	if (diskStream_.is_open()) {
-		diskStream_.close();
-	}
-}
 
 void Streamer::loop() {
 	std::array<unsigned char, DATA_BUF> buffer;
@@ -42,11 +17,7 @@ void Streamer::loop() {
 
 	while (process_->isActive()) {
 		gchd_->stream(&buffer);
-
-		if (diskStream_.is_open()) {
-			diskStream_.write(reinterpret_cast<char *>(buffer.data()), buffer.size());
-		}
-
+		disk.output(&buffer);
 		fifo.output(&buffer);
 		socket.output(&buffer);
 	}
@@ -55,8 +26,4 @@ void Streamer::loop() {
 Streamer::Streamer(GCHD *gchd, Process *process) {
 	gchd_ = gchd;
 	process_ = process;
-}
-
-Streamer::~Streamer() {
-	disableDisk();
 }

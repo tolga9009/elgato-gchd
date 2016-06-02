@@ -8,11 +8,7 @@
 #ifndef STREAMER_CLASS_H
 #define STREAMER_CLASS_H
 
-#include <fstream>
-#include <string>
-
-#include <poll.h>
-
+#include <disk.hpp>
 #include <fifo.hpp>
 #include <gchd.hpp>
 #include <process.hpp>
@@ -20,16 +16,13 @@
 
 class Streamer {
 	public:
-		int enableDisk(std::string diskPath);
-		void disableDisk();
 		void loop();
+		Disk disk;
 		Fifo fifo;
 		Socket socket;
 		Streamer(GCHD *gchd, Process *process);
-		~Streamer();
 
 	private:
-		std::ofstream diskStream_;
 		GCHD *gchd_;
 		Process *process_;
 };
