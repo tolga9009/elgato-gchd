@@ -28,8 +28,10 @@ Official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
 This software needs Elgato Game Capture HD firmware files to work. Due to
 licensing issues, they're not part of this repository. You need to extract them
 yourself from the official Mac OS X drivers.
+**Note**: If you're a Mac OS X user, simply install the official drivers. You
+don't need to manually extract the firmware files.
 
-A brief instruction:
+A brief instruction (for Linux only):
 
 1. Download Elgato Game Capture HD Mac OS X driver version 2.0.3 from official
 website: https://www.elgato.com/en/game-capture-hd-support
@@ -55,7 +57,7 @@ distribution for more information.
 
 6. Place the firmware files either in `/usr/lib/firmware/gchd` or
 `/usr/local/lib/firmware/gchd` folder. You might need root permissions.  
-Note: for testing purposes, you can also place the firmware files in the
+**Note**: for testing purposes, you can also place the firmware files in the
 same directory, where the compiled executable `gchd` is located.
 
 
@@ -65,7 +67,6 @@ same directory, where the compiled executable `gchd` is located.
 distribution, as package names might differ.
 
   * libusb >= 1.0.20
-  * clang (make)
   * cmake (make)
   * make (make)
   * qt5 (optional) - for GUI support (not usable, work in progress)
@@ -95,8 +96,8 @@ distribution, as package names might differ.
     5. The compiled executable `gchd` is located in `build/src`. If you have
     Qt5 installed on your system, the GUI `qgchd` will be located at
     `build/src/gui`.  
-    Note: you can copy the firmware files in those directories and test the
-    application, without making any system-wide modifications.
+    **Note**: you can copy the firmware files into these directories and test
+    the application, without making any system-wide modifications.
 
 3. If the application works for you, you can optionally install it system-wide,
 running `make install` from within the `build` directory. This will install the
