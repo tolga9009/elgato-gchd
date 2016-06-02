@@ -24,7 +24,6 @@ class Disk {
 
 	private:
 		int fd_;
-		std::string output_;
 		std::ofstream disk_;
 };
 

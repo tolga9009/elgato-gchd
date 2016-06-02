@@ -5,13 +5,7 @@
  * MIT License. For more information, see LICENSE file.
  */
 
-#include <csignal>
 #include <iostream>
-
-#include <fcntl.h>
-#include <unistd.h>
-
-#include <sys/stat.h>
 
 #include <disk.hpp>
 

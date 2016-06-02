@@ -23,7 +23,6 @@ class Socket {
 
 	private:
 		int fd_;
-		std::string output_;
 };
 
 #endif

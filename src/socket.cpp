@@ -5,7 +5,6 @@
  * MIT License. For more information, see LICENSE file.
  */
 
-#include <csignal>
 #include <iostream>
 
 #include <fcntl.h>

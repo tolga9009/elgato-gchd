@@ -176,25 +176,17 @@ int main(int argc, char *argv[]) {
 	// helper class for streaming audio and video from device
 	Streamer streamer(&gchd, &process);
 
+	// enable output
+	int ret;
+
 	switch (format) {
-		case Format::Disk:
-			if (streamer.disk.enable(output)) {
-				return EXIT_FAILURE;
-			}
+		case Format::Disk: ret = streamer.disk.enable(output); break;
+		case Format::FIFO: ret = streamer.fifo.enable(output); break;
+		case Format::Socket: ret = streamer.socket.enable(ip, port); break;
+	}
 
-			break;
-		case Format::FIFO:
-			if (streamer.fifo.enable(output)) {
-				return EXIT_FAILURE;
-			}
-
-			break;
-		case Format::Socket:
-			if (streamer.socket.enable(ip, port)) {
-				return EXIT_FAILURE;
-			}
-
-			break;
+	if (ret) {
+		return EXIT_FAILURE;
 	}
 
 	// immediately start receive loop after device init
