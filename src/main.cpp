@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 
 			break;
 		case Format::Socket:
-			if (streamer.enableSocket(ip, port)) {
+			if (streamer.socket.enable(ip, port)) {
 				return EXIT_FAILURE;
 			}
 
