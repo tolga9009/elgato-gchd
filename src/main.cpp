@@ -30,6 +30,7 @@ void help(std::string name) {
 		  << "  -o <output>        Output Path [default: /tmp/gchd.ts]" << std::endl
 		  << "  -p <port>          Port for UDP streaming [default: " << PORT_NUM << "]" << std::endl
 		  << "  -r <resolution>    Resolution of Input Source [default: 1080]" << std::endl
+		  << "  -v                 Print program version" << std::endl
 		  << "  -P <pid-path>      PID path [default: /var/run/gchd.pid]" << std::endl;
 }
 
@@ -43,6 +44,10 @@ void usage(std::string name, std::string optarg, std::string option, const std::
 	}
 
 	std::cerr << "Try '" << name << " -h' for more information." << std::endl;
+}
+
+void version(std::string name, std::string version) {
+	std::cerr << name << " " << version << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -71,7 +76,7 @@ int main(int argc, char *argv[]) {
 	// handling command-line options
 	int opt;
 
-	while ((opt = getopt(argc, argv, ":c:f:hi:n:o:p:r:P:")) != -1) {
+	while ((opt = getopt(argc, argv, ":c:f:hi:n:o:p:r:vP:")) != -1) {
 		switch (opt) {
 			case 'c': {
 				if (std::string(optarg) == "yuv") {
@@ -149,6 +154,9 @@ int main(int argc, char *argv[]) {
 				usage(process.getName(), optarg, "-r", arguments);
 				return EXIT_FAILURE;
 			}
+			case 'v':
+				version(process.getName(), process.getVersion());
+				return EXIT_SUCCESS;
 			case 'P':
 				pid = std::string(optarg);
 				break;

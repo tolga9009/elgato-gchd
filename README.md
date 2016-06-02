@@ -120,6 +120,7 @@ Options:
   -o <output>        Output Path [default: /tmp/gchd.ts]
   -p <port>          Port for UDP streaming [default: 57384]
   -r <resolution>    Resolution of Input Source [default: 1080]
+  -v                 Print program version
   -P <pid-path>      PID path [default: /var/run/gchd.pid]
 ```
 

@@ -19,6 +19,7 @@ class Process {
 		void setName(std::string name);
 		int createPid(std::string pidPath);
 		void destroyPid();
+		std::string getVersion();
 		Process();
 		~Process();
 

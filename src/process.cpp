@@ -16,6 +16,9 @@
 
 #include <process.hpp>
 
+// constants
+constexpr auto version = "0.1.0";
+
 std::atomic<bool> Process::isActive_;
 
 bool Process::isActive() {
@@ -70,6 +73,10 @@ void Process::destroyPid() {
 		unlink(pidPath_.c_str());
 		hasPid_ = false;
 	}
+}
+
+std::string Process::getVersion() {
+	return version;
 }
 
 void Process::sigHandler(int sig) {
