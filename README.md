@@ -18,7 +18,7 @@ Official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
 ### Unsupported devices
 
 * Elgato Game Capture HD (latest revision PID 0x005d) (planned)
-* Elgato Game Capture HD60 (planned)
+* Elgato Game Capture HD60 (work in progress)
 * Elgato Game Capture HD60 S
 * Elgato Game Capture HD60 Pro
 
