@@ -137,16 +137,16 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'r': {
 				if (std::string(optarg) == "ntsc") {
-					settings.setResolution(Resolution::NTSC);
+					settings.setOutputResolution(Resolution::NTSC);
 					break;
 				} else if (std::string(optarg) == "pal") {
-					settings.setResolution(Resolution::PAL);
+					settings.setOutputResolution(Resolution::PAL);
 					break;
 				} else if (std::string(optarg) == "720") {
-					settings.setResolution(Resolution::HD720);
+					settings.setOutputResolution(Resolution::HD720);
 					break;
 				} else if (std::string(optarg) == "1080") {
-					settings.setResolution(Resolution::HD1080);
+					settings.setOutputResolution(Resolution::HD1080);
 					break;
 				}
 
@@ -181,6 +181,11 @@ int main(int argc, char *argv[]) {
 
 	GCHD gchd(&process, &settings);
 
+
+	if(gchd.checkDevice()) {
+		return EXIT_FAILURE;
+	}
+
 	// helper class for streaming audio and video from device
 	Streamer streamer(&gchd, &process);
 
@@ -198,9 +203,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	// immediately start receive loop after device init
-	if(gchd.init()) {
-		return EXIT_FAILURE;
-	}
+    if(gchd.init()) {
+        return EXIT_FAILURE;
+    }    
 
 	streamer.loop();
 
