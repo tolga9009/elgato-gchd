@@ -43,10 +43,16 @@ class Settings {
 		void setHDMIColorSpace(HDMIColorSpace hdmiColorSpace);
 		InputSource getInputSource();
 		void setInputSource(InputSource inputSource);
-		Resolution getResolution();
-		void setResolution(Resolution resolution);
+		Resolution getInputResolution();
+		void setInputResolution(Resolution resolution);
+		Resolution getOutputResolution();
+		void setOutputResolution(Resolution resolution);
 		bool getAnalogAudio();
 		void setAnalogAudio(bool useAnalogAudio);
+
+		void setFixedFrameRate(double frameRate); //0.0 means variable.
+		double getFixedFrameRate(); //0.0 means variable.
+
 		bool getHighFPS();
 		void setHighFPS(bool allowHighFPS);
 		bool getOverscan();
@@ -84,7 +90,9 @@ class Settings {
 		ColorSpace colorSpace_;
 		HDMIColorSpace hdmiColorSpace_;
 		InputSource inputSource_;
-		Resolution resolution_;
+		Resolution inputResolution_;
+		Resolution outputResolution_;
+		double frameRate_;
 };
 
 #endif

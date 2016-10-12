@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <gchd.hpp>
+#include "gchd.hpp"
 
 // USB VID & PIDs
 #define VENDOR_ELGATO		0x0fd9
@@ -26,21 +26,29 @@
 constexpr auto FW_MB86H57_H58_IDLE = "mb86h57_h58_idle.bin";
 constexpr auto FW_MB86H57_H58_ENC = "mb86h57_h58_enc_h.bin";
 
+constexpr auto FW_MB86M01_ASSP_NSEC_IDLE = "MB86M01_ASSP_NSEC_IDLE";
+constexpr auto FW_MB86M01_ASSP_NSEC_ENC = "MB86M01_ASSP_NSEC_ENC_H";
+
 // constants
 #define INTERFACE_NUM		0x00
 #define CONFIGURATION_VALUE	0x01
 
-int GCHD::init() {
+int GCHD::checkDevice() {
 	// initialize device handler
 	if (openDevice()) {
 		return 1;
 	}
+	libusb_reset_device(devh_);
 
 	// check for firmware files
 	if (checkFirmware()) {
 		return 1;
 	}
+	return 0;
+}
 
+
+int GCHD::init() {
 	// detach kernel driver and claim interface
 	if (getInterface()) {
 		return 1;
@@ -64,23 +72,42 @@ void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer) {
 }
 
 int GCHD::checkFirmware() {
+	std::string idleName;
+	std::string encName;
+
 	if (deviceType_ == DeviceType::GameCaptureHD) {
-		std::vector<std::string> locationList = {"/usr/lib/firmware/gchd/", "/usr/local/lib/firmware/gchd/", "./", "/Applications/Game Capture HD.app/Contents/Resources/Firmware/Beddo/"};
-
-		for (auto it : locationList) {
-			std::string idle = it + FW_MB86H57_H58_IDLE;
-			std::string enc = it + FW_MB86H57_H58_ENC;
-
-			if (!access(idle.c_str(), F_OK)
-					&& !access(enc.c_str(), F_OK)) {
-				firmwareIdle_ = idle;
-				firmwareEnc_ = enc;
-				return 0;
-			}
-		}
+		idleName = FW_MB86H57_H58_IDLE;
+		encName = FW_MB86H57_H58_ENC;
+	}
+	else if (deviceType_ == DeviceType::GameCaptureHDNew) {
+		idleName = FW_MB86M01_ASSP_NSEC_IDLE;
+		encName = FW_MB86M01_ASSP_NSEC_ENC;
+	}
+	else
+	{
+		throw std::logic_error( "Unsupported device.");
 	}
 
+	std::vector<std::string> locationList =
+	{"/usr/lib/firmware/gchd/",
+	 "/usr/local/lib/firmware/gchd/",
+	 "./",
+	 "/Applications/Game Capture HD.app/Contents/Resources/Firmware/Beddo/"};
+
+	for (auto it : locationList) {
+		std::string idle = it + idleName;
+		std::string enc = it + encName;
+
+		if (!access(idle.c_str(), F_OK)
+				&& !access(enc.c_str(), F_OK)) {
+			firmwareIdle_ = idle;
+			firmwareEnc_ = enc;
+			return 0;
+		}
+	}
 	std::cerr << "Firmware files missing." << std::endl;
+	std::cerr << "Need: " << idleName << std::endl;
+	std::cerr << "Need: " << encName << std::endl;
 
 	return 1;
 }
@@ -117,8 +144,7 @@ int GCHD::openDevice() {
 	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD_3);
 	if (devh_) {
 		deviceType_ = DeviceType::GameCaptureHDNew;
-		std::cerr << "This revision of the Elgato Game Capture HD is currently not supported." << std::endl;
-		return 1;
+		return 0;
 	}
 
 	devh_ = libusb_open_device_with_vid_pid(nullptr, VENDOR_ELGATO, GAME_CAPTURE_HD60);
@@ -136,6 +162,9 @@ int GCHD::openDevice() {
 	}
 
 	std::cerr << "Unable to find a supported device." << std::endl;
+	if( geteuid() != 0 ) {
+		std::cerr << "This may be because you are not running this as root, or have not configured UDEV properly to run this without root privilege." << std::endl;
+	}
 
 	return 1;
 }
@@ -146,8 +175,10 @@ int GCHD::getInterface() {
 	}
 
 	if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
-		std::cerr << "Could not set configuration." << std::endl;
-		return 1;
+		if (libusb_set_configuration(devh_, CONFIGURATION_VALUE)) {
+			std::cerr << "Could not set configuration." << std::endl;
+			return 1;
+		}
 	}
 
 	if (libusb_claim_interface(devh_, INTERFACE_NUM)) {
@@ -163,44 +194,32 @@ void GCHD::setupConfiguration() {
 	std::cerr << "Initializing device." << std::endl;
 	isInitialized_ = true;
 
-	switch (settings_->getInputSource()) {
-		case InputSource::Composite:
-			switch (settings_->getResolution()) {
-				case Resolution::NTSC: configureComposite480i(); break;
-				case Resolution::PAL: configureComposite576i(); break;
-				default: return;
-			}
+	switch (settings_->getOutputResolution()) {
+		case Resolution::NTSC:
+			horizontalOutputResolution_=720;
+			verticalOutputResolution_=480;
 			break;
-		case InputSource::Component:
-			switch (settings_->getResolution()) {
-				case Resolution::NTSC: configureComponent480p(); break;
-				case Resolution::PAL: configureComponent576p(); break;
-				case Resolution::HD720: configureComponent720p(); break;
-				case Resolution::HD1080: configureComponent1080p(); break;
-				default: return;
-			}
+
+		case Resolution::PAL:
+			horizontalOutputResolution_=720;
+			verticalOutputResolution_=480;
 			break;
-		case InputSource::HDMI:
-			switch (settings_->getResolution()) {
-				case Resolution::HD720:
-					switch (settings_->getColorSpace()) {
-						case ColorSpace::YUV: configureHdmi720p(); break;
-						case ColorSpace::RGB: configureHdmi720pRgb(); break;
-						default: return;
-					}
-					break;
-				case Resolution::HD1080:
-					switch (settings_->getColorSpace()) {
-						case ColorSpace::YUV: configureHdmi1080p(); break;
-						case ColorSpace::RGB: configureHdmi1080pRgb(); break;
-						default: return;
-					}
-					break;
-				default: return;
-			}
+
+		case Resolution::HD720:
+			horizontalOutputResolution_=1280;
+			verticalOutputResolution_=720;
 			break;
-		default: return;
+
+		case Resolution::HD1080:
+			horizontalOutputResolution_=1920;
+			verticalOutputResolution_=1080;
+			break;
+
+		default:
+			throw runtime_error("Unsupported configuration.");
+			break;
 	}
+	configureDevice();
 }
 
 void GCHD::closeDevice() {

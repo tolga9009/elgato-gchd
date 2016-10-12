@@ -5,7 +5,7 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
-#include <gchd/settings.hpp>
+#include "settings.hpp"
 
 ColorSpace Settings::getColorSpace() {
 	return colorSpace_;
@@ -31,12 +31,20 @@ void Settings::setInputSource(InputSource inputSource) {
 	inputSource_ = inputSource;
 }
 
-Resolution Settings::getResolution() {
-	return resolution_;
+Resolution Settings::getOutputResolution() {
+	return outputResolution_;
 }
 
-void Settings::setResolution(Resolution resolution) {
-	resolution_ = resolution;
+void Settings::setOutputResolution(Resolution resolution) {
+	outputResolution_ = resolution;
+}
+
+Resolution Settings::getInputResolution() {
+	return inputResolution_;
+}
+
+void Settings::setInputResolution(Resolution resolution) {
+	inputResolution_ = resolution;
 }
 
 bool Settings::getAnalogAudio() {
@@ -53,6 +61,15 @@ bool Settings::getHighFPS() {
 
 void Settings::setHighFPS(bool allowHighFPS) {
 	allowHighFPS_ = allowHighFPS;
+}
+
+//0.0 means variable frame rate.
+void Settings::setFixedFrameRate(double frameRate) {
+	frameRate_ = frameRate;
+}
+
+double Settings::getFixedFrameRate() {
+	return frameRate_;
 }
 
 bool Settings::getOverscan() {
@@ -142,6 +159,9 @@ Settings::Settings() {
 	digitalAudioGain_ = 0;
 	colorSpace_ = ColorSpace::YUV;
 	hdmiColorSpace_ = HDMIColorSpace::Limited;
-	inputSource_ = InputSource::HDMI;
-	resolution_ = Resolution::HD1080;
+	inputSource_ = InputSource::Unknown;
+	inputResolution_ = Resolution::Unknown;
+	outputResolution_ = Resolution::HD720; //Will change this to Unknown in future, and
+	//(maybe) add code to match inputResolution.
+	frameRate_ = 0.0;
 }
