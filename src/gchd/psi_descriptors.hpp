@@ -25,6 +25,7 @@
 #define PROGRAM_DESCRIPTOR 0x5
 #define AVC_VIDEO_DESCRIPTOR 0x28
 #define AVC_TIMING_AND_HRD_DESCRIPTOR 0x2a
+#define HDMV_COPY_CONTROL_DESCRIPTOR 0x88
 
 class PSI_Descriptor: public PSI_Data
 {
@@ -186,6 +187,20 @@ class PSI_AVC_TimingAndHRDDescriptor: public PSI_Descriptor
 
 };
 
+class PSI_HDMV_CopyControlDescriptor : public PSI_Descriptor
+{
+	public:
+		PSI_HDMV_CopyControlDescriptor(): PSI_Descriptor(HDMV_COPY_CONTROL_DESCRIPTOR) {};
+
+		virtual int calculateSizeInternal();
+		virtual void packInternal(std::vector<uint8_t> &outputData,
+					  std::vector<uint8_t>::iterator &offset);
+
+		virtual void unpackInternal(const std::vector<uint8_t> &inputData,
+					    std::vector<uint8_t>::const_iterator &offset,
+					    int size );
+
+};
 #endif
 
 

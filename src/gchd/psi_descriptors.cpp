@@ -338,4 +338,32 @@ void PSI_AVC_TimingAndHRDDescriptor::unpackInternal
 	}
 }
 
+int PSI_HDMV_CopyControlDescriptor::calculateSizeInternal()
+{
+	return 4;
+}
+
+void PSI_HDMV_CopyControlDescriptor::packInternal(std::vector<uint8_t> &outputData,
+						  std::vector<uint8_t>::iterator &offset)
+{
+	*offset++=0x0f;
+	*offset++=0xff;
+	*offset++=0xfc;
+	*offset++=0xfc;
+}
+
+void PSI_HDMV_CopyControlDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
+						    std::vector<uint8_t>::const_iterator &offset,
+						    int size )
+{
+	if( size < 4) {
+		throw PSI_FormatException( "HDMV copy control descriptor is invalid.");
+	}
+	uint32_t value=Utility::debyteify<uint32_t>(&(*offset));
+	offset+=4;
+	if(value != 0x0ffffcfc) {
+		throw PSI_FormatException( "HDMV copy control descriptor is not set to default.");
+	}
+}
+
 

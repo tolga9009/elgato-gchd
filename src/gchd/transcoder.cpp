@@ -130,11 +130,11 @@ void GCHD::transcoderDefaultsInitialize()
 	sparam( sit_length_ts_out2, sitVector.size() );
 	transcoderTableWrite( sit_table_ts_out2_start, sitVector );
 
-
 	//Generate the PMT
 	std::vector<uint8_t> pmtVector;
 	PMT pmt=PMT(pmtProgramNumber, pcrPID);
 	pmt.addProgramInfo(std::make_shared<PSI_HDMV_ShortDescriptor>());
+	pmt.addProgramInfo(std::make_shared<PSI_HDMV_CopyControlDescriptor>());
 
 	//PMT VIDEO STREAM
 	PMT_Mapping mapping=PMT_Mapping(videoPID, STREAM_TYPE_H264);
@@ -152,7 +152,7 @@ void GCHD::transcoderDefaultsInitialize()
 	pmt.addMapEntry(mapping);
 
 	//AUDIO
-	mapping=PMT_Mapping(0x10f, STREAM_TYPE_AAC);
+	mapping=PMT_Mapping(0x10f, STREAM_TYPE_MPEG1_AUDIO);
 	pmt.addMapEntry(mapping);
 
 	//Get bytes into pmtVector
