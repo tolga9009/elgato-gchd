@@ -254,21 +254,15 @@ void GCHD::configureDevice()
     //that it doesn't really matter much because 
     //the old configure scripts didn't seem to match
     //captures that I've seen.
-#if 0
     bool rgb = settings_->getColorSpace() == ColorSpace::RGB;
-#endif
     bool analog = settings_->getInputSource() != InputSource::HDMI;
-#if 0
     if( rgb || analog ) {
-#endif
     	mailWrite( 0x44, VC{0x08, 0x91} );
 	    mailWrite( 0x44, VC{0x09, 0xa8} );
-#if 0  
     } else {
     	mailWrite( 0x44, VC{0x08, 0x9b} );
 	    mailWrite( 0x44, VC{0x09, 0x7a} );
     }
-#endif
 	mailWrite( 0x44, VC{0x19, 0xde} );
 	mailWrite( 0x44, VC{0x1a, 0x87} );
 	mailWrite( 0x44, VC{0x1b, 0x88} );
@@ -615,6 +609,7 @@ void GCHD::configureDevice()
     }
     mailWrite( 0x33, VC{0x89, 0x89, 0xf8} );
     mailRead( 0x33, 1 ); //EXPECTED {0xcc}
+    
     if( !composite ) {
         mailWrite( 0x44, VC{0x03, 0x2f} );
     } else {

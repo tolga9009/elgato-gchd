@@ -30,7 +30,7 @@
 
 
 // https://en.wikipedia.org/wiki/Program-specific_information#Elementary_stream_types
-#define STREAM_TYPE_AAC  0x0f
+#define STREAM_TYPE_MPEG1_AUDIO  0x03
 #define STREAM_TYPE_H264 0x1b
 
 class PMT_Mapping:public PSI_Data
