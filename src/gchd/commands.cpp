@@ -469,7 +469,7 @@ std::vector<unsigned char> GCHD::mailRead( uint8_t port,
     if( deviceType_ == DeviceType::GameCaptureHD )
     {
         input.resize(size);
-        read_config_buffer( HD_MAIL_REGISTER, port, input.data(), size );
+        read_config_buffer( HD_MAIL_REGISTER, port<<8, input.data(), size );
     }
     else if( deviceType_ == DeviceType::GameCaptureHDNew )
     {
