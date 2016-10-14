@@ -67,7 +67,8 @@ void GCHD::sendEnableState()
         status = read_config<uint16_t>(MAIL_REQUEST_READY);
 
         uint16_t detectMask = (status >> 8) & 3; //Cable type.
-        detectMask |= (((status >> 10) & 3) != 0) <<3; //Cable present.
+        detectMask |= (((status >> 10) & 3) != 0) <<3; //Is either cable presence bit set.
+        detectMask |= ((status >> 10) & 3) <<4; //cable presence bits.
         specialDetectMask_ &= detectMask;
     } while ( (status & 1) == 0);
 }
@@ -419,7 +420,8 @@ void GCHD::mailReadyWait()
         status=read_config<uint16_t>(MAIL_REQUEST_READY);
 
         uint16_t detectMask = (status >> 8) & 3; //Cable type.
-        detectMask |= (((status >> 10) & 3) != 0) <<3; //Cable present.
+        detectMask |= (((status >> 10) & 3) != 0) <<3; //Is either cable presence bit set.
+        detectMask |= ((status >> 10) & 3) <<4; //cable presence bits.
         specialDetectMask_ &= detectMask;
     } while( (status & 1) == 0 );
 }

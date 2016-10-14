@@ -5,6 +5,7 @@
  * under the MIT License. For more information, see LICENSE file.
  */
 
+#include <stdexcept>
 #include "settings.hpp"
 
 ColorSpace Settings::getColorSpace() {
@@ -144,6 +145,48 @@ void Settings::setDigitalAudioGain(int digitalAudioGain) {
 	digitalAudioGain_ = digitalAudioGain;
 }
 
+void Settings::getOutputResolution(unsigned &horizontal, unsigned &vertical) {
+    Resolution outputResolution = getOutputResolution();
+    if( outputResolution == Resolution::Unknown ) {
+        outputResolution=getInputResolution();
+    }
+
+    switch (outputResolution) {
+        case Resolution::Unknown:
+            //This is set to 1208x720 by default,
+            //but is rewritten by 2nd call to this after
+            //autodetected of input resolution.
+            horizontal=1280;
+            vertical=720;
+
+            break;
+		case Resolution::NTSC:
+            horizontal=720;
+            vertical=480;
+            break;
+
+	    case Resolution::PAL:
+            horizontal=720;
+            vertical=480;
+            break;
+
+        case Resolution::HD720:
+            horizontal=1280;
+            vertical=720;
+            break;
+
+        case Resolution::HD1080:
+            horizontal=1920;
+            vertical=1080;
+            break;
+
+		default:
+            throw std::runtime_error("Unsupported configuration.");
+            break;
+	}
+}
+
+
 Settings::Settings() {
 	// default values
 	useAnalogAudio_ = false;
@@ -161,7 +204,6 @@ Settings::Settings() {
 	hdmiColorSpace_ = HDMIColorSpace::Limited;
 	inputSource_ = InputSource::Unknown;
 	inputResolution_ = Resolution::Unknown;
-	outputResolution_ = Resolution::HD720; //Will change this to Unknown in future, and
-                                           //(maybe) add code to match inputResolution.
+	outputResolution_ = Resolution::Unknown;
     frameRate_ = 0.0;
 }

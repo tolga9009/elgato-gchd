@@ -199,16 +199,18 @@ int main(int argc, char *argv[]) {
             case Format::FIFO: ret = streamer.fifo.enable(output); break;
             case Format::Socket: ret = streamer.socket.enable(ip, port); break;
         }
-
         if (ret) {
             return EXIT_FAILURE;
         }
 
-        // immediately start receive loop after device init
-        if(gchd.init()) {
-            return EXIT_FAILURE;
-        }    
+        //Likely aborted during waiting for user to open fifo.
+        if( process.isActive() ) {
+            if(gchd.init()) {
+                return EXIT_FAILURE;
+            }
+        }
 
+        // immediately start receive loop after device init
         streamer.loop();
     } catch ( std::runtime_error &error ) {
         //All my exceptions inherit from runtime_error or logic_error.

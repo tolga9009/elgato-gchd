@@ -98,7 +98,9 @@ Process::Process() {
 	pidFd_ = 0;
 
 	// signal handling
-	struct sigaction action;
+	struct sigaction action{}; 
+    //{} is critical because it value initializes it to zero.
+
 	action.sa_handler = sigHandler;
 	sigaction(SIGINT, &action, nullptr);
 	sigaction(SIGTERM, &action, nullptr);
