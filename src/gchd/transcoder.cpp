@@ -369,7 +369,7 @@ void GCHD::transcoderSetup()
                               //so 0 = CAVLC coding and 1 = CABAC coding.
     
     //Think this sets whether we are using constant or variable bit rate.
-    //I believe 1 is constant bit rate, 0 is variable, but 2 bit field....
+    //I believe 0 is constant bit rate, 1 is variable, but 2 bit field....
     uint8_t bitrateMode=0;
 
     //Figure out bit rates. This sets reasonable defaults.
@@ -425,7 +425,7 @@ void GCHD::transcoderSetup()
     bool analog = settings_->getInputSource() != InputSource::HDMI;
     //These 3 are defined in p376 (pdf page 396) of T-REC-H.264-201003-S
     uint8_t colourPrimariesSetting;
-    if( analog || settings_->getColorSpace()==ColorSpace::RGB ) {
+    if( analog ) {
         colourPrimariesSetting=6; //Always set to 6 in composite and component captures.
     } else {
         colourPrimariesSetting=1; //Set to 1 for hdmi
@@ -434,7 +434,7 @@ void GCHD::transcoderSetup()
     uint8_t transferCharacteristicsSetting=1; //Always set to 1.
     
     uint8_t matrixCoefficientsSetting; 
-    if( analog || settings_->getColorSpace()==ColorSpace::RGB ) {
+    if( analog ) {
         matrixCoefficientsSetting=6; //Always set to 6 in composite and component captures.
     } else {
         matrixCoefficientsSetting=1; //Set to 1 for hdmi

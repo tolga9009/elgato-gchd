@@ -1,0 +1,44 @@
+# HOW TO USE:
+#
+# 1. Copy this file to /etc/udev/rules.d to be able to run gchd as non-root user:
+#
+#   sudo cp 55-elgato-game-capture.rules /etc/udev/rules.d     
+#
+# 2. After you install this, you will have to notify UDEV, IE:
+#
+#   sudo udevadm control --reload
+#
+# 3. Unplug the device and plug it back in
+#
+# 4. You then must add the users who use this device to the "video" group. IE, for
+#    the user "jsmith":
+#
+#   sudo usermod jsmith -a -G video
+#
+#
+# 5. The user will then need to relogin for it to work, or you can type:
+#
+#   newgrp video
+#
+# 6. Make sure that the /tmp/gchd.ts is deleted, because if it is owned 
+#    as root you won't be able overwrite it.
+#  
+#   sudo rm /tmp/gchd.ts
+#
+
+#Game capture HD, early versions:
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0044", TAG:="elgato_gchd" 
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="004e", TAG:="elgato_gchd"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0051", TAG:="elgato_gchd"
+
+#Game capture HD, later version (not the same software interface)
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="005d", TAG:="elgato_gchd"
+
+#Game capture HD60, currently unsupported.
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="005c", TAG:="elgato_gchd"
+
+#Game capture HD60_S, currently unsupported.
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="004f", TAG:="elgato_gchd"
+
+# If you wish to change the GROUP, do so on this line.
+TAGS=="elgato_gchd", GROUP:="video", MODE:="0660"

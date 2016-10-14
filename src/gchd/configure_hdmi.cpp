@@ -11,7 +11,7 @@
 
 void GCHD::readSignalInformation(bool blockA, bool blockB,
                                  unsigned &sum6463, unsigned &countSum6463,
-                                 unsigned &sum6665, unsigned &countSum6665)
+                                 unsigned &sum6665, unsigned &countSum6665, bool &rgbBit)
 {
     mailWrite( 0x4e, VC{0x00, 0xcc} );
     if( blockA ) {
@@ -30,6 +30,8 @@ void GCHD::readSignalInformation(bool blockA, bool blockB,
 
     readDevice0x9DCD(0x3f); //EXPECTED 0xb2
     mailWrite( 0x4e, VC{0x00, 0xce} );
+    uint8_t value=readDevice0x9DCD(0x34); 
+    rgbBit=(value >>2) & 1;
     readDevice0x9DCD(0x16); //EXPECTED 0xb5
     readDevice0x9DCD(0x17); //EXPECTED 0x32
     readDevice0x9DCD(0x3f); //EXPECTED 0xb0
@@ -94,10 +96,11 @@ void GCHD::configureHDMI()
     unsigned sum6463=0;
     unsigned countSum6665=0;
     unsigned countSum6463=0;
+    bool rgbBit;
 
-    readSignalInformation( false, true, sum6463, countSum6463, sum6665, countSum6665);
+    readSignalInformation( false, true, sum6463, countSum6463, sum6665, countSum6665, rgbBit);
     for( unsigned i=0; i<14; ++i ) {
-        readSignalInformation( true, false, sum6463, countSum6463, sum6665, countSum6665);
+        readSignalInformation( true, false, sum6463, countSum6463, sum6665, countSum6665, rgbBit);
     }
     //Reset sums. Hackish. Wish I knew the lock logic. Likely wait for bit 11, which may 
     //or may not be a lock bit. At any rate, continues to read for some time after lock
@@ -107,37 +110,40 @@ void GCHD::configureHDMI()
     countSum6665=0;
     countSum6463=0;
 
-    readSignalInformation( true, true, sum6463, countSum6463, sum6665, countSum6665);
-    readSignalInformation( true, true, sum6463, countSum6463, sum6665, countSum6665);
+    readSignalInformation( true, true, sum6463, countSum6463, sum6665, countSum6665, rgbBit);
+    readSignalInformation( true, true, sum6463, countSum6463, sum6665, countSum6665, rgbBit);
 
+    interlaced_=false; 
     if (settings_->getInputResolution() == Resolution::Unknown) {
         //Okay time to figure out signal.
         double value6665=((double)sum6665) / countSum6665;
         if(std::abs( value6665 - 0xba95 )>10.0) { 
             //probably not appropriate way to handle.
-            throw runtime_error( "Mode detection failed A, does not appear to be 1080 or 720 signal on HDMI.");
+            throw runtime_error( "Mode detection failed, does not appear to be 1080 or 720 signal on HDMI.");
         }
         
         double value6463=((double)sum6463) / countSum6463;
-        
+
         if(std::abs( value6463 - 0xb05c )<10.0) { //Allow for error.
             //720p
             settings_->setInputResolution( Resolution::HD720 );
         } else if(fabs( value6463 - 0xb6d7 )<10.0) { //Allow for error.
             //1080p
             settings_->setInputResolution( Resolution::HD1080 );
+        } else if(fabs( value6463 - 0xb081 )<10.0) { 
+            //1080i
+            settings_->setInputResolution( Resolution::HD1080 );
+            interlaced_=true;
         } else {
             //Still not appropriate way to handle.
-            throw runtime_error( "Mode detection failed B, does not appear to be 1080 or 720 signal on HDMI.");
+            throw runtime_error( "Mode detection failed, does not appear to be 1080 or 720 signal on HDMI.");
         } 
     }
     switch( settings_->getInputResolution() ) {
         case Resolution::HD1080:
-            interlaced_=false;
-            refreshRate_=60;
+            refreshRate_=60; //Strictly speaking, full frame refresh is 30 for 1080i. Hmm.
             break;
         case Resolution::HD720:
-            interlaced_=false;
             refreshRate_=60;
             break;
         default:
@@ -665,6 +671,17 @@ void GCHD::configureHDMI()
 	mailWrite( 0x33, VC{0xa1, 0x08, 0x8b} );
 	mailRead( 0x33, 8 ); //EXPECTED {0xe6, 0x59, 0xcc, 0x3f, 0xb2, 0x25, 0x98, 0x04}
 	mailWrite( 0x33, VC{0xaa, 0xb8, 0x29, 0xe7} );
+
+
+    readSignalInformation( true, true, sum6463, countSum6463, sum6665, countSum6665, rgbBit);
+
+    if( settings_->getColorSpace()==ColorSpace::Unknown ) {
+        if( rgbBit ) {
+            settings_->setColorSpace(ColorSpace::RGB);
+        } else {
+            settings_->setColorSpace(ColorSpace::YUV);
+        }
+    }
 
     if( settings_->getColorSpace()==ColorSpace::YUV ) {
         //Set up color space.
