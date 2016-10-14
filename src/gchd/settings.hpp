@@ -46,6 +46,8 @@ class Settings {
 		Resolution getInputResolution();
 		void setInputResolution(Resolution resolution);
 		Resolution getOutputResolution();
+		void getOutputResolution(unsigned &horizontal, unsigned &vertical);
+
 		void setOutputResolution(Resolution resolution);
 		bool getAnalogAudio();
 		void setAnalogAudio(bool useAnalogAudio);

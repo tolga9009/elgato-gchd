@@ -61,8 +61,7 @@ int GCHD::init() {
 		return 1;
 	}
 
-	// activate process and configure device
-	process_->setActive(true);
+	// configure device
 	setupConfiguration();
 
 	return 0;
@@ -108,7 +107,6 @@ int GCHD::checkFirmware() {
 			std::string idle = it + idleNames[i];
 			std::string enc = it + encNames[i];
 
-			std::cerr << idle << std::endl;
 			if (!access(idle.c_str(), F_OK)
 					&& !access(enc.c_str(), F_OK)) {
 				firmwareIdle_ = idle;
@@ -209,32 +207,6 @@ void GCHD::setupConfiguration() {
 	// set device configuration
 	std::cerr << "Initializing device." << std::endl;
 	isInitialized_ = true;
-
-	switch (settings_->getOutputResolution()) {
-		case Resolution::NTSC:
-			horizontalOutputResolution_=720;
-			verticalOutputResolution_=480;
-			break;
-
-		case Resolution::PAL:
-			horizontalOutputResolution_=720;
-			verticalOutputResolution_=480;
-			break;
-
-		case Resolution::HD720:
-			horizontalOutputResolution_=1280;
-			verticalOutputResolution_=720;
-			break;
-
-		case Resolution::HD1080:
-			horizontalOutputResolution_=1920;
-			verticalOutputResolution_=1080;
-			break;
-
-		default:
-			throw runtime_error("Unsupported configuration.");
-			break;
-	}
 	configureDevice();
 }
 
@@ -257,6 +229,9 @@ GCHD::GCHD(Process *process, Settings *settings) {
 	deviceType_ = DeviceType::Unknown;
 	process_ = process;
 	settings_ = settings;
+
+	// activate process
+	process->setActive(true);
 }
 
 GCHD::~GCHD() {

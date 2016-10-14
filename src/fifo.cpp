@@ -34,9 +34,11 @@ int Fifo::enable(std::string output) {
 	fd_ = open(output_.c_str(), O_WRONLY);
 
 	if (fd_ < 0) {
-		std::cerr << "Can't open FIFO for writing." << std::endl;
+		if (errno != EINTR) { //EINTR means stopped by abort signal
+			std::cerr << "Can't open FIFO for writing." << std::endl;
+		}
+		return 1;
 	}
-
 	return 0;
 }
 

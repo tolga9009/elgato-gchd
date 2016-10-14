@@ -131,10 +131,18 @@ void GCHD::configureDevice()
 			case 0x27f97b:
 			{
 				if ((settings_->getInputSource() == InputSource::Unknown) && firstTime ) {
-					bool signalFound_ = (( specialDetectMask_ >> 3) & 1) != 0;
+					bool analogSignalFound = ((specialDetectMask_ >> 5) & 1);
+					bool hdmiSignalFound = (( specialDetectMask_ >> 3) & 1) != 0;
 					unsigned cableType = specialDetectMask_  & 3;
+					bool signalFound;
 
-					if( !signalFound_ ) {
+					if( cableType == 0 ) {
+						signalFound=hdmiSignalFound;
+					} else {
+						signalFound=analogSignalFound;
+					}
+
+					if( !signalFound ) {
 						printf("No signal found. Defaulting to HDMI\n");
 						settings_->setInputSource(InputSource::HDMI);
 					} else {

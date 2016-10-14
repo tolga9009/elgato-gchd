@@ -12,9 +12,9 @@
 
 void Streamer::loop() {
 	std::array<unsigned char, DATA_BUF> buffer;
-
-	std::cerr << "Streamer has been started." << std::endl;
-
+	if (process_->isActive()) {
+		std::cerr << "Streamer has been started." << std::endl;
+	}
 	while (process_->isActive()) {
 		gchd_->stream(&buffer);
 		disk.output(&buffer);

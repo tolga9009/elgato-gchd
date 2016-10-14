@@ -195,9 +195,6 @@ class GCHD {
 		Process *process_;
 		Settings *settings_;
 
-		unsigned horizontalOutputResolution_;
-		unsigned verticalOutputResolution_;
-
 		uint16_t specialDetectMask_;
 
 		bool interlaced_;  //true or false

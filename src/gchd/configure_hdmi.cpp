@@ -401,11 +401,12 @@ void GCHD::configureHDMI()
 
 	mailWrite( 0x4c, VC{0x04, 0x95} );
 
-	if ( deviceType_ != DeviceType::GameCaptureHDNew ) {
+	if ( deviceType_ == DeviceType::GameCaptureHD ) {
 		mailWrite( 0x4c, VC{0x0f, 0x88} );
 		mailWrite( 0x4c, VC{0xc1, 0x89} );
 		mailWrite( 0x4c, VC{0xc6, 0x8b} );
 	}
+
 	mailWrite( 0x33, VC{0x99, 0x89, 0x8b} );
 	mailRead( 0x33, 1 ); //EXPECTED {0x6e}
 	mailWrite( 0x4c, VC{0x70, 0xc8} );
@@ -482,8 +483,8 @@ void GCHD::configureHDMI()
 	mailWrite( 0x4c, VC{0x63, 0x88} );
 	mailWrite( 0x4c, VC{0x64, 0x88} );
 	mailWrite( 0x4c, VC{0x65, 0x88} );
-	//Mystery setting difference.
 
+	//Mystery setting difference.
 	uint8_t value;
 	if (settings_->getInputResolution() == Resolution::HD720) {
 		value = 0xfb;

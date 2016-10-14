@@ -340,6 +340,10 @@ void GCHD::transcoderSetup()
 	//////////////////
 	//VIDEO SETTINGS//
 	//////////////////
+
+	unsigned horizontal, vertical;
+	settings_->getOutputResolution(horizontal, vertical);
+
 	//Whether we use group of pictures, or other methods.
 	uint16_t useGroupOfPictures=1; //Always 1.
 
@@ -360,8 +364,6 @@ void GCHD::transcoderSetup()
 		effectiveFrameRate=refreshRate_;
 	}
 
-
-
 	uint16_t gopGroupSize=(effectiveFrameRate+10)/5 ; //Distance between I frames.
 	uint16_t variableLengthCodingMode=0; //Always 0, likely means CAVLC coding.
 	//Probably sets variable length coding mode. Based on encoded format
@@ -373,7 +375,7 @@ void GCHD::transcoderSetup()
 	uint8_t bitrateMode=0;
 
 	//Figure out bit rates. This sets reasonable defaults.
-	uint32_t reasonableBitrate=int(31.25 * horizontalOutputResolution_); //Seems to be what a lot of settings use.
+	uint32_t reasonableBitrate=int(31.25 * horizontal); //Seems to be what a lot of settings use.
 	double highestBitrate=40000.0;
 
 	unsigned bitrate        = std::min(reasonableBitrate*1.0, highestBitrate );
@@ -392,7 +394,7 @@ void GCHD::transcoderSetup()
 
 	//This is shifted left on decimal place: IE 31 is 3.1
 	//https://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Levels
-	uint8_t h264Level= determineH264Level( horizontalOutputResolution_, verticalOutputResolution_, frameRate, highestBitrate );
+	uint8_t h264Level= determineH264Level( horizontal, vertical, frameRate, highestBitrate );
 
 	//////////////////
 	//AUDIO SETTINGS//
@@ -485,8 +487,8 @@ void GCHD::transcoderSetup()
 	sparam( v_min_bitrate, minBitrate );
 
 	//These set the basic resolution
-	sparam( v_hsize_out, horizontalOutputResolution_ );
-	sparam( v_vsize_out, verticalOutputResolution_ );
+	sparam( v_hsize_out, horizontal );
+	sparam( v_vsize_out, vertical );
 
 	sparam( v_vinpelclk, fixedFrameRate ); //This seems to be set to 1 when doing fixed frame rate....but might be for complicated
 
@@ -561,8 +563,8 @@ void GCHD::transcoderSetup()
 	sparam( v_ave_bitrate_bl, averageBitrate );
 	sparam( v_min_bitrate_bl, minBitrate );
 	sparam( v_filler_bitrate_bl, 0 );
-	sparam( v_hsize_out_bl, horizontalOutputResolution_ );
-	sparam( v_vsize_out_bl, verticalOutputResolution_ );
+	sparam( v_hsize_out_bl, horizontal );
+	sparam( v_vsize_out_bl, vertical );
 
 	sparam( tfrff, 2 );
 
