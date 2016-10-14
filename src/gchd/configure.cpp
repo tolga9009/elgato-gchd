@@ -29,7 +29,6 @@ void GCHD::configureDevice()
 	//(as read from SCMD_STATE_READBACK_REGISTER)
 	//is already 0.
 	uint16_t state;
-
 	if( deviceType_ == DeviceType::GameCaptureHD )
 	{
 		//Since currentState and nextState are set to 0,
@@ -87,17 +86,10 @@ void GCHD::configureDevice()
 	}
 	else
 	{
-		/* Oh, we were already up. Reset to known state, and flash esn't
+		/* Oh, we were already up. Reset to known state, and flash
 	 * doesn't need to be loaded
 	 */
-		stateConfirmedScmd( SCMD_RESET, 0x01, 0x0000 );
-
-		if(savedEnableStateRegister_ & EB_STILL_INITIALIZED_MASK)
-		{
-			clearEnableState(); //Not strictly something we've seen.
-			//done, but currently believe that it
-			//is likely handled in vendor driver.
-		}
+		stateConfirmedScmd( SCMD_RESET, 0x00, 0x0000 );
 	}
 	stateConfirmedScmd( SCMD_IDLE, 0x00, 0x0000 );
 
@@ -139,9 +131,8 @@ void GCHD::configureDevice()
 			case 0x27f97b:
 			{
 				if ((settings_->getInputSource() == InputSource::Unknown) && firstTime ) {
-					uint16_t autodetectValue= specialDetectMask_;
-					bool signalFound_ = (( autodetectValue >> 10 ) & 3) != 0;
-					unsigned cableType = ( autodetectValue >> 8 ) & 3;
+					bool signalFound_ = (( specialDetectMask_ >> 3) & 1) != 0;
+					unsigned cableType = specialDetectMask_  & 3;
 
 					if( !signalFound_ ) {
 						printf("No signal found. Defaulting to HDMI\n");
@@ -254,9 +245,8 @@ void GCHD::configureDevice()
 	//that it doesn't really matter much because
 	//the old configure scripts didn't seem to match
 	//captures that I've seen.
-	bool rgb = settings_->getColorSpace() == ColorSpace::RGB;
 	bool analog = settings_->getInputSource() != InputSource::HDMI;
-	if( rgb || analog ) {
+	if( analog ) {
 		mailWrite( 0x44, VC{0x08, 0x91} );
 		mailWrite( 0x44, VC{0x09, 0xa8} );
 	} else {
@@ -661,34 +651,40 @@ void GCHD::configureDevice()
 
 void GCHD::uninitDevice()
 {
-	stopStream( true );
-
-	//Mystery subroutine, done after an SCMD_INIT too.
-	{
-		mailWrite( 0x44, VC{0x06, 0x86} );
-		mailWrite( 0x33, VC{0x89, 0x89, 0xf8} );
-		mailRead( 0x33, 1 ); //EXPECTED {0xc9}
-		mailWrite( 0x44, VC{0x03, 0x2f} );
+	uint16_t state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER) & 0x1f;
+	if(( state == SCMD_STATE_START ) || ( state==SCMD_STATE_NULL )) {
+		stopStream( true );
 	}
 
-	//No idea what this is, but presumably selects proper bank.
-	//Seems to be always done before configuring the transcoder with
-	//sparam commands.
-	write_config<uint16_t>(BANKSEL, 0x0000);
-	readEnableState(); //EXPECTED 0xd39e HD NEW. 0x31e on HD
+	//0x12 means already unininitialized (SCMD_RESET with mode=0x1),
+	//0x10 means already unininitialized (SCMD_RESET with mode=0x0).
+	//ox00 means never initialized.
+	if(( state != 0x12 ) && (state != 0x00) && (state != 0x10)) {
+		//Mystery subroutine, done after an SCMD_INIT too.
+		{
+			mailWrite( 0x44, VC{0x06, 0x86} );
+			mailWrite( 0x33, VC{0x89, 0x89, 0xf8} );
+			mailRead( 0x33, 1 ); //EXPECTED {0xc9}
+			mailWrite( 0x44, VC{0x03, 0x2f} );
+		}
+		//No idea what this is, but presumably selects proper bank.
+		//Seems to be always done before configuring the transcoder with
+		//sparam commands.
+		write_config<uint16_t>(BANKSEL, 0x0000);
+		readEnableState(); //EXPECTED 0xd39e HD NEW. 0x31e on HD
 
-	read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //EXPECTED SCMD_STATE_STOP still,
-	//seems no reason for this read..
-	transcoderOutputEnable( false );
-	scmd(SCMD_INIT, 0xa0, 0x0000);
+		read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //seems no reason for this read..
+		transcoderOutputEnable( false );
+		scmd(SCMD_INIT, 0xa0, 0x0000);
 
-	clearEnableState();
+		clearEnableState();
 
-	//This command appears to do nothing, it appears to be a doEnable
-	//for a bit that we can't identify, that isn't configured
-	//in any of our test cases.
-	doEnable(EB_FIRMWARE_PROCESSOR, 0x0);
+		//This command appears to do nothing, it appears to be a doEnable
+		//for a bit that we can't identify, that isn't configured
+		//in any of our test cases.
+		doEnable(EB_FIRMWARE_PROCESSOR, 0x0);
 
-	stateConfirmedScmd( SCMD_IDLE, 0x00, 0x0000 );
-	stateConfirmedScmd( SCMD_RESET, 0x01, 0x0000 );
+		stateConfirmedScmd( SCMD_IDLE, 0x00, 0x0000 );
+		stateConfirmedScmd( SCMD_RESET, 0x01, 0x0000 );
+	}
 }

@@ -62,7 +62,8 @@ class GCHD {
 		void configureHDMI();
 		void readSignalInformation(bool blockA, bool blockB,
 					   unsigned &sum6463, unsigned &countSum6464,
-					   unsigned &sum6665, unsigned &countSum6665);
+					   unsigned &sum6665, unsigned &countSum6665,
+					   bool &colorBit);
 
 		void read_config_buffer(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *buffer, uint16_t wLength);
 

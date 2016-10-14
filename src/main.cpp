@@ -16,7 +16,7 @@
 #include <process.hpp>
 #include <streamer.hpp>
 
-#define PORT_NUM	"57384"
+#define PORT_NUM    "57384"
 
 void help(std::string name) {
 	std::cerr << "Usage: " << name << " [options]" << std::endl
@@ -175,39 +175,48 @@ int main(int argc, char *argv[]) {
 	// TODO not ready for primetime yet, program needs to be restarted too
 	// often at the moment
 	// create PID file for single instance mechanism
-	//	if (process.createPid(pidPath)) {
-	//		return EXIT_FAILURE;
-	//	}
+	//  if (process.createPid(pidPath)) {
+	//      return EXIT_FAILURE;
+	//  }
 
-	GCHD gchd(&process, &settings);
+	//Try block wraps GCHD creation so if exception gets thrown,
+	//stack unwinding will destruct object, calling uninit.
+	try {
+		GCHD gchd(&process, &settings);
 
+		if(gchd.checkDevice()) {
+			return EXIT_FAILURE;
+		}
 
-	if(gchd.checkDevice()) {
+		// helper class for streaming audio and video from device
+		Streamer streamer(&gchd, &process);
+
+		// enable output
+		int ret;
+
+		switch (format) {
+			case Format::Disk: ret = streamer.disk.enable(output); break;
+			case Format::FIFO: ret = streamer.fifo.enable(output); break;
+			case Format::Socket: ret = streamer.socket.enable(ip, port); break;
+		}
+
+		if (ret) {
+			return EXIT_FAILURE;
+		}
+
+		// immediately start receive loop after device init
+		if(gchd.init()) {
+			return EXIT_FAILURE;
+		}
+
+		streamer.loop();
+	} catch ( std::runtime_error &error ) {
+		//All my exceptions inherit from runtime_error or logic_error.
+		std::cerr << std::endl << "FATAL ERROR: " << error.what() << std::endl << std::endl;
 		return EXIT_FAILURE;
+	} catch ( std::logic_error &error ) {
+		throw; //Rethrow exception.
 	}
-
-	// helper class for streaming audio and video from device
-	Streamer streamer(&gchd, &process);
-
-	// enable output
-	int ret;
-
-	switch (format) {
-		case Format::Disk: ret = streamer.disk.enable(output); break;
-		case Format::FIFO: ret = streamer.fifo.enable(output); break;
-		case Format::Socket: ret = streamer.socket.enable(ip, port); break;
-	}
-
-	if (ret) {
-		return EXIT_FAILURE;
-	}
-
-	// immediately start receive loop after device init
-	if(gchd.init()) {
-		return EXIT_FAILURE;
-	}
-
-	streamer.loop();
 
 	return EXIT_SUCCESS;
 }

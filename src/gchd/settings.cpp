@@ -157,7 +157,7 @@ Settings::Settings() {
 	hue_ = 0;
 	analogAudioGain_ = 0;
 	digitalAudioGain_ = 0;
-	colorSpace_ = ColorSpace::YUV;
+	colorSpace_ = ColorSpace::Unknown;
 	hdmiColorSpace_ = HDMIColorSpace::Limited;
 	inputSource_ = InputSource::Unknown;
 	inputResolution_ = Resolution::Unknown;

@@ -65,7 +65,10 @@ void GCHD::sendEnableState()
 	do {
 		write_config<uint16_t>( MAIL_SEND_ENABLE_REGISTER_STATE, savedEnableStateRegister_ );
 		status = read_config<uint16_t>(MAIL_REQUEST_READY);
-		specialDetectMask_ &= status;
+
+		uint16_t detectMask = (status >> 8) & 3; //Cable type.
+		detectMask |= (((status >> 10) & 3) != 0) <<3; //Cable present.
+		specialDetectMask_ &= detectMask;
 	} while ( (status & 1) == 0);
 }
 
@@ -208,6 +211,7 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
 			state &= 0x1f; //Masking off bits we don't ever see.
 			if((state != currentState) && (state != nextState))
 			{
+				//Successful reset can clear state.
 				if( firstTime ) {
 					return state;
 				} else {
@@ -266,7 +270,11 @@ void GCHD::stateConfirmedScmd(uint8_t command,
 			break;
 
 		case SCMD_RESET:
-			expectedState=0x12; //Special state for in explicitly resetted firmware state.
+			if( mode == 0 ) {
+				expectedState=0x10;
+			} else {
+				expectedState=0x12; //Special state for in explicitly resetted firmware state.
+			}
 			break;
 
 		default:
@@ -409,7 +417,10 @@ void GCHD::mailReadyWait()
 	uint16_t status;
 	do {
 		status=read_config<uint16_t>(MAIL_REQUEST_READY);
-		specialDetectMask_ &= status;
+
+		uint16_t detectMask = (status >> 8) & 3; //Cable type.
+		detectMask |= (((status >> 10) & 3) != 0) <<3; //Cable present.
+		specialDetectMask_ &= detectMask;
 	} while( (status & 1) == 0 );
 }
 
@@ -589,12 +600,17 @@ void GCHD::stopStream( bool emptyBuffer )
 
 	if( emptyBuffer )
 	{
-		for (int i = 0; i < 5000; i++) {
+		for (int i = 0; i < 200; i++) {
 			stream(&buffer);
 		}
 	}
 	completeStateChange(  SCMD_STATE_START, SCMD_STATE_NULL );
-
+	if( emptyBuffer )
+	{
+		for (int i = 0; i < 20; i++) {
+			stream(&buffer);
+		}
+	}
 	// state change - stop encoding
 	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
 	completeStateChange(  SCMD_STATE_NULL, SCMD_STATE_STOP );

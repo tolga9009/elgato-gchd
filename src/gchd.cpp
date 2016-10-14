@@ -18,16 +18,24 @@
 #define GAME_CAPTURE_HD_0	0x0044
 #define GAME_CAPTURE_HD_1	0x004e
 #define GAME_CAPTURE_HD_2	0x0051
-#define GAME_CAPTURE_HD_3	0x005d // new revision GCHD - unsupported
+#define GAME_CAPTURE_HD_3	0x005d // new revision GCHD (HDNew)
 #define GAME_CAPTURE_HD60	0x005c // Game Capture HD60 - unsupported
 #define GAME_CAPTURE_HD60_S	0x004f // Game Capture HD60 S - unsupported
 
 // firmware
-constexpr auto FW_MB86H57_H58_IDLE = "mb86h57_h58_idle.bin";
-constexpr auto FW_MB86H57_H58_ENC = "mb86h57_h58_enc_h.bin";
+const char * FW_MB86H57_H58_IDLE[] =
+{"MB86H57_H58_IDLE",
+ "mb86h57_h58_idle.bin" };
+const char * FW_MB86H57_H58_ENC[] =
+{ "MB86H57_H58_ENC_H",
+  "mb86h57_h58_enc_h.bin" };
 
-constexpr auto FW_MB86M01_ASSP_NSEC_IDLE = "MB86M01_ASSP_NSEC_IDLE";
-constexpr auto FW_MB86M01_ASSP_NSEC_ENC = "MB86M01_ASSP_NSEC_ENC_H";
+const char * FW_MB86M01_ASSP_NSEC_IDLE[] =
+{"MB86M01_ASSP_NSEC_IDLE",
+ "mb86m01_assp_nsec_idle.bin" };
+const char * FW_MB86M01_ASSP_NSEC_ENC[] =
+{"MB86M01_ASSP_NSEC_ENC_H",
+ "mb86m01_assp_nsec_enc_h.bin" };
 
 // constants
 #define INTERFACE_NUM		0x00
@@ -38,7 +46,6 @@ int GCHD::checkDevice() {
 	if (openDevice()) {
 		return 1;
 	}
-	libusb_reset_device(devh_);
 
 	// check for firmware files
 	if (checkFirmware()) {
@@ -72,19 +79,21 @@ void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer) {
 }
 
 int GCHD::checkFirmware() {
-	std::string idleName;
-	std::string encName;
+	const char **idleNames;
+	const char **encNames;
+	unsigned nameCount;
 
 	if (deviceType_ == DeviceType::GameCaptureHD) {
-		idleName = FW_MB86H57_H58_IDLE;
-		encName = FW_MB86H57_H58_ENC;
+		idleNames = FW_MB86H57_H58_IDLE;
+		encNames = FW_MB86H57_H58_ENC;
+		nameCount = sizeof(FW_MB86H57_H58_IDLE)/sizeof(const char *);
 	}
 	else if (deviceType_ == DeviceType::GameCaptureHDNew) {
-		idleName = FW_MB86M01_ASSP_NSEC_IDLE;
-		encName = FW_MB86M01_ASSP_NSEC_ENC;
+		idleNames = FW_MB86M01_ASSP_NSEC_IDLE;
+		encNames = FW_MB86M01_ASSP_NSEC_ENC;
+		nameCount = sizeof(FW_MB86M01_ASSP_NSEC_IDLE)/sizeof(const char *);
 	}
-	else
-	{
+	else {
 		throw std::logic_error( "Unsupported device.");
 	}
 
@@ -95,20 +104,27 @@ int GCHD::checkFirmware() {
 	 "/Applications/Game Capture HD.app/Contents/Resources/Firmware/Beddo/"};
 
 	for (auto it : locationList) {
-		std::string idle = it + idleName;
-		std::string enc = it + encName;
+		for ( unsigned i=0 ; i<nameCount; ++i ) {
+			std::string idle = it + idleNames[i];
+			std::string enc = it + encNames[i];
 
-		if (!access(idle.c_str(), F_OK)
-				&& !access(enc.c_str(), F_OK)) {
-			firmwareIdle_ = idle;
-			firmwareEnc_ = enc;
-			return 0;
+			std::cerr << idle << std::endl;
+			if (!access(idle.c_str(), F_OK)
+					&& !access(enc.c_str(), F_OK)) {
+				firmwareIdle_ = idle;
+				firmwareEnc_ = enc;
+				return 0;
+			}
 		}
 	}
 	std::cerr << "Firmware files missing." << std::endl;
-	std::cerr << "Need: " << idleName << std::endl;
-	std::cerr << "Need: " << encName << std::endl;
-
+	for ( unsigned i=0 ; i<nameCount; ++i ) {
+		std::cerr << "Need: " << idleNames[i] << std::endl;
+		std::cerr << "Need: " << encNames[i] << std::endl;
+		if( i < (nameCount-1)) {
+			std::cerr << "-------OR-------" << std::endl;
+		}
+	}
 	return 1;
 }
 
@@ -225,9 +241,7 @@ void GCHD::setupConfiguration() {
 void GCHD::closeDevice() {
 	if (devh_) {
 		if (isInitialized_) {
-			std::cerr << "Resetting device - this may take a while." << std::endl;
 			uninitDevice();
-			std::cerr << "Device has been reset." << std::endl;
 		}
 
 		libusb_release_interface(devh_, INTERFACE_NUM);
