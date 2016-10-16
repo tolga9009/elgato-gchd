@@ -568,8 +568,8 @@ void GCHD::pollOn0x9989ED()
     {
         mailWrite( 0x33, VC{ 0x99, 0x89, 0xed } );
         input=mailRead( 0x33, 1 )[0];
-        //input will be 2e, till it changes to 0xea.
-    } while( input != 0xea );
+        //bit 6 will be set when polling done.
+    } while( (input & 0x40 ) == 0 );
 }
 
 void GCHD::readFrom0x9989EC( unsigned count )
