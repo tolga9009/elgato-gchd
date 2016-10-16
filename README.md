@@ -198,8 +198,8 @@ or SSDs. When set to `socket`, this driver will stream the output via UDP to
 `<ip-address>`:`<port>` (default `0.0.0.0:57384`).
 
 Options for `<input-source>` are `composite`, `component` and `hdmi`. Choose,
-whichever source you're using. Some Resolutions are not available on all Input
-Sources. If you do not specify the input source, the driver will attempt
+whichever source you're using. Some resolutions are not available on all input
+sources. If you do not specify the input source, the driver will attempt
 to autodetect.
 
 You can specify `<ip-address>` using `-n` option. The driver will stream to this
@@ -234,6 +234,15 @@ accessible by non-root users. See the file udev-rules/55-elgato-game-capture.rul
 If no commandline options are set, the device will autodetect what source you
 have, HDMI, Component, or Composite. It will also autodetect the streamed
 resolution and colorspace. It will not however handle these changing on the fly.
+The detection for whetjer you are using HDMI/Component/Composite may malfunction
+in the following cases:
+
+ * There is no signal at all. It often will detect no signal as a signal of
+   various types.
+ * Multiple cables are connected between devices, IE: HDMI and Composite. Just
+   being connected through to another device, even one that is off, can mess up
+   the autodetection.
+ * Multiple signals being sent simultaneously.
 
 By default, a FIFO will be created at `/tmp/gchd.ts`. You can open it up using 
 any media player, which supports reading from pipes (e.g. VLC or obs-studio). 
@@ -248,11 +257,12 @@ reconnecting it.
 
 Currently supported input sources:
 
-* HDMI: 1080p60, 1080i60, 720p60
+* HDMI: 480p60 (NTSC), 576p60 (PAL), 720p60, 1080i60, 1080p60
+* Component: 480i60 (NTSC), 480p60 (NTSC), 576i50 (PAL), 576p50 (PAL), 720p60,
+  1080i60, 1080p60
 
 These are not supported by this version of the driver but will be in the
 near future:
-* Component: 480p60 (NTSC), 576p50 (PAL), 720p60, 1080i60, 1080p60
 * Composite: 480i60 (NTSC), 576i50 (PAL)
 
 
@@ -269,3 +279,5 @@ accepted.
 
 This project is made available under the MIT License. For more information,
 please refer to the LICENSE file.
+
+

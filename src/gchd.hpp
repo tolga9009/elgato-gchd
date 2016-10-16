@@ -59,11 +59,20 @@ class GCHD {
 		void setupConfiguration();
         void configureDevice(); //At Device level
 		void uninitDevice();    //At Device level
-        void configureHDMI(); 
-        void readSignalInformation(bool blockA, bool blockB, 
-                                   unsigned &sum6463, unsigned &countSum6464,
-                                   unsigned &sum6665, unsigned &countSum6665,
-                                   bool &colorBit);
+        void configureHDMI();
+        void configureComponent();
+        void configureColorSpace();
+
+        void configureSetupSubblock();
+        void configureCommonBlockA();
+        void configureCommonBlockB1(bool mysteryFlag);
+        void configureCommonBlockB2();
+        void configureCommonBlockC();
+        void readHdmiSignalInformation(unsigned &sum6463, unsigned &countSum6464,
+                                       unsigned &sum6665, unsigned &countSum6665,
+                                       bool &colorBit);
+        void readComponentSignalInformation(unsigned &sum6867, unsigned &countSum6867,
+                                            unsigned &sum6665, unsigned &countSum6665);
  
         void read_config_buffer(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *buffer, uint16_t wLength); 
 

@@ -642,7 +642,7 @@ void GCHD::transcoderFinalConfigure()
     //5=576i@50hz PAL
     //8=480p@60hz NTSC
     //9=576p@50hz PAL
-    //32=1080p@60hz 
+    //32=1080p@60hz, also appears to work for 1080p@30hz on component cable.
     //33=1080p@50hz
     //34=1080p@24hz
     uint8_t videoFormat=0;
@@ -682,9 +682,9 @@ void GCHD::transcoderFinalConfigure()
     }  
 
     if( refreshRate_==50 ) {
-        videoFormat |= 1; //We currently don't support 34, so this works.
-    } else if (refreshRate_ != 60 ) {
-        throw runtime_error( "We only support 50hz and 60hz refresh rates currently." ); 
+        videoFormat |= 1; //We currently don't support mode 0x34, so this works.
+    } else if ((refreshRate_ != 60 )  && (refreshRate_ != 30)) {
+        throw runtime_error( "We only support 30hz, 50hz, and 60hz refresh rates currently." ); 
     }
     sparam( v_format, videoFormat );
 
