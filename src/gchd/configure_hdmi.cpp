@@ -128,9 +128,16 @@ void GCHD::configureHDMI()
         } else if(std::abs( value6463 - 0xb05c )<10.0) { //Allow for error.
             //720p
             settings_->setInputResolution( Resolution::HD720 );
-        } else if(std::abs( value6463 - 0xb0bf )<10.0) { //Allow for error.
-            //480p
+        } else if(std::abs( value6463 - 0xb0c1 )<12.0) { //480p is 0xb0bf,
+                                                         //576p is 0xb0c3
+                                                         //midpoint is 0xb0c1
+            //0xba95 is NTSC, bb75 is PAL. Code here has a slight NTSC
+            //region bias. ;)
+            printf("6665: 0x%4.4x\n", (unsigned)value6665);
             settings_->setInputResolution( Resolution::NTSC );
+            if( std::abs( value6665 - 0xbb75 ) < 10 ) {
+                 settings_->setInputResolution( Resolution::PAL );
+            }
         } else {
             throw runtime_error( "Mode detection failed, does not appear to be a suported mode for HDMI.");
         }
