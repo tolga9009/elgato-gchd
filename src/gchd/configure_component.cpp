@@ -464,6 +464,7 @@ void GCHD::configureComponent()
     }
     configureCommonBlockB1(mysteryParameter);    
     configureCommonBlockB2();
+    configureCommonBlockB3();
 
     mailWrite( 0x4e, VC{0x0f, 0xe4} );
     //There is an annoying thread that starts about here/changes behaviour

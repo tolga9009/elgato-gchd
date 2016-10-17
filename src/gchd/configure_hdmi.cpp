@@ -222,6 +222,7 @@ void GCHD::configureHDMI()
     }
     configureCommonBlockB1(mysteryParameter);
     configureCommonBlockB2();
+    configureCommonBlockB3();
     configureCommonBlockC();
     readHdmiSignalInformation( sum6463, countSum6463, sum6665, countSum6665, rgbBit);
 

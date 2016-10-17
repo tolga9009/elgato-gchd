@@ -11,23 +11,23 @@
 #include "../gchd.hpp"
 
 
-//This runs the commands for all configurations up until a point they diverge 
+//This runs the commands for all configurations up until a point they diverge
 //badly in a way we haven't been unable to untangle yet.
-void GCHD::configureDevice() 
+void GCHD::configureDevice()
 {
     std::vector<unsigned char> version;
-    readVersion( version );        
+    readVersion( version );
     std::cerr << "Hardware revision is " << version.data() << std::endl;
-    
+
     //register is named BANKSEL from script files.
-    write_config<uint16_t>(BANKSEL, 0x0000); 
+    write_config<uint16_t>(BANKSEL, 0x0000);
 
     //Get what is enabled in case we aren't in boot state, we may need to disable
-    savedEnableStateRegister_ = read_config<uint16_t>(MAIL_SEND_ENABLE_REGISTER_STATE); 
+    savedEnableStateRegister_ = read_config<uint16_t>(MAIL_SEND_ENABLE_REGISTER_STATE);
 
     //Okay, when we first read SCMD_STATE_READBACK_REGISTER
     //To get our current state, it actually TRIGGERS a state change.
-    //but only in the case that the current state 
+    //but only in the case that the current state
     //(as read from SCMD_STATE_READBACK_REGISTER)
     //is already 0.
     uint16_t state;
@@ -160,8 +160,6 @@ void GCHD::configureDevice()
                             case 0:
                                 std::cerr << "HDMI signal found." << std::endl;
                                 settings_->setInputSource(InputSource::HDMI);
-                                break;
-
                                 break;
                             default:
                                 throw runtime_error("Bad cable detection code.");
@@ -640,13 +638,11 @@ void GCHD::configureDevice()
         case InputSource::HDMI:
             configureHDMI();
             break;
-#if 0
-        case InputSource::Composite:
-            setupComposite();
-            break;
-#endif
-        case InputSource::Component:
+       case InputSource::Component:
             configureComponent();
+            break;
+        case InputSource::Composite:
+            configureComposite();
             break;
         case InputSource::Unknown:
         default:
@@ -833,7 +829,10 @@ void GCHD::configureSetupSubblock()
             mailWrite( 0x4c, VC{0xa2, 0x77} );
             mailWrite( 0x4c, VC{0xa3, 0x77} );
             break;
+
+        //576i and 480i have the same setup on Component and Composite
         case InputSource::Component:
+        case InputSource::Composite:
             switch(settings_->getInputResolution())
             {
                 case Resolution::HD1080:
@@ -935,6 +934,8 @@ void GCHD::configureSetupSubblock()
                     throw runtime_error( "Current selected video mode is not a supported mode.");
                     break;
             }
+            break;
+
             break;
         default:
             throw runtime_error( "Unsupported input source.");
@@ -1055,10 +1056,13 @@ void GCHD::configureCommonBlockA()
     mailWrite( 0x33, VC{0x99, 0x8a, 0xbf} );
     mailRead( 0x33, 2 ); //EXPECTED {0x6e, 0xe1}
     mailWrite( 0x33, VC{0x99, 0x89, 0xb8} );
-
     std::vector<uint8_t> readValue=mailRead( 0x33, 1 );
+//EARLY END COMMON BLOCKA
+
+//New Block A3ish
     mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
     mailRead( 0x33, 1 ); //EXPECTED {0x02}
+
     mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
     mailRead( 0x33, 1 ); //EXPECTED {0x02}
     mailWrite( 0x33, VC{0x10, 0x00, 0x33} );
@@ -1074,6 +1078,7 @@ void GCHD::configureCommonBlockA()
     setValue &= ~0x80;
     mailWrite( 0x33, VC{0x10, 0x01, setValue} );
 
+    //SPECIAL END
     mailWrite( 0x4c, VC{0x04, 0x95} );
 
     if ( deviceType_ == DeviceType::GameCaptureHD ) {
@@ -1216,29 +1221,36 @@ void GCHD::configureCommonBlockB2()
 	mailRead( 0x33, 1 ); //EXPECTED {0x6b}
 	mailWrite( 0x4c, VC{0x04, 0x8d} );
 
-    do {
+    uint8_t status;
+    uint8_t mask;
+
+    //This is a subroutine in original driver as it happens at a few lone times.
+    {
+        do {
+            mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
+        } while (( mailRead( 0x33, 1 )[0] & 0x90) == 0);
+
+        mailWrite( 0x33, VC{0x99, 0x89, 0xfd} );
+        mailRead( 0x33, 1 ); //EXPECTED {0x6e}
+        mailWrite( 0x33, VC{0x99, 0x89, 0xfc} );
+        mailRead( 0x33, 1 ); //EXPECTED {0x6e}
+        mailWrite( 0x33, VC{0x99, 0x89, 0xf3} );
+        mailRead( 0x33, 1 ); //EXPECTED {0x7e}
         mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
-    } while (( mailRead( 0x33, 1 )[0] & 0x90) == 0);
-
-	mailWrite( 0x33, VC{0x99, 0x89, 0xfd} );
-	mailRead( 0x33, 1 ); //EXPECTED {0x6e}
-	mailWrite( 0x33, VC{0x99, 0x89, 0xfc} );
-	mailRead( 0x33, 1 ); //EXPECTED {0x6e}
-	mailWrite( 0x33, VC{0x99, 0x89, 0xf3} );
-	mailRead( 0x33, 1 ); //EXPECTED {0x7e}
-    mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
-    uint8_t status=mailRead( 0x33, 1 )[0];
-    uint8_t mask=status & 0x10;
-    mailWrite( 0x4c, VC{0x0e, (uint8_t) (mask | 0x65)} );
-    mailWrite( 0x4c, VC{0x0e, (uint8_t) (mask | 0x64)} );
-
-	mailWrite( 0x4c, VC{0x0d, 0xc8} );
+        status=mailRead( 0x33, 1 )[0];
+        mask=status & 0x10;
+        mailWrite( 0x4c, VC{0x0e, (uint8_t) (mask | 0x65)} );
+        mailWrite( 0x4c, VC{0x0e, (uint8_t) (mask | 0x64)} );
+	    mailWrite( 0x4c, VC{0x0d, 0xc8} );
+    }
 
     status=mailRead( 0x33, 1 )[0];
     mask=value & 0x10;
     mailWrite( 0x4c, VC{0x0e, (uint8_t) (mask | 0x65)} );
     mailWrite( 0x4c, VC{0x0e, (uint8_t) (mask | 0x64)} );
-	mailWrite( 0x4c, VC{0x0d, 0xc8} );
+	mailWrite( 0x4c, VC{0x0d, 0xc8} ); //This comes before
+                                       //previous 2 statements
+                                       //in some captures.
 
 	mailWrite( 0x4c, VC{0x0f, 0x88} );
 	mailWrite( 0x4c, VC{0xc1, 0x89} );
@@ -1319,7 +1331,10 @@ void GCHD::configureCommonBlockB2()
 	mailWrite( 0x4c, VC{0x0f, 0x88} );
 	mailWrite( 0x4c, VC{0xc1, 0x88} );
 	mailWrite( 0x4c, VC{0xc6, 0x8b} );
+}
 
+void GCHD::configureCommonBlockB3()
+{
     if (settings_->getInputResolution() != Resolution::PAL) {
         mailWrite( 0x4c, VC{0x0f, 0x89} );
         mailWrite( 0x33, VC{0x99, 0x89, 0x5b} );
