@@ -260,9 +260,6 @@ Currently supported input sources:
 * HDMI: 480p60 (NTSC), 576p60 (PAL), 720p60, 1080i60, 1080p60
 * Component: 480i60 (NTSC), 480p60 (NTSC), 576i50 (PAL), 576p50 (PAL), 720p60,
   1080i60, 1080p60
-
-These are not supported by this version of the driver but will be in the
-near future:
 * Composite: 480i60 (NTSC), 576i50 (PAL)
 
 
