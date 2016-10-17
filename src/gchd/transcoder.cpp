@@ -625,11 +625,23 @@ void GCHD::transcoderFinalConfigure()
 
 	uint8_t inSourceType=0;
 	if ( settings_->getInputResolution() == Resolution::PAL ) {
-		inSourceType=3;
+		if( settings_->getSDStretch() ) {
+			inSourceType=2;
+		} else {
+			inSourceType=3;
+		}
 	}
-
-	//This appears to be set to 3 if signal is PAL, 0 otherwise
-	//By PAL I mean analog PAL, 576 line.
+	if ( settings_->getInputResolution() == Resolution::NTSC ) {
+		if( settings_->getSDStretch() ) {
+			inSourceType=1;
+		} else {
+			inSourceType=0;
+		}
+	}
+	//This appears to be set to 3 if signal is PAL 4:3
+	//                          2 if signal is PAL stretched to 16:9
+	//                          1 if signal is NTSC stretched to 16:9
+	//                          0 if anything else whatsoever.
 	sparam( v_in_source_type, inSourceType );
 
 	//next setting, v_format is based on screen and input signal type.

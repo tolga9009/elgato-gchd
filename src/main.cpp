@@ -22,14 +22,14 @@ void help(std::string name) {
 	std::cerr << "Usage: " << name << " [options]" << std::endl
 		  << std::endl
 		  << "Options:" << std::endl
-		  << "  -c <color-space>   Color Space settings [default: yuv]" << std::endl
+		  << "  -c <color-space>   Color space settings [default: yuv]" << std::endl
 		  << "  -f <format>        Format for <output> [default: fifo]" << std::endl
 		  << "  -h                 Print this screen" << std::endl
-		  << "  -i <input-source>  Input Source [default: hdmi]" << std::endl
+		  << "  -i <input-source>  Input source [default: hdmi]" << std::endl
 		  << "  -n <ip-address>    IP address for UDP streaming [default: 0.0.0.0]" << std::endl
-		  << "  -o <output>        Output Path [default: /tmp/gchd.ts]" << std::endl
+		  << "  -o <output>        Output path [default: /tmp/gchd.ts]" << std::endl
 		  << "  -p <port>          Port for UDP streaming [default: " << PORT_NUM << "]" << std::endl
-		  << "  -r <resolution>    Resolution of Input Source [default: 1080]" << std::endl
+		  << "  -r <resolution>    Resolution of output [default: same as input]" << std::endl
 		  << "  -v                 Print program version" << std::endl
 		  << "  -P <pid-path>      PID path [default: /var/run/gchd.pid]" << std::endl;
 }
