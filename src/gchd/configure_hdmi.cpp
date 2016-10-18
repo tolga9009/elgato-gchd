@@ -114,47 +114,80 @@ void GCHD::configureHDMI()
 	//^^^^^ Need to go through loop at least twice, to stabilize read, and value read must not be value
 	//gotten when no signal
 
-	interlaced_=false;
-	if (settings_->getInputResolution() == Resolution::Unknown) {
+	Resolution resolution = Resolution::Unknown;
+	ScanMode scanMode = ScanMode::Progressive;
+	double refreshRate = 0.0;
+
+	if (currentInputSettings_.getResolution() == Resolution::Unknown) {
 		double value6463=((double)sum6463) / countSum6463;
 		//0xb690
 		if(fabs( value6463 - 0xb6d7 )<10.0) { //Allow for error.
 			//1080p
-			settings_->setInputResolution( Resolution::HD1080 );
+			resolution = Resolution::HD1080;
+			refreshRate = 60.0;
 		} else if(fabs( value6463 - 0xb081 )<10.0) { //0xb123
 			//1080i
-			settings_->setInputResolution( Resolution::HD1080 );
-			interlaced_=true;
+			resolution = Resolution::HD1080;
+			refreshRate = 60.0;
+			scanMode = ScanMode::Interlaced;;
 		} else if(std::abs( value6463 - 0xb05c )<10.0) { //Allow for error.
 			//720p
-			settings_->setInputResolution( Resolution::HD720 );
+			resolution = Resolution::HD720;
+			refreshRate = 60.0;
 		} else if(std::abs( value6463 - 0xb0c1 )<12.0) { //480p is 0xb0bf,
 			//576p is 0xb0c3
 			//midpoint is 0xb0c1
 			//0xba95 is NTSC, bb75 is PAL. Code here has a slight NTSC
 			//region bias. ;)
-			printf("6665: 0x%4.4x\n", (unsigned)value6665);
-			settings_->setInputResolution( Resolution::NTSC );
+			resolution = Resolution::NTSC;
+			refreshRate = 60.0;
 			if( std::abs( value6665 - 0xbb75 ) < 10 ) {
-				settings_->setInputResolution( Resolution::PAL );
+				resolution = Resolution::PAL;
+				refreshRate = 60.0;
 			}
 		} else {
-			throw runtime_error( "Mode detection failed, does not appear to be a suported mode for HDMI.");
+			if( passedInputSettings_.getResolution() == Resolution::Unknown ) {
+				throw runtime_error( "Mode detection failed, does not appear to be a suported mode for HDMI.");
+			}
 		}
 	}
-	refreshRate_=60; //Currently we don't support anything other than 60hz / 59.94hz modes.
+	if( refreshRate == 0.0 ) {
+		switch( passedInputSettings_.getResolution() ) {
+			case Resolution::PAL:
+				refreshRate=50.0;
+				break;
+			default:
+				refreshRate=60.0;
+				break;
+		}
+	}
+	//Merge passed arguments and autodetect information.
+	currentInputSettings_.mergeAutodetect( passedInputSettings_, resolution, scanMode, refreshRate );
+
+	//Color space isn't set yet, but that shouldn't be a problem.
+	currentTranscoderSettings_.mergeAutodetect( passedTranscoderSettings_, currentInputSettings_ );
+
 	mailWrite( 0x4e, VC{0x00, 0xcc} );
 
 	//Mystery setup difference. May be more appropriate to switch on reading back 0x95 instead of 0x97
 	//Based on input resolution.
-	if (settings_->getInputResolution() == Resolution::HD720) {
-		mailWrite( 0x4e, VC{0xb2, 0xcc} );
-		mailWrite( 0x4e, VC{0xb5, 0xcc} );
-	} else { //Assumed 1080.
-		readDevice0x9DCD(0x8d); //EXPECTED 0xb2
-		mailWrite( 0x4e, VC{0xb2, 0xc4} );
-		readDevice0x9DCD(0x8a); //EXPECTED 0xb2
-		mailWrite( 0x4e, VC{0xb5, 0xd0} );
+	switch( currentInputSettings_.getResolution() ) {
+		case Resolution::HD1080:
+			mailWrite( 0x4e, VC{0xb2, 0xc4} );
+			mailWrite( 0x4e, VC{0xb5, 0xd0} );
+			break;
+		case Resolution::HD720:
+			mailWrite( 0x4e, VC{0xb2, 0xcc} );
+			mailWrite( 0x4e, VC{0xb5, 0xcc} );
+			break;
+		case Resolution::NTSC:
+		case Resolution::PAL:
+			mailWrite( 0x4e, VC{0xb2, 0xcf} );
+			mailWrite( 0x4e, VC{0xb5, 0xcc} );
+			break;
+		case Resolution::Unknown:
+			throw std::logic_error( "Error in configuring resolution for HDMI." );
+			break;
 	}
 	mailWrite( 0x4e, VC{0x00, 0xce} );
 	mailWrite( 0x4e, VC{0x1b, 0x30} );
@@ -209,15 +242,9 @@ void GCHD::configureHDMI()
 	mailWrite( 0x4c, VC{0xc0, 0x77} );
 
 	bool mysteryParameter=false;
-	if (settings_->getInputResolution() != Resolution::HD1080) {
-		if( !interlaced_ ) {
-			mysteryParameter=true; //Old theory was that high speed
-			//images need this and it controls a clock
-			//rate. But probably unlikely.
-			//
-			//Just as likely, user configureable small
-			//detail---I've now seen HDMI 1080p captures with this on
-			//and off.
+	if (currentInputSettings_.getResolution() != Resolution::HD1080) {
+		if( currentInputSettings_.getScanMode() == ScanMode::Progressive ) {
+			mysteryParameter=true;
 		}
 	}
 	configureCommonBlockB1(mysteryParameter);
@@ -226,18 +253,20 @@ void GCHD::configureHDMI()
 	configureCommonBlockC();
 	readHdmiSignalInformation( sum6463, countSum6463, sum6665, countSum6665, rgbBit);
 
-	if( settings_->getColorSpace()==ColorSpace::Unknown ) {
+	if( passedInputSettings_.getColorSpace()==ColorSpace::Unknown ) {
 		if( rgbBit ) {
-			settings_->setColorSpace(ColorSpace::RGB);
+			currentInputSettings_.setColorSpace(ColorSpace::RGB);
 		} else {
-			settings_->setColorSpace(ColorSpace::YUV);
+			currentInputSettings_.setColorSpace(ColorSpace::YUV);
 		}
+	} else {
+		currentInputSettings_.setColorSpace( passedInputSettings_.getColorSpace() );
 	}
 
 	mailWrite( 0x4e, VC{0x00, 0xcc} ); //Make sure on right bank for color space configure.
 	configureColorSpace();
-	transcoderFinalConfigure();
-	transcoderSetup();
+	transcoderFinalConfigure( currentInputSettings_,  currentTranscoderSettings_ );
+	transcoderSetup( currentInputSettings_,  currentTranscoderSettings_ );
 
 	scmd(SCMD_INIT, 0xa0, 0x0000);
 	uint16_t state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //EXPECTED=0x0001

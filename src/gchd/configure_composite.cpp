@@ -21,29 +21,47 @@ void GCHD::configureComposite()
 	uint8_t value=mailRead( 0x33, 1 )[0];
 	value = value & 0xf;
 
-	interlaced_=true;
-	if (settings_->getInputResolution() == Resolution::Unknown) {
-		if( value == 6 ) {
-			settings_->setInputResolution( Resolution::NTSC );
-		} else if ( value == 7 ) {
-			settings_->setInputResolution( Resolution::PAL );
-		} else {
+	ScanMode autodetectScanMode=ScanMode::Interlaced;
+	double autodetectRefreshRate=0.0;
+	Resolution autodetectResolution;
+
+	if( value == 6 ) {
+		autodetectResolution = Resolution::NTSC;
+		autodetectRefreshRate = 60.0;
+	} else if ( value == 7 ) {
+		autodetectResolution = Resolution::PAL;
+		autodetectRefreshRate = 50.0;
+	} else {
+		if( passedInputSettings_.getResolution() == Resolution::Unknown ) {
 			throw runtime_error( "Mode detection failed, does not appear to be a supported mode for Composite.");
 		}
 	}
-	switch(settings_->getInputResolution()) {
-		case Resolution::NTSC:
-			refreshRate_=60;
-			break;
-		case Resolution::PAL:
-			refreshRate_=50;
-			break;
-		default:
-			throw runtime_error( "Mode is not a supported mode for Composite.");
-			break;
+	if (autodetectRefreshRate == 0.0) {
+		switch(currentInputSettings_.getResolution()) {
+			case Resolution::NTSC:
+				autodetectRefreshRate=60.0;
+				break;
+			case Resolution::PAL:
+				autodetectRefreshRate=50.0;
+				break;
+			default:
+				throw setting_error( "Mode is not a supported mode for Composite.");
+				break;
+		}
 	}
+	//Merge passed arguments and autodetect information.
+	currentInputSettings_.mergeAutodetect( passedInputSettings_,
+					       autodetectResolution,
+					       autodetectScanMode,
+					       autodetectRefreshRate );
+	if( passedInputSettings_.getColorSpace()==ColorSpace::Unknown ) {
+		currentInputSettings_.setColorSpace( ColorSpace::YUV ); //Composite=YUV unless overridden.
+	} else {
+		currentInputSettings_.setColorSpace( passedInputSettings_.getColorSpace() );
+	}
+	currentTranscoderSettings_.mergeAutodetect( passedTranscoderSettings_, currentInputSettings_ );
 
-	if (settings_->getInputResolution()==Resolution::NTSC) {
+	if (currentInputSettings_.getResolution()==Resolution::NTSC) {
 		mailWrite( 0x44, VC{0x07, 0x8a} );
 		mailWrite( 0x44, VC{0x08, 0x9b} );
 		mailWrite( 0x44, VC{0x09, 0x7a} );
@@ -55,8 +73,7 @@ void GCHD::configureComposite()
 	mailWrite( 0x33, VC{0x89, 0x89, 0xe7} );
 	mailRead( 0x33, 1 ); //EXPECTED {0xe9}
 
-
-	if (settings_->getInputResolution()==Resolution::PAL) {
+	if (currentInputSettings_.getResolution()==Resolution::PAL) {
 		mailWrite( 0x33, VC{0x89, 0x89, 0xf1} );
 		mailRead( 0x33, 1 ); //EXPECTED {0x63}
 		mailWrite( 0x4c, VC{0x04, 0x95} );
@@ -100,8 +117,8 @@ void GCHD::configureComposite()
 	configureCommonBlockC();
 	configureCommonBlockB3(); //Pretty sure not necessary to repeat.
 
-	transcoderFinalConfigure();
-	transcoderSetup();
+	transcoderFinalConfigure( currentInputSettings_ , currentTranscoderSettings_ );
+	transcoderSetup( currentInputSettings_, currentTranscoderSettings_ );
 
 	scmd(SCMD_INIT, 0xa0, 0x0000);
 	uint16_t state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //EXPECTED=0x0001

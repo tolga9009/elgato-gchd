@@ -38,8 +38,8 @@ class GCHD {
 	public:
 		int checkDevice();
 		int init();
-		void stream(std::array<unsigned char, DATA_BUF> *buffer);
-		GCHD(Process *process, Settings *settings);
+		void stream(std::array<unsigned char, DATA_BUF> *buffer, unsigned timeout=TIMEOUT);
+		GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings);
 		~GCHD();
 
 	private:
@@ -170,8 +170,7 @@ class GCHD {
 		void stateConfirmedScmd(uint8_t command, uint8_t mode, uint16_t data, uint16_t currentState);
 
 		uint16_t completeStateChange( uint16_t currentState,
-					      uint16_t nextState,
-					      bool forceStreamEmpty=false );
+					      uint16_t nextState );
 
 		void sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data);
 		void sparam(const bitfield_t &bitField, uint16_t data);
@@ -198,18 +197,25 @@ class GCHD {
 
 		void transcoderWriteVideoAndAudioPids();
 		void transcoderDefaultsInitialize();
-		void transcoderSetup();
-		void transcoderFinalConfigure();
+		void transcoderSetup(InputSettings &inputSettings,
+				     TranscoderSettings &settings);
+		void transcoderFinalConfigure(InputSettings &inputSettings, TranscoderSettings &settings);
+
 		void transcoderOutputEnable(bool enable);
 
 		DeviceType deviceType_;
 		Process *process_;
-		Settings *settings_;
+
+		//InputSettings as set by command line. vs current settings
+		InputSettings passedInputSettings_;
+		InputSettings currentInputSettings_;
+
+		//Transcoder settings as set by command line. vs current settings
+		TranscoderSettings passedTranscoderSettings_;
+		TranscoderSettings currentTranscoderSettings_;
 
 		uint16_t specialDetectMask_;
 
-		bool interlaced_;  //true or false
-		unsigned refreshRate_; //50 or 60hz
 
 };
 

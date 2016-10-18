@@ -286,63 +286,15 @@ void GCHD::transcoderDefaultsInitialize()
 	sparam( ach_sel, 0 );
 }
 
-typedef struct {
-		uint16_t level;
-		uint32_t maxMacroBlocksPerSecond;
-		uint32_t maxFrameMacroBlocks;
-		uint32_t maxKBitrateProfile; //ordered based on what the profiles mean v_h264_profile (theoretically)
-} h264_level_description_t;
-
-// See: ITU-T Rec H.264 Appendix A.3 (Levels)
-// Hardware is specified as supporting up to 4.0 (0x40), but may
-// go a little higer.
-static const h264_level_description_t h264_levels[]= {
-	{10,    1485,    99,     64},
-	{11,    3000,   396,    192},
-	{12,    6000,   396,    384},
-	{13,   11880,   396,    768},
-	{20,   11880,   396,   2000},
-	{21,   19800,   792,   4000},
-	{22,   20250,  1620,   4000},
-	{30,   40500,  1620,  10000},
-	{31,  108000,  3600,  14000},
-	{32,  216000,  5120,  20000},
-	{40,  245760,  8192,  20000},
-	{41,  245760,  8192,  50000},
-	{42,  522240,  8704,  50000},
-	{50,  589824, 22080, 135000},
-	{51,  983040, 36864, 240000},
-	{52, 2073600, 36864, 240000},
-};
-
-static uint8_t determineH264Level( uint32_t xRes, uint32_t yRes, float frameRate, uint32_t kbitRate )
-{
-	unsigned frameMacroBlocks=(xRes * yRes ) / (16*16);
-	unsigned macroBlocksPerSecond=frameMacroBlocks * frameRate;
-
-	unsigned tableLength= sizeof( h264_levels ) / sizeof(h264_level_description_t);
-	for( unsigned i=0; i<tableLength ;++i)  {
-		if ((macroBlocksPerSecond <= h264_levels[i].maxMacroBlocksPerSecond) &&
-				(frameMacroBlocks <= h264_levels[i].maxFrameMacroBlocks ) &&
-				(kbitRate <= h264_levels[i].maxKBitrateProfile)) //TODO...evaluate to see if using more than 8 bit color channels
-			//is done and how it affects this.
-		{
-			uint8_t level = h264_levels[i].level;
-			return level;
-		}
-	}
-	throw runtime_error( "Illegal settings, no valid h.264 level would work.");
-}
-
 using namespace Transcoder;
-void GCHD::transcoderSetup()
+void GCHD::transcoderSetup(InputSettings &inputSettings, TranscoderSettings &settings)
 {
 	//////////////////
 	//VIDEO SETTINGS//
 	//////////////////
 
 	unsigned horizontal, vertical;
-	settings_->getOutputResolution(horizontal, vertical);
+	settings.getResolution(horizontal, vertical);
 
 	//Whether we use group of pictures, or other methods.
 	uint16_t useGroupOfPictures=1; //Always 1.
@@ -352,16 +304,13 @@ void GCHD::transcoderSetup()
 	//Okay default gopGroupSize is going to be (inputFrameRate+10)/5
 
 	Utility::fraction_t fpsFraction={0, 0};
-	double frameRate = settings_->getFixedFrameRate();
-	double effectiveFrameRate; //Used for setting GOP up.
+	double frameRate = settings.getFrameRate();
+	double effectiveFrameRate = settings.getEffectiveFrameRate(); //Used for setting GOP up.
 
 	bool fixedFrameRate=false;
 	if ( frameRate != 0.0 ) {
 		fpsFraction=Utility::findFraction( frameRate, 8192 );
 		fixedFrameRate=true;
-		effectiveFrameRate=frameRate;
-	} else {
-		effectiveFrameRate=refreshRate_;
 	}
 
 	uint16_t gopGroupSize=(effectiveFrameRate+10)/5 ; //Distance between I frames.
@@ -372,29 +321,33 @@ void GCHD::transcoderSetup()
 
 	//Think this sets whether we are using constant or variable bit rate.
 	//I believe 0 is constant bit rate, 1 is variable, but 2 bit field....
-	uint8_t bitrateMode=0;
+	uint8_t bitRateMode;
+	switch( settings.getBitRateMode() ) {
+		case BitRateMode::Constant:
+			bitRateMode=0;
+			break;
+		case BitRateMode::Variable:
+			bitRateMode=1;
+			break;
+	}
 
 	//Figure out bit rates. This sets reasonable defaults.
-	uint32_t reasonableBitrate=int(31.25 * horizontal); //Seems to be what a lot of settings use.
-	double highestBitrate=40000.0;
+	unsigned bitRate        = settings.getConstantBitRate();
 
-	unsigned bitrate        = std::min(reasonableBitrate*1.0, highestBitrate );
-	unsigned maxBitrate     = std::min(reasonableBitrate*.9, highestBitrate);
-	unsigned averageBitrate = std::min(reasonableBitrate*.5, highestBitrate);
-	unsigned minBitrate     = std::min(reasonableBitrate*.35, highestBitrate);
+	unsigned maxBitRate, averageBitRate, minBitRate;
+	settings.getVariableBitRate( maxBitRate, averageBitRate, minBitRate );
 
-	// How often an IDR frame is sent 0 probably is disable. high part.
-	uint32_t idrInterval=0; //I believe setting is to 0 means every frame is IDR frame
+	// How often an IDR frame is sent.
+	uint32_t idrInterval=0; //I believe setting it to 0 means every frame is IDR frame
 
 	//I think profile 1=high, since that is what PMT profile_idc set to.
 	//The Fujitsu mb86H58 only is documented to support high, main, and baseline
 	//h.264 profile setting. May have to change PMT if this changes. No need to ever change.
 	unsigned h264Profile=1;
 
-
 	//This is shifted left on decimal place: IE 31 is 3.1
 	//https://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Levels
-	uint8_t h264Level= determineH264Level( horizontal, vertical, frameRate, highestBitrate );
+	uint8_t h264Level= settings.unsignedH264Level(settings.getH264Level());
 
 	//////////////////
 	//AUDIO SETTINGS//
@@ -416,31 +369,38 @@ void GCHD::transcoderSetup()
 	bool audioOriginal=true;
 	//Mpeg emphasis type: https://msdn.microsoft.com/en-us/library/windows/desktop/dd319403%28v=vs.85%29.aspx
 	uint16_t audioMpegEmphasis=0;
-	//bits per second for audio bitrate. 320 is out default currently.
-	uint16_t audioBitrate=320;
+	//bits per second for audio bitRate. 320 is out default currently.
+	uint16_t audioBitRate=settings.getAudioBitRate();
 
 	///////////////////
 	//COLOUR SETTINGS//
 	///////////////////
 	bool colourDescriptionPresentSetting=true; //This is set in all captures.
 
-	bool analog = settings_->getInputSource() != InputSource::HDMI;
+	bool analog = inputSettings.getSource() != InputSource::HDMI;
 	//These 3 are defined in p376 (pdf page 396) of T-REC-H.264-201003-S
 	uint8_t colourPrimariesSetting;
+
+	unsigned colourValue;
 	if( analog ) {
-		colourPrimariesSetting=6; //Always set to 6 in composite and component captures.
+		colourValue=6;
 	} else {
-		colourPrimariesSetting=1; //Set to 1 for hdmi
+		switch( inputSettings.getHDMIColorSpace() ) {
+			case HDMIColorSpace::Full:
+				colourValue=6;
+				break;
+			default:
+				colourValue=1;
+				break;
+		}
 	}
+
+	colourPrimariesSetting=colourValue;
 
 	uint8_t transferCharacteristicsSetting=1; //Always set to 1.
 
 	uint8_t matrixCoefficientsSetting;
-	if( analog ) {
-		matrixCoefficientsSetting=6; //Always set to 6 in composite and component captures.
-	} else {
-		matrixCoefficientsSetting=1; //Set to 1 for hdmi
-	}
+	matrixCoefficientsSetting=colourValue;
 
 	bool videoFullRangeFlagSetting=false; //false in all captures.
 	bool videoSignalTypePresentFlagSetting=true; //true in all captures.
@@ -463,9 +423,9 @@ void GCHD::transcoderSetup()
 	/////////////////////////
 	//This will not yield the exact same numbers
 	//as original driver, but slightly more conservative settings.
-	uint32_t systemBitrate =  (1.075 *(bitrate+audioBitrate) + 256);
+	uint32_t systemBitRate =  (1.075 *(settings.getRealMaxBitRate()+audioBitRate) + 256);
 
-	sparam( system_rate, systemBitrate ); //Always set higher than the bitrate...
+	sparam( system_rate, systemBitRate ); //Always set higher than the bitRate...
 	sparam( system_min_rate, 0 );
 
 	////////////////////////
@@ -479,12 +439,12 @@ void GCHD::transcoderSetup()
 	//This is always set to 0.
 	sparam( v_vbr_converge_mode, 0 ); //not sure what it does.
 
-	sparam( v_rate_mode, bitrateMode) ;
+	sparam( v_rate_mode, bitRateMode );
 
-	sparam( v_bitrate, bitrate );
-	sparam( v_max_bitrate, maxBitrate );
-	sparam( v_ave_bitrate, averageBitrate);
-	sparam( v_min_bitrate, minBitrate );
+	sparam( v_bitrate, bitRate );
+	sparam( v_max_bitrate, maxBitRate );
+	sparam( v_ave_bitrate, averageBitRate);
+	sparam( v_min_bitrate, minBitRate );
 
 	//These set the basic resolution
 	sparam( v_hsize_out, horizontal );
@@ -519,7 +479,7 @@ void GCHD::transcoderSetup()
 	sparam( e_mpeg_copyr, audioCopyright );
 	sparam( e_mpeg_orig, audioOriginal );
 	sparam( e_mpeg_emp, audioMpegEmphasis );
-	sparam( a_bitrate, audioBitrate );
+	sparam( a_bitrate, audioBitRate );
 
 	/////////////////////////
 	//Colour Settings Write//
@@ -547,7 +507,7 @@ void GCHD::transcoderSetup()
 		sparam( v_max_cpb_delay_bl, 3 );
 	}
 
-	sparam( system_rate_ts_out2, systemBitrate );
+	sparam( system_rate_ts_out2, systemBitRate );
 	sparam( system_min_rate_ts_out2, 0 );
 
 	//Does bl mean baseline?
@@ -556,12 +516,12 @@ void GCHD::transcoderSetup()
 	sparam( v_gop_struct_bl, distanceBetweenAnchorFrames );
 	sparam( v_gop_size_bl, gopGroupSize);
 	sparam( v_vlc_mode_bl, variableLengthCodingMode );
-	sparam( v_rate_mode_bl, bitrateMode );
+	sparam( v_rate_mode_bl, bitRateMode );
 	sparam( v_vbr_converge_mode_bl, 0 );
-	sparam( v_bitrate_bl, bitrate );
-	sparam( v_max_bitrate_bl, maxBitrate );
-	sparam( v_ave_bitrate_bl, averageBitrate );
-	sparam( v_min_bitrate_bl, minBitrate );
+	sparam( v_bitrate_bl, bitRate );
+	sparam( v_max_bitrate_bl, maxBitRate );
+	sparam( v_ave_bitrate_bl, averageBitRate );
+	sparam( v_min_bitrate_bl, minBitRate );
 	sparam( v_filler_bitrate_bl, 0 );
 	sparam( v_hsize_out_bl, horizontal );
 	sparam( v_vsize_out_bl, vertical );
@@ -591,7 +551,7 @@ void GCHD::transcoderSetup()
 	sparam( e_mpeg_copyr_bl, audioCopyright );
 	sparam( e_mpeg_orig_bl, audioOriginal );
 	sparam( e_mpeg_emp_bl, audioMpegEmphasis );
-	sparam( a_bitrate_bl, audioBitrate );
+	sparam( a_bitrate_bl, audioBitRate );
 
 	sparam( colour_description_present_flag_bl, colourDescriptionPresentSetting );
 	sparam( colour_primaries_bl, colourPrimariesSetting );
@@ -618,21 +578,21 @@ void GCHD::transcoderOutputEnable(bool value)
 }
 
 using namespace Transcoder;
-void GCHD::transcoderFinalConfigure()
+void GCHD::transcoderFinalConfigure(InputSettings &inputSettings, TranscoderSettings &settings)
 {
 	transcoderWriteVideoAndAudioPids();
 	sparam( dma_sel_out, 1 );
 
 	uint8_t inSourceType=0;
-	if ( settings_->getInputResolution() == Resolution::PAL ) {
-		if( settings_->getSDStretch() ) {
+	if ( inputSettings.getResolution() == Resolution::PAL ) {
+		if( inputSettings.getSDStretch() ) {
 			inSourceType=2;
 		} else {
 			inSourceType=3;
 		}
 	}
-	if ( settings_->getInputResolution() == Resolution::NTSC ) {
-		if( settings_->getSDStretch() ) {
+	if ( inputSettings.getResolution() == Resolution::NTSC ) {
+		if( inputSettings.getSDStretch() ) {
 			inSourceType=1;
 		} else {
 			inSourceType=0;
@@ -650,7 +610,7 @@ void GCHD::transcoderFinalConfigure()
 	//1=1920x1080i 50hz
 	//2=1280x720p 60hz
 	//3=1280x720p 50hz
-	//4--unknowm but if I had to guess 480i@60hz based on NTSC/PAL pattern.
+	//4=640x480i 60hz (Educated guess).
 	//5=576i@50hz PAL
 	//8=480p@60hz NTSC
 	//9=576p@50hz PAL
@@ -658,32 +618,33 @@ void GCHD::transcoderFinalConfigure()
 	//33=1080p@50hz
 	//34=1080p@24hz
 	uint8_t videoFormat=0;
-	switch (settings_->getInputResolution())
+	ScanMode scanMode = inputSettings.getScanMode();
+	switch (inputSettings.getResolution())
 	{
 		case Resolution::HD1080:
-			if( interlaced_ )  {
+			if( scanMode==ScanMode::Interlaced )  {
 				videoFormat=0;
 			} else {
 				videoFormat=32;
 			}
 			break;
 		case Resolution::HD720:
-			if( interlaced_ ) {
-				throw runtime_error( "Do not support HD720 interlaced modes currently." );
+			if( scanMode==ScanMode::Interlaced ) {
+				throw runtime_error( "Does not support HD720 interlaced modes currently." );
 			} else {
 				videoFormat=2;
 			}
 			break;
 		case Resolution::PAL:
-			if( interlaced_ ) {
+			if( scanMode==ScanMode::Interlaced ) {
 				videoFormat=5;
 			} else {
 				videoFormat=9;
 			}
 			break;
 		case Resolution::NTSC:
-			if( interlaced_ ) {
-				videoFormat=4; //Educated guess really.
+			if( scanMode==ScanMode::Interlaced ) {
+				videoFormat=4;
 			} else {
 				videoFormat=8;
 			}
@@ -693,15 +654,16 @@ void GCHD::transcoderFinalConfigure()
 			break;
 	}
 
-	if( refreshRate_==50 ) {
+	double refreshRate = inputSettings.getRefreshRate();
+	if( inputSettings.getRefreshRate()==50.0 ) {
 		videoFormat |= 1; //We currently don't support mode 0x34, so this works.
-	} else if ((refreshRate_ != 60 )  && (refreshRate_ != 30)) {
+	} else if ((refreshRate != 60.0 )  && (refreshRate != 30.0)) {
 		throw runtime_error( "We only support 30hz, 50hz, and 60hz refresh rates currently." );
 	}
 	sparam( v_format, videoFormat );
 
 	//progressive scan or interlaced set here, 0=interlaced, 2=progressive scan.
-	if ( interlaced_ ) {
+	if ( scanMode==ScanMode::Interlaced ) {
 		sparam( v_ip_format, 0);
 	} else {
 		sparam( v_ip_format, 2);
@@ -728,3 +690,4 @@ void GCHD::transcoderFinalConfigure()
 	sparam( v_pic_order_present_flag, 1 );
 	sparam( v_pic_order_present_flag_bl, 1 );
 }
+

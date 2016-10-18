@@ -100,47 +100,81 @@ void GCHD::configureComponent()
 	//^^^^^ Need to go through loop at least twice, to stabilize read, and value read must not be value
 	//gotten when no signal
 
-	interlaced_=false;
-	refreshRate_=60;
-	if (settings_->getInputResolution() == Resolution::Unknown) {
-		double value6867=((double)sum6867) / countSum6867;
+	Resolution autodetectResolution=Resolution::Unknown;
+	ScanMode autodetectScanMode=ScanMode::Progressive; //Just defaults to progressive in absence of other
+	//information for Component.
+	double autodetectRefreshRate=0.0;
 
-		if(fabs( value6867 - 0xbbf4 )<10.0) {
-			//HD1080p30
-			settings_->setInputResolution( Resolution::HD1080 );
-			refreshRate_=30;
-		} else if (fabs( value6867 - 0xa03d)<10.0) { //Allow for error.
-			//HD1080i60
-			settings_->setInputResolution( Resolution::HD1080 );
-			interlaced_=true;
-			refreshRate_=60;
-		} else if (fabs( value6867 - 0xbf59)<10.0) {
-			//HD720p60
-			settings_->setInputResolution( Resolution::HD720 );
-			refreshRate_=60;
-		}  else if(fabs( value6867 - 0xa6b7 )<10.0) {
-			//576p50
-			settings_->setInputResolution( Resolution::PAL );
-			refreshRate_=50;
-		}  else if(fabs( value6867 - 0x9ab9 )<10.0) {
-			//576i50
-			settings_->setInputResolution( Resolution::PAL );
-			interlaced_=true;
-			refreshRate_=50;
-		}  else if(fabs( value6867 - 0xa150 )<10.0) {
-			//480p60
-			settings_->setInputResolution( Resolution::NTSC );
-			refreshRate_=60;
-		}  else if(fabs( value6867 - 0x9576 )<10.0) {
-			//480i60
-			settings_->setInputResolution( Resolution::NTSC );
-			interlaced_=true;
-			refreshRate_=60;
-		} else {
+	double value6867=((double)sum6867) / countSum6867;
+	if(fabs( value6867 - 0xbbf4 )<10.0) {
+		//HD1080p30
+		autodetectResolution=Resolution::HD1080;
+		autodetectRefreshRate=30;
+	} else if (fabs( value6867 - 0xa03d)<10.0) { //Allow for error.
+		//HD1080i60
+		autodetectResolution=Resolution::HD1080;
+		autodetectScanMode=ScanMode::Interlaced;
+		autodetectRefreshRate=60;
+	} else if (fabs( value6867 - 0xbf59)<10.0) {
+		//HD720p60
+		autodetectResolution=Resolution::HD720;
+		autodetectRefreshRate=60;
+	}  else if(fabs( value6867 - 0xa6b7 )<10.0) {
+		//576p50
+		autodetectResolution=Resolution::PAL;
+		autodetectRefreshRate=50;
+	}  else if(fabs( value6867 - 0x9ab9 )<10.0) {
+		//576i50
+		autodetectResolution=Resolution::PAL;
+		autodetectScanMode=ScanMode::Interlaced;
+		autodetectRefreshRate=50;
+	}  else if(fabs( value6867 - 0xa150 )<10.0) {
+		//480p60
+		autodetectResolution = Resolution::NTSC;
+		autodetectRefreshRate=60;
+	}  else if(fabs( value6867 - 0x9576 )<10.0) {
+		//480i60
+		autodetectResolution=Resolution::NTSC;
+		autodetectScanMode=ScanMode::Interlaced;
+		autodetectRefreshRate=60;
+	} else {
+		if( passedInputSettings_.getResolution() == Resolution::Unknown ) {
 			throw runtime_error( "Mode detection failed, does not appear to be a supported mode for Component.");
 		}
 	}
-	switch(settings_->getInputResolution()) {
+	ScanMode passedMode = passedInputSettings_.getScanMode();
+
+	//Use autodetect or passed mode?
+	ScanMode compareMode = (passedMode==ScanMode::Unknown) ? autodetectScanMode : passedMode;
+
+	if( autodetectRefreshRate == 0.0 ) {
+		switch( passedInputSettings_.getResolution() ) {
+			case Resolution::HD1080:
+				if( compareMode == ScanMode::Interlaced ) {
+					autodetectRefreshRate=60.0;
+				} else {
+					autodetectRefreshRate=30.0;
+				}
+				break;
+			case Resolution::PAL:
+				autodetectRefreshRate=50.0;
+				break;
+			default:
+				autodetectRefreshRate=60.0;
+				break;
+		}
+	}
+
+	//Merge passed arguments and autodetect information.
+	currentInputSettings_.mergeAutodetect( passedInputSettings_, autodetectResolution, autodetectScanMode, autodetectRefreshRate );
+	if( passedInputSettings_.getColorSpace()==ColorSpace::Unknown ) {
+		currentInputSettings_.setColorSpace( ColorSpace::YUV ); //Component=YUV unless overridden.
+	} else {
+		currentInputSettings_.setColorSpace( passedInputSettings_.getColorSpace() );
+	}
+	currentTranscoderSettings_.mergeAutodetect( passedTranscoderSettings_, currentInputSettings_ );
+
+	switch(currentInputSettings_.getResolution()) {
 		case Resolution::NTSC:
 		case Resolution::PAL:
 			mailWrite( 0x4e, VC{0xb2, 0xcf} );
@@ -151,9 +185,11 @@ void GCHD::configureComponent()
 	}
 	mailWrite( 0x4e, VC{0xb5, 0xcc} );
 
-	switch(settings_->getInputResolution()) {
+	bool interlaced = currentInputSettings_.getScanMode()==ScanMode::Interlaced;
+
+	switch(currentInputSettings_.getResolution()) {
 		case Resolution::HD1080:
-			if( interlaced_ ) { // Assuming HD1080i60
+			if( interlaced ) { // Assuming HD1080i60
 				mailWrite( 0x4e, VC{0x03, 0x94} );
 				mailWrite( 0x4e, VC{0x05, 0xf4} );
 				mailWrite( 0x4e, VC{0x06, 0xec} );
@@ -186,7 +222,7 @@ void GCHD::configureComponent()
 			break;
 
 		case Resolution::PAL:
-			if( interlaced_ ) {
+			if( interlaced ) {
 				mailWrite( 0x4e, VC{0x03, 0xc4} );
 				mailWrite( 0x4e, VC{0x05, 0xc4} );
 				mailWrite( 0x4e, VC{0x06, 0xc4} );
@@ -207,7 +243,7 @@ void GCHD::configureComponent()
 			}
 			break;
 		case Resolution::NTSC:
-			if( interlaced_ ) {
+			if( interlaced ) {
 				mailWrite( 0x4e, VC{0x03, 0xc4} );
 				mailWrite( 0x4e, VC{0x05, 0xc4} );
 				mailWrite( 0x4e, VC{0x06, 0xc4} );
@@ -238,7 +274,7 @@ void GCHD::configureComponent()
 	mailWrite( 0x4e, VC{0x12, 0xc8} );
 	readDevice0x9DCD(0x28); //EXPECTED 0xb2
 	mailWrite( 0x4e, VC{0x17, 0xce} );
-	switch(settings_->getInputResolution()) {
+	switch(currentInputSettings_.getResolution()) {
 		case Resolution::NTSC:
 		case Resolution::PAL:
 			mailWrite( 0x4e, VC{0x12, 0xc8} );
@@ -263,9 +299,9 @@ void GCHD::configureComponent()
 	mailWrite( 0x4e, VC{0x3a, 0xc0} );
 	mailWrite( 0x4e, VC{0x3b, 0xc4} );
 	readDevice0x9DCD(0x39); //EXPECTED 0x92/0x82 first is HD1080i60, second 108p30  might be interlace bit
-	switch(settings_->getInputResolution()) {
+	switch(currentInputSettings_.getResolution()) {
 		case Resolution::HD1080:
-			if( interlaced_ ) { // Assuming HD1080i60
+			if( interlaced ) { // Assuming HD1080i60
 				mailWrite( 0x4e, VC{0x39, 0x2c} );
 				mailWrite( 0x4e, VC{0x2c, 0x51} );
 				mailWrite( 0x4e, VC{0x03, 0x8c} );
@@ -320,7 +356,7 @@ void GCHD::configureComponent()
 			mailWrite( 0x4e, VC{0x86, 0x1c} );
 			break;
 		case Resolution::PAL:
-			if( interlaced_ ) {
+			if( interlaced ) {
 				mailWrite( 0x4e, VC{0x39, 0x54} );
 				mailWrite( 0x4e, VC{0x2c, 0x51} );
 				mailWrite( 0x4e, VC{0x03, 0xcc} );
@@ -357,7 +393,7 @@ void GCHD::configureComponent()
 			}
 			break;
 		case Resolution::NTSC:
-			if( interlaced_ ) {
+			if( interlaced ) {
 				mailWrite( 0x4e, VC{0x39, 0x54} );
 				mailWrite( 0x4e, VC{0x2c, 0x51} );
 				mailWrite( 0x4e, VC{0x03, 0xcc} );
@@ -401,11 +437,11 @@ void GCHD::configureComponent()
 	mailWrite( 0x4e, VC{0xb0, 0xe8} );
 	mailWrite( 0x4e, VC{0xb1, 0x0c} );
 
-	if(( settings_->getInputResolution()==Resolution::PAL ) && interlaced_ ) {
+	if(( currentInputSettings_.getResolution()==Resolution::PAL ) && interlaced ) {
 		mailWrite( 0x4e, VC{0xad, 0xcc} );
 		mailWrite( 0x4e, VC{0xb0, 0xf9} );
 		mailWrite( 0x4e, VC{0xb1, 0xcc} );
-	} else if(( settings_->getInputResolution()==Resolution::NTSC ) && interlaced_ ) {
+	} else if(( currentInputSettings_.getResolution()==Resolution::NTSC ) && interlaced ) {
 		mailWrite( 0x4e, VC{0xad, 0xcc} );
 		mailWrite( 0x4e, VC{0xb0, 0xf9} );
 		mailWrite( 0x4e, VC{0xb1, 0x4c} );
@@ -415,12 +451,12 @@ void GCHD::configureComponent()
 	}
 
 	//Color space configuration is in separate thread and tends to happen at odd times.
-	if( settings_->getColorSpace()==ColorSpace::Unknown ) {
-		settings_->setColorSpace( ColorSpace::YUV ); //No autodetect currently. component signals usually YUV.
+	if( currentInputSettings_.getColorSpace()==ColorSpace::Unknown ) {
+		currentInputSettings_.setColorSpace( ColorSpace::YUV ); //No autodetect currently. component signals usually YUV.
 	}
 	configureColorSpace();
 
-	if(( settings_->getInputResolution()==Resolution::NTSC ) && interlaced_ ) {
+	if(( currentInputSettings_.getResolution()==Resolution::NTSC ) && interlaced ) {
 		mailWrite( 0x4e, VC{0xb0, 0xf9} );
 		mailWrite( 0x4e, VC{0xb1, 0xcc} );
 	}
@@ -457,8 +493,8 @@ void GCHD::configureComponent()
 	configureSetupSubblock();
 
 	bool mysteryParameter=false;
-	if (settings_->getInputResolution() == Resolution::HD1080) {
-		if( !interlaced_ ) { //1080p30 --ONLY TRUE FOR
+	if (currentInputSettings_.getResolution() == Resolution::HD1080) {
+		if( !interlaced ) { //1080p30 --ONLY TRUE FOR
 			mysteryParameter=true;
 		}
 	}
@@ -482,8 +518,8 @@ void GCHD::configureComponent()
 	//It is safe to remove these and still get a capture.
 	configureCommonBlockC();
 
-	transcoderFinalConfigure();
-	transcoderSetup();
+	transcoderFinalConfigure( currentInputSettings_ , currentTranscoderSettings_ );
+	transcoderSetup( currentInputSettings_, currentTranscoderSettings_ );
 
 	scmd(SCMD_INIT, 0xa0, 0x0000);
 	uint16_t state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //EXPECTED=0x0001

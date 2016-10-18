@@ -101,7 +101,7 @@ void GCHD::enableAnalogInput()
 {
 	//Configure input choice from settings.
 	//In original windows driver this might have changed on the fly.
-	bool analog = settings_->getInputSource() != InputSource::HDMI;
+	bool analog = currentInputSettings_.getSource() != InputSource::HDMI;
 	uint16_t analogInputBit = analog ? EB_ANALOG_INPUT : 0;
 
 	//First is mask of what we are configuring, second is values.
@@ -195,8 +195,7 @@ void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
 }
 
 uint16_t GCHD::completeStateChange( uint16_t currentState,
-				    uint16_t nextState,
-				    bool forceStreamEmpty )
+				    uint16_t nextState )
 {
 	bool firstTime=true;
 	uint16_t state;
@@ -220,17 +219,6 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
 			}
 			firstTime=false;
 
-			//forceStreamEmpty is a terrible hack that needs to die.
-			if( forceStreamEmpty )
-			{
-				std::array<unsigned char, DATA_BUF> buffer;
-				//Streaming happens at top of loop, and after each 0x01b0 command, this seems
-				//proper place to put it.
-				for (int i = 0; i < 50; i++)
-				{
-					stream(&buffer);
-				}
-			}
 			uint16_t completion=read_config<uint16_t>(SCMD_STATE_CHANGE_COMPLETE);
 			changed = (completion & 0x4)>0; //Check appropriate bit
 
@@ -614,6 +602,7 @@ void GCHD::stopStream( bool emptyBuffer )
 	// state change - stop encoding
 	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
 	completeStateChange(  SCMD_STATE_NULL, SCMD_STATE_STOP );
+	stream(&buffer, 250); //Quarter second timeout.
 }
 
 void GCHD::clearEnableState()
