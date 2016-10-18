@@ -29,98 +29,10 @@ licensing issues, they're not part of this repository.
 You need to extract them yourself from the Windows "Game Capture" software, 
 or the official Mac OS X drivers. Getting it from each is a different process.
 
+See https://github.com/tolga9009/elgato-gchd/wiki/Firmware
+
 **Note**: If you're a Mac OS X user, simply install the official drivers. You
 don't need to manually extract the firmware files.
-
-## Getting Firmware from Windows "Game Capture" software:
-
-1. Download Game Capture from:
-
-   https://www.elgato.com/en/game-capture-hd-support
-
-   Game Capture 3.2 is known to work. You will not need the hardware driver,
-   just the Game Capture software (which is a much bigger download).
-
-2. Make sure p7zip is installed on your Linux box. On Debian based systems
-   this can be achieved with the following command (as root).
-
-   ```
-   apt-get install p7zip-full 
-   ```
-
-3. Copy/Move the GameCapture*.msi file to the 
-   firmware_extract directory in this tree.
-
-4. Change directory to firmware_extract and then run:
-    
-    ```
-    ./extract_firmware_windows
-    ``` 
-
-    This will create a "Firmware.tgz" file.
-
-5. Change directory to either /usr/lib/firmware or /usr/local/lib/firmware
-   You may need to be root.
-    
-6. Untar Firmware.tgz from one of those directories. You will probably
-    need to be root.
-    
-    ```
-    tar xvf /full/path/to/elgato-gchd/firmware_extract/Firmware.tgz
-    ```
-
-7. The firmware files should end up in `/usr/lib/firmware/gchd` or
-   `/usr/local/lib/firmware/gchd` directories.
-
-## Getting Firmware from Macintosh Driver:
-
-1. Download Elgato Game Capture HD Mac OS X driver version 2.0.3 from official
-website: https://www.elgato.com/en/game-capture-hd-support
-
-2. Install the tools to loopback mount the gchd_*.dmg file. 
-   There are two ways to do this:
-    A) Using `dmg2img` and `hfsprogs`. These tools currently don't work
-       properly on .dmg files create on later versions of OSX. So you will
-       want to make sure you get the 2.0.3 version of the driver for this.
-    B) Install `darling-dmg` from https://github.com/darlinghq/darling-dmg
-       and use it to do this step. This is a much better method, but 
-       darling-dmg isn't currently available as a package for most 
-       Linux distros.
-
-3. Once the tools are installed, mount .dmg file.
-   For method A:
-
-   3A.1. Uncompress Elgato Game Capture HD Mac OS X drivers:
-
-    ```
-    dmg2img gchdm_203_970.dmg -o gchdm_203_970.dmg.img
-    ```
-
-   3A.2 Mount the uncompressed HFS+ image with root permissions:
-
-    ```
-    mkdir /tmp/dmg
-    mount -o loop -t hfsplus gchdm_203_970.dmg.img /tmp/dmg
-    ```
-
-   For method B:
-
-   3B.1 Mount the HFS+ image directly. Root permission not required.
-    ```
-    mkdir /tmp/dmg
-    darling-dmg gchdm_203_970.dmg /tmp/dmg
-    ```
-
-4. Copy `mb86h57_h58_idle.bin`, `mb86h57_h58_enc_h.bin`,
-   `mb86m01_assp_nsec_idle.bin`, and `mb86m01_assp_nsec_enc_h.bin` 
-   from `/tmp/dmg/Game\ Capture\ HD.app/Contents/Resources/Firmware/Beddo/`.
-
-6. Place the firmware files either in `/usr/lib/firmware/gchd` or
-`/usr/local/lib/firmware/gchd` folder. You might need root permissions.  
-
-**Note**: for testing purposes, you can also place the firmware files in the
-same directory, where the compiled executable `gchd` is located.
-
 
 ## Install
 
@@ -228,8 +140,11 @@ non-root user and don't have write access to the default `<pid-path>` location.
 ### General
 
 This driver must be run as root, as it needs to access your Game Capture HD
-device. Under Linux, you can alternatively configure udev to make your device
-accessible by non-root users. See the file udev-rules/55-elgato-game-capture.rules
+device. Under Linux, you can alternatively follow the directions at:
+
+https://github.com/tolga9009/elgato-gchd/wiki/Configuring-the-Driver-to-be-Run-Without-Root-Permissions
+
+This will make it accessible to non-root users.
 
 If no commandline options are set, the device will autodetect what source you
 have, HDMI, Component, or Composite. It will also autodetect the streamed
@@ -261,15 +176,6 @@ Currently supported input sources:
 * Component: 480i60 (NTSC), 480p60 (NTSC), 576i50 (PAL), 576p50 (PAL), 720p60,
   1080i60, 1080p60
 * Composite: 480i60 (NTSC), 576i50 (PAL)
-
-
-## Contribution
-
-In order to contribute to this project, you need to read and agree the Developer
-Certificate of Origin, which can be found in the CONTRIBUTING file. Therefore,
-commits need to be signed-off. You can do this by adding the `-s` flag when
-commiting: `git commit -s`. Pseudonyms and anonymous contributions will not be
-accepted.
 
 
 ## License

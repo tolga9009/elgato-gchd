@@ -1,29 +1,7 @@
-# HOW TO USE:
+# For instructions on how to use this file see:
+# https://github.com/tolga9009/elgato-gchd/wiki/Configuring-the-Driver-to-be-Run-Without-Root-Permissions
 #
-# 1. Copy this file to /etc/udev/rules.d to be able to run gchd as non-root user:
-#
-#   sudo cp 55-elgato-game-capture.rules /etc/udev/rules.d     
-#
-# 2. After you install this, you will have to notify UDEV, IE:
-#
-#   sudo udevadm control --reload
-#
-# 3. Unplug the device and plug it back in
-#
-# 4. You then must add the users who use this device to the "video" group. IE, for
-#    the user "jsmith":
-#
-#   sudo usermod jsmith -a -G video
-#
-#
-# 5. The user will then need to relogin for it to work, or you can type:
-#
-#   newgrp video
-#
-# 6. Make sure that the /tmp/gchd.ts is deleted, because if it is owned 
-#    as root you won't be able overwrite it.
-#  
-#   sudo rm /tmp/gchd.ts
+# If you wish to modify the group used from "video" change it in the last line of this file.
 #
 
 #Game capture HD, early versions:
