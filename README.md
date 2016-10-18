@@ -117,7 +117,7 @@ to autodetect.
 You can specify `<ip-address>` using `-n` option. The driver will stream to this
 IP address, instead of default `0.0.0.0`. Please note, UDP streaming is highly
 experimental at this point. Unicast works well, but Multicasting has performance
-issues, causing artefacts. Multicast IPs are in the range of `224.0.0.0` -
+issues, causing artifacts. Multicast IPs are in the range of `224.0.0.0` -
 `239.255.255.255` (RFC 5771).
 
 `<output>` sets the location either for the FIFO or the capture file,
