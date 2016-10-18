@@ -132,7 +132,7 @@ void GCHD::configureDevice()
 
             case 0x27f97b:
             {
-                if ((settings_->getInputSource() == InputSource::Unknown) && firstTime ) {
+                if (firstTime ) {
                     bool hdmiSignalFound = (( specialDetectMask_ >> 3) & 1) != 0;
                     unsigned cableType = specialDetectMask_  & 3;
                     bool signalFound;
@@ -143,27 +143,57 @@ void GCHD::configureDevice()
                         signalFound=true;
                     }
 
+                    InputSource autodetectInputSource = InputSource::Unknown;
                     if( !signalFound ) {
-                        std::cerr << "No signal found. Defaulting to HDMI" << std::endl;
-                        settings_->setInputSource(InputSource::HDMI);
+                        autodetectInputSource=InputSource::HDMI;
                     } else {
                         switch(cableType)
                         {
                             case 3:
-                                std::cerr << "Composite signal found." << std::endl;
-                                settings_->setInputSource(InputSource::Composite);
+                                autodetectInputSource=InputSource::Composite;
                                 break;
                             case 2:
-                                std::cerr << "Component signal found." << std::endl;
-                                settings_->setInputSource(InputSource::Component);
+                                autodetectInputSource=InputSource::Component;
                                 break;
                             case 0:
-                                std::cerr << "HDMI signal found." << std::endl;
-                                settings_->setInputSource(InputSource::HDMI);
+                                autodetectInputSource=InputSource::HDMI;
                                 break;
                             default:
-                                throw runtime_error("Bad cable detection code.");
+                                if( passedInputSettings_.getSource() == InputSource::Unknown ) {
+                                    throw runtime_error("Unable to detect input source.");
+                                }
+                                break;
                         }
+                    }
+                    bool forced=false;
+                    if( passedInputSettings_.getSource() == InputSource::Unknown ) {
+                        currentInputSettings_.setSource( autodetectInputSource );
+                    } else {
+                        forced=true;
+                        currentInputSettings_.setSource( passedInputSettings_.getSource() );
+                    }
+                    if ((!signalFound) && (!forced)) {
+                        std::cerr << "No signal found. Defaulting to HDMI." << std::endl;
+                        forced=true;
+                    }
+                    switch( currentInputSettings_.getSource() ) {
+                        case InputSource::HDMI:
+                            std::cerr << "HDMI input ";
+                            break;
+                        case InputSource::Component:
+                            std::cerr << "Component input ";
+                            break;
+                        case InputSource::Composite:
+                            std::cerr << "Composite input ";
+                            break;
+                        case InputSource::Unknown:
+                            throw std::logic_error("Failed to set source.");
+                            break;
+                    }
+                    if( forced ) {
+                        std::cerr << "forced." << std::endl;;
+                    } else {
+                        std::cerr << "found." << std::endl;
                     }
                 }
 
@@ -252,7 +282,7 @@ void GCHD::configureDevice()
     //that it doesn't really matter much because
     //the old configure scripts didn't seem to match
     //captures that I've seen.
-    bool analog = settings_->getInputSource() != InputSource::HDMI;
+    bool analog = currentInputSettings_.getSource() != InputSource::HDMI;
     if( analog ) {
     	mailWrite( 0x44, VC{0x08, 0x91} );
 	    mailWrite( 0x44, VC{0x09, 0xa8} );
@@ -589,11 +619,11 @@ void GCHD::configureDevice()
             Utility::debyteify<uint32_t>(input.data(), 3);
     } while(deviceModeMagic != 0x78e045);
 
-    transcoderSetup();
+    transcoderSetup( currentInputSettings_, currentTranscoderSettings_ );
     transcoderOutputEnable(true);
 
-    analog = settings_->getInputSource() != InputSource::HDMI;
-    bool composite = settings_->getInputSource() == InputSource::Composite;
+    analog = currentInputSettings_.getSource() != InputSource::HDMI;
+    bool composite = currentInputSettings_.getSource() == InputSource::Composite;
 
     scmd(SCMD_INIT, 0xa0, 0x0000);
     if( !composite )  {
@@ -633,7 +663,7 @@ void GCHD::configureDevice()
     doEnable( EB_ANALOG_MUX, analog ? EB_ANALOG_MUX:0);
 
 
-    switch (settings_->getInputSource())
+    switch (currentInputSettings_.getSource())
     {
         case InputSource::HDMI:
             configureHDMI();
@@ -696,7 +726,7 @@ void GCHD::configureColorSpace()
 {
     //Only reason this is included here is because it clearly comes before
     //color space configuration in the original driver thread.
-    if (settings_->getInputSource() == InputSource::Component) {
+    if (currentInputSettings_.getSource() == InputSource::Component) {
         mailWrite( 0x4e, VC{0x0b, 0x4c} );
         mailWrite( 0x4e, VC{0x0c, 0x4c} );
         mailWrite( 0x4e, VC{0x0d, 0x4c} );
@@ -707,7 +737,7 @@ void GCHD::configureColorSpace()
         mailWrite( 0x4e, VC{0x1f, 0xc9} );
     }
 
-    if( settings_->getColorSpace()==ColorSpace::YUV ) {
+    if( currentInputSettings_.getColorSpace()==ColorSpace::YUV ) {
         //Set up color space.
         mailWrite( 0x4e, VC{0x92, 0xaa} );
         mailWrite( 0x4e, VC{0x93, 0xdc} );
@@ -764,13 +794,13 @@ void GCHD::configureColorSpace()
 
     //Only reason this is included here is because it clearly comes next
     //in the original driver thread.
-    if (settings_->getInputSource() == InputSource::Component) {
-        switch(settings_->getInputResolution()) {
+    if (currentInputSettings_.getSource() == InputSource::Component) {
+        switch(currentInputSettings_.getResolution()) {
             case Resolution::HD1080:
                 mailWrite( 0x4e, VC{0xb2, 0xcc} );
                 mailWrite( 0x4e, VC{0xb5, 0xc4} );
 
-                if( interlaced_ ) { //1080i60
+                if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) { //1080i60
                     mailWrite( 0x4e, VC{0x03, 0x0c} );
                 } else { //1080p30
                     mailWrite( 0x4e, VC{0x03, 0x04} );
@@ -786,7 +816,7 @@ void GCHD::configureColorSpace()
                 mailWrite( 0x4e, VC{0xb2, 0xcf} );
                 mailWrite( 0x4e, VC{0xb5, 0xc4} );
 
-                if( interlaced_ ) {
+                if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                     mailWrite( 0x4e, VC{0x03, 0x8c} );
                 } else {
                     mailWrite( 0x4e, VC{0x03, 0x84} );
@@ -804,7 +834,7 @@ void GCHD::configureSetupSubblock()
     mailWrite( 0x33, VC{0x99, 0x89, 0x8b} );
     mailRead( 0x33, 1 ); //EXPECTED {0x6e}
 
-    switch(settings_->getInputSource())
+    switch(currentInputSettings_.getSource())
     {
         case InputSource::HDMI:
             mailWrite( 0x4c, VC{0x70, 0xc8} );
@@ -833,10 +863,10 @@ void GCHD::configureSetupSubblock()
         //576i and 480i have the same setup on Component and Composite
         case InputSource::Component:
         case InputSource::Composite:
-            switch(settings_->getInputResolution())
+            switch(currentInputSettings_.getResolution())
             {
                 case Resolution::HD1080:
-                    if( interlaced_ ) { // Assuming HD1080i60
+                    if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                         mailWrite( 0x4c, VC{0x70, 0xc0} );
                         mailWrite( 0x4c, VC{0x0f, 0x88} );
                         mailWrite( 0x4c, VC{0x90, 0xae} );
@@ -876,7 +906,7 @@ void GCHD::configureSetupSubblock()
                     mailWrite( 0x4c, VC{0xa3, 0x77} );
                     break;
                 case Resolution::PAL:
-                    if( interlaced_ ) {
+                    if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                         mailWrite( 0x4c, VC{0x70, 0xd0} );
                         mailWrite( 0x4c, VC{0x0f, 0x88} );
                         mailWrite( 0x4c, VC{0x90, 0xd8} );
@@ -903,7 +933,7 @@ void GCHD::configureSetupSubblock()
                     }
                     break;
                 case Resolution::NTSC:
-                    if( interlaced_ ) {
+                    if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                         mailWrite( 0x4c, VC{0x70, 0xd0} );
                         mailWrite( 0x4c, VC{0x0f, 0x88} );
                         mailWrite( 0x4c, VC{0x90, 0x68} );
@@ -934,8 +964,6 @@ void GCHD::configureSetupSubblock()
                     throw runtime_error( "Current selected video mode is not a supported mode.");
                     break;
             }
-            break;
-
             break;
         default:
             throw runtime_error( "Unsupported input source.");
@@ -1057,9 +1085,7 @@ void GCHD::configureCommonBlockA()
     mailRead( 0x33, 2 ); //EXPECTED {0x6e, 0xe1}
     mailWrite( 0x33, VC{0x99, 0x89, 0xb8} );
     std::vector<uint8_t> readValue=mailRead( 0x33, 1 );
-//EARLY END COMMON BLOCKA
 
-//New Block A3ish
     mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
     mailRead( 0x33, 1 ); //EXPECTED {0x02}
 
@@ -1124,7 +1150,7 @@ void GCHD::configureCommonBlockB2()
     mailWrite( 0x4c, VC{0x58, 0xd8} );
 
     //Not sure if component or HDMI and component use this setting.
-    switch (settings_->getInputResolution()) {
+    switch (currentInputSettings_.getResolution()) {
         case Resolution::PAL:
         case Resolution::NTSC:
             mailWrite( 0x4c, VC{0x59, 0xd0} );
@@ -1135,11 +1161,11 @@ void GCHD::configureCommonBlockB2()
     }
 	mailWrite( 0x4c, VC{0x5a, 0x88} );
 
-    switch(settings_->getInputResolution()) {
+    switch(currentInputSettings_.getResolution()) {
         //Wondering if 2 parameters are just inexactly measured,
         //and variance is just noise.
         case Resolution::HD1080:
-            if (interlaced_) { //1080i60, no capture for HDMI 1080i yet.
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) { //1080i60
     	        mailWrite( 0x4c, VC{0x5b, 0x8d} );
             } else { //1080p30 Component. 1080p60 HDMI
     	        mailWrite( 0x4c, VC{0x5b, 0x98} );
@@ -1151,7 +1177,7 @@ void GCHD::configureCommonBlockB2()
     	    mailWrite( 0x4c, VC{0x5c, 0x88} );
             break;
         case Resolution::PAL:
-            if( interlaced_ ) {
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                 mailWrite( 0x4c, VC{0x5b, 0x9d} );
                 mailWrite( 0x4c, VC{0x5c, 0x89} );
             } else {
@@ -1160,7 +1186,7 @@ void GCHD::configureCommonBlockB2()
             }
             break;
         case Resolution::NTSC:
-            if( interlaced_ ) {
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                 mailWrite( 0x4c, VC{0x5b, 0x8e} );
                 mailWrite( 0x4c, VC{0x5c, 0x89} );
             } else {
@@ -1168,7 +1194,6 @@ void GCHD::configureCommonBlockB2()
                 mailWrite( 0x4c, VC{0x5c, 0x88} );
             }
             break;
-
         default:
             throw runtime_error( "Current selected video mode is not a supported mode.");
             break;
@@ -1184,9 +1209,9 @@ void GCHD::configureCommonBlockB2()
 	mailWrite( 0x4c, VC{0x65, 0x88} );
 
     uint8_t value;
-    switch(settings_->getInputResolution()) {
+    switch(currentInputSettings_.getResolution()) {
         case Resolution::HD1080:
-            if( interlaced_ ) { //Component 1080i
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) { //Component 1080i
                 value = 0xfa;
             } else { //Componment 1080p
                 value = 0xef;
@@ -1196,14 +1221,14 @@ void GCHD::configureCommonBlockB2()
         	value = 0xfb;
             break;
         case Resolution::PAL:
-            if( interlaced_ ) {
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                 value = 0x39;
             } else {
                 value = 0x3e;
             }
             break;
         case Resolution::NTSC:
-            if( interlaced_ ) {
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) {
                 value = 0x48;
             } else {
                 value = 0x4d;
@@ -1265,9 +1290,9 @@ void GCHD::configureCommonBlockB2()
     mailWrite( 0x33, VC{0x10, 0x01, 0x63} );
     mailWrite( 0x4c, VC{0x0f, 0x89} );
 
-    switch(settings_->getInputResolution()) {
+    switch(currentInputSettings_.getResolution()) {
         case Resolution::HD1080:
-            if( interlaced_ ) {
+            if( currentInputSettings_.getScanMode()==ScanMode::Interlaced) { //1080i60
                 mailWrite( 0x4c, VC{0x33, 0x08} );
                 mailWrite( 0x4c, VC{0x34, 0xa5} );
             } else {
@@ -1279,7 +1304,6 @@ void GCHD::configureCommonBlockB2()
             mailWrite( 0x4c, VC{0x33, 0x08} );
             mailWrite( 0x4c, VC{0x34, 0xa5} );
             break;
-
         case Resolution::PAL:
         case Resolution::NTSC:
             mailWrite( 0x4c, VC{0x33, 0x88} );
@@ -1335,7 +1359,7 @@ void GCHD::configureCommonBlockB2()
 
 void GCHD::configureCommonBlockB3()
 {
-    if (settings_->getInputResolution() != Resolution::PAL) {
+    if (currentInputSettings_.getResolution() != Resolution::PAL) {
         mailWrite( 0x4c, VC{0x0f, 0x89} );
         mailWrite( 0x33, VC{0x99, 0x89, 0x5b} );
         mailRead( 0x33, 1 ); //EXPECTED {0x7c}
@@ -1423,4 +1447,5 @@ void GCHD::configureCommonBlockC()
     mailRead( 0x33, 8 ); //EXPECTED {0xe6, 0x59, 0xcc, 0x3f, 0xb2, 0x25, 0x98, 0x04}
     mailWrite( 0x33, VC{0xaa, 0xb8, 0x29, 0xe7} );
 }
+
 

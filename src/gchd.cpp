@@ -67,14 +67,14 @@ int GCHD::init() {
 	return 0;
 }
 
-void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer) {
+void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer, unsigned timeout) {
 	if (!isInitialized_) {
 		return;
 	}
 
 	int transfer;
 
-	libusb_bulk_transfer(devh_, 0x81, buffer->data(), static_cast<int>(buffer->size()), &transfer, TIMEOUT);
+	libusb_bulk_transfer(devh_, 0x81, buffer->data(), static_cast<int>(buffer->size()), &transfer, timeout);
 }
 
 int GCHD::checkFirmware() {
@@ -222,13 +222,19 @@ void GCHD::closeDevice() {
 }
 
 
-GCHD::GCHD(Process *process, Settings *settings) {
+GCHD::GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings) {
 	devh_ = nullptr;
 	libusb_ = 1;
 	isInitialized_ = false;
 	deviceType_ = DeviceType::Unknown;
 	process_ = process;
-	settings_ = settings;
+
+    //Yes, these are copies.
+    passedInputSettings_ = inputSettings;
+    currentInputSettings_ = inputSettings;
+
+    passedTranscoderSettings_ = transcoderSettings;
+    currentTranscoderSettings_ = transcoderSettings;
 
   	// activate process
     process->setActive(true);

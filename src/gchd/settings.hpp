@@ -8,6 +8,11 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <stdexcept>
+
+#define MAXIMUM_AUDIO_BIT_RATE 576 //Maximum AAC audio bit rate for two channels
+#define MAXIMUM_BIT_RATE 40000
+
 enum class ColorSpace {
 	Unknown,
 	RGB,
@@ -35,66 +40,139 @@ enum class Resolution {
 	HD1080
 };
 
-class Settings {
-	public:
+enum class ScanMode {
+    Unknown,
+    Progressive,
+    Interlaced
+};
+
+enum class BitRateMode {
+    Constant,
+    Variable,
+};
+
+using std::runtime_error;
+class setting_error: public std::runtime_error
+{
+    using runtime_error::runtime_error; //This inherits all constructors.
+};
+
+//This is used both to hold forced modes from the command line
+//AND to carry the currently being used mode.
+class InputSettings {
+    public:
+        InputSettings();
+
+		InputSource getSource();
+		void setSource(InputSource inputSource);
+
+		Resolution getResolution();
+        void getResolution(unsigned &horizontal, unsigned &vertical);
+		void setResolution(Resolution resolution);
+
+		ScanMode getScanMode();
+		void setScanMode(ScanMode mode);
+
+        double getRefreshRate();  //0.0=autodetect
+        void setRefreshRate(double);    //0.0=autodetect
+
 		ColorSpace getColorSpace();
 		void setColorSpace(ColorSpace colorSpace);
+
+        //Does not do anything currently
 		HDMIColorSpace getHDMIColorSpace();
 		void setHDMIColorSpace(HDMIColorSpace hdmiColorSpace);
-		InputSource getInputSource();
-		void setInputSource(InputSource inputSource);
-		Resolution getInputResolution();
-		void setInputResolution(Resolution resolution);
-		Resolution getOutputResolution();
-        void getOutputResolution(unsigned &horizontal, unsigned &vertical);
 
-		void setOutputResolution(Resolution resolution);
-		bool getAnalogAudio();
-		void setAnalogAudio(bool useAnalogAudio);
-
-        void setFixedFrameRate(double frameRate); //0.0 means variable.
-        double getFixedFrameRate(); //0.0 means variable.
-
-		bool getHighFPS();
-		void setHighFPS(bool allowHighFPS);
-		bool getOverscan();
-		void setOverscan(bool useOverscan);
-		bool getSDConvert();
-		void setSDConvert(bool shouldConvertSD);
 		bool getSDStretch();
 		void setSDStretch(bool shouldStretchSD);
-		int getBrightness();
-		void setBrightness(int brightness);
-		int getContrast();
-		void setContrast(int contrast);
-		int getSaturation();
-		void setSaturation(int saturation);
-		int getHue();
-		void setHue(int hue);
-		int getAnalogAudioGain();
-		void setAnalogAudioGain(int analogAudioGain);
-		int getDigitalAudioGain();
-		void setDigitalAudioGain(int digitalAudioGain);
-		Settings();
 
-	private:
-		bool useAnalogAudio_;
-		bool allowHighFPS_;
-		bool useOverscan_;
-		bool shouldConvertSD_;
-		bool shouldStretchSD_;
-		int brightness_;
-		int contrast_;
-		int saturation_;
-		int hue_;
-		int analogAudioGain_;
-		int digitalAudioGain_;
+        //Sets current inputsettings based on prototype
+        //and autodetected settings.
+        void mergeAutodetect( InputSettings &prototype,
+                              Resolution resolution,
+                              ScanMode scanMode,
+                              double refreshRate);
+
+        void checkInputSettingsValidity(bool configured);
+
+    private:
+        void checkRefresh( double value, const char *string );
+
+		InputSource source_;
+        Resolution resolution_;
+        ScanMode scanMode_;
+        double refreshRate_;
 		ColorSpace colorSpace_;
 		HDMIColorSpace hdmiColorSpace_;
-		InputSource inputSource_;
-		Resolution inputResolution_;
-		Resolution outputResolution_;
-        double frameRate_;
+        bool stretchedSD_;
 };
+
+class TranscoderSettings {
+	public:
+        TranscoderSettings();
+
+        void getResolution( unsigned &x, unsigned &y);
+        void setResolution( unsigned x, unsigned y);
+
+        void setBitRateMode(BitRateMode bitRateMode);
+        BitRateMode getBitRateMode();
+
+        //Sets values use by variable bit rate
+        //All 0s means default high quality settings will be used.
+        //values are in kbps
+        void setVariableBitRate( unsigned max, unsigned average, unsigned minimum );
+        void getVariableBitRate( unsigned &max, unsigned &average, unsigned &minimum );
+
+        //Sets value used by constant bit rate.
+        //0 means default high quality settings will be used.
+        //Values are in kbps.
+        void setConstantBitRate( unsigned bitRate );
+        unsigned getConstantBitRate();
+
+        //Maximum bitrate based on settings, variable or constant.
+        unsigned getRealMaxBitRate();
+
+        void setFrameRate(double frameRate); //0.0 means auto.
+        double getFrameRate();               //0.0 means auto.
+        double getEffectiveFrameRate(); //Refresh rate if frame rate is 0.0
+
+        //Value is in kbps
+        void setAudioBitRate(unsigned bitRate);
+        unsigned getAudioBitRate();
+
+        //Setting it to 0.0 will make it auto-set
+        //based on bit rates and whatnot.
+        void setH264Level( float value );
+        float getH264Level();
+
+        static unsigned unsignedH264Level(float value);
+
+        void mergeAutodetect( TranscoderSettings &prototype, InputSettings &currentInput );
+    private:
+        unsigned resolution_[2];
+        BitRateMode bitRateMode_;
+
+        unsigned constantBitRate_;
+        unsigned maxVariableBitRate_;
+        unsigned averageVariableBitRate_;
+        unsigned minVariableBitRate_;
+
+        unsigned audioBitRate_;
+        double frameRate_;
+        double effectiveFrameRate_; //If frameRate_ ends up 0, this will be refresh rate.
+        float h264Level_;
+
+};
+
+
+//Unsupported options: TODO
+//  HDMIColorSpace
+//  useAnalogAudio
+//  allowHighFPS,
+//	analogAudioGain
+//	digitalAudioGain
+//  brightness, contrast, saturation, hue
+//  overscan, convertSD
+
 
 #endif

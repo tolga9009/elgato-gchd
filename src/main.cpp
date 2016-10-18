@@ -57,8 +57,9 @@ int main(int argc, char *argv[]) {
     // set program name
     process.setName(argv[0]);
 
-    // object for storing device settings
-    Settings settings;
+    // objects for storing device settings
+    InputSettings inputSettings;
+    TranscoderSettings transcoderSettings;
 
     // commandline-specific settings
     std::string ip;
@@ -80,10 +81,10 @@ int main(int argc, char *argv[]) {
         switch (opt) {
             case 'c': {
                 if (std::string(optarg) == "yuv") {
-                    settings.setColorSpace(ColorSpace::YUV);
+                    inputSettings.setColorSpace(ColorSpace::YUV);
                     break;
                 } else if (std::string(optarg) == "rgb") {
-                    settings.setColorSpace(ColorSpace::RGB);
+                    inputSettings.setColorSpace(ColorSpace::RGB);
                     break;
                 }
 
@@ -112,13 +113,13 @@ int main(int argc, char *argv[]) {
                 return EXIT_SUCCESS;
             case 'i': {
                 if (std::string(optarg) == "composite") {
-                    settings.setInputSource(InputSource::Composite);
+                    inputSettings.setSource(InputSource::Composite);
                     break;
                 } else if (std::string(optarg) == "component") {
-                    settings.setInputSource(InputSource::Component);
+                    inputSettings.setSource(InputSource::Component);
                     break;
                 } else if (std::string(optarg) == "hdmi") {
-                    settings.setInputSource(InputSource::HDMI);
+                    inputSettings.setSource(InputSource::HDMI);
                     break;
                 }
 
@@ -137,16 +138,16 @@ int main(int argc, char *argv[]) {
                 break;
             case 'r': {
                 if (std::string(optarg) == "ntsc") {
-                    settings.setOutputResolution(Resolution::NTSC);
+                    inputSettings.setResolution(Resolution::NTSC);
                     break;
                 } else if (std::string(optarg) == "pal") {
-                    settings.setOutputResolution(Resolution::PAL);
+                    inputSettings.setResolution(Resolution::PAL);
                     break;
                 } else if (std::string(optarg) == "720") {
-                    settings.setOutputResolution(Resolution::HD720);
+                    inputSettings.setResolution(Resolution::HD720);
                     break;
                 } else if (std::string(optarg) == "1080") {
-                    settings.setOutputResolution(Resolution::HD1080);
+                    inputSettings.setResolution(Resolution::HD1080);
                     break;
                 }
 
@@ -182,7 +183,7 @@ int main(int argc, char *argv[]) {
     //Try block wraps GCHD creation so if exception gets thrown,
     //stack unwinding will destruct object, calling uninit.
     try {
-        GCHD gchd(&process, &settings);
+        GCHD gchd(&process, inputSettings, transcoderSettings);
 
         if(gchd.checkDevice()) {
             return EXIT_FAILURE;

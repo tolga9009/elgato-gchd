@@ -18,7 +18,7 @@
 
 #include "gchd/settings.hpp"
 #include "process.hpp"
-#include "gchd_hardware.hpp" 
+#include "gchd_hardware.hpp"
 #include "utility.hpp"
 
 // constants
@@ -27,7 +27,7 @@
 
 using std::runtime_error;
 class usb_error: public runtime_error
-{   
+{
     using runtime_error::runtime_error; //This inherits all constructors.
 };
 
@@ -38,8 +38,8 @@ class GCHD {
 	public:
 		int checkDevice();
 		int init();
-		void stream(std::array<unsigned char, DATA_BUF> *buffer);
-		GCHD(Process *process, Settings *settings);
+		void stream(std::array<unsigned char, DATA_BUF> *buffer, unsigned timeout=TIMEOUT);
+		GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings);
 		~GCHD();
 
 	private:
@@ -75,17 +75,17 @@ class GCHD {
                                        bool &colorBit);
         void readComponentSignalInformation(unsigned &sum6867, unsigned &countSum6867,
                                             unsigned &sum6665, unsigned &countSum6665);
- 
-        void read_config_buffer(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *buffer, uint16_t wLength); 
+
+        void read_config_buffer(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *buffer, uint16_t wLength);
 
         //This is a beautiful template, that returns a read of whatever integer value type you want...
         //You can do:
-        //   myValue=read_config<uint32_t>( bRequest, wValue, wIndex ); 
+        //   myValue=read_config<uint32_t>( bRequest, wValue, wIndex );
         //and it will read 4 bytes in big endian order into the return value.
         //
         //You can also specify the length explicitly, independent of the data type
         //being stored. IE:
-        //   myValue=read_config<uint32_t>( bRequest, wValue, wIndex, 3 ); 
+        //   myValue=read_config<uint32_t>( bRequest, wValue, wIndex, 3 );
         //would yield those 3 bytes in the bottom 3 bytes of myValue.
         //   myValue=read_config<uint32_t>( bRequest, wValue, wIndex, 100 );
         //Will still read 100 bytes over the usb, but only the first 4 will
@@ -103,7 +103,7 @@ class GCHD {
                 libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), recv.size(), 0);
 
             if  (returnSize != wLength)
-            {   
+            {
                 throw usb_error( "libusb_control_transfer did not return all bytes.\n" );
             }
 
@@ -120,7 +120,7 @@ class GCHD {
 
         //This is a beautiful template, that does a write of whatever integer value type you want...
         //You can do:
-        //   write_config<uint32_t>( bRequest, wValue, wIndex, data32 ); 
+        //   write_config<uint32_t>( bRequest, wValue, wIndex, data32 );
         //
         //This will write 4 bytes in big endian order into the return value.
         //data32 need not be a uint32_t if you make sure to use the <uint32_t> template
@@ -128,7 +128,7 @@ class GCHD {
         //
         //You can also specify the length explicitly, independent of the data type
         //being stored. IE:
-        //   write_config<uint32_t>( bRequest, wValue, wIndex, data32, 3 ); 
+        //   write_config<uint32_t>( bRequest, wValue, wIndex, data32, 3 );
         //
         //This will write the 3 bytes stored in the bottom 3 bytes of data32.
         //the most significant byte would be chopped off.
@@ -139,21 +139,21 @@ class GCHD {
         void write_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, T value, uint16_t wLength=sizeof(T)) {
         	std::vector<unsigned char> send=std::vector<unsigned char>(wLength);
             Utility::byteify<T>( send.data(), value, wLength );
-            
+
             int returnSize=
                 libusb_control_transfer(devh_, 0x40, bRequest, wValue, wIndex, send.data(), wLength, 0);
 
             if  (returnSize != wLength)
-            {   
+            {
                 throw( usb_error( "libusb_control_transfer did not send all bytes.\n" ) );
             }
         }
-       
-        void interruptPend(); 
+
+        void interruptPend();
         void sendEnableState(); //saves and sends enable state to other device/processor.
                                 //Write savedEnableStateRegister_ to SEND_ENABLE_REGISTER_STATE
                                 // and waits for MAIL_REQUEST_READY
-                                
+
         void readEnableState(); //Reads SEND_ENABLE_EGISTER_STATE and saves it to
                                  //saveEnableStateRegister_
 
@@ -170,12 +170,11 @@ class GCHD {
         void stateConfirmedScmd(uint8_t command, uint8_t mode, uint16_t data, uint16_t currentState);
 
         uint16_t completeStateChange( uint16_t currentState,
-                                      uint16_t nextState,
-                                      bool forceStreamEmpty=false );
+                                      uint16_t nextState );
 
 		void sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data);
         void sparam(const bitfield_t &bitField, uint16_t data);
- 
+
 		void slsi(uint16_t wIndex, uint16_t data);
         void transcoderTableWrite(uint16_t address, std::vector<uint8_t> &data);
 
@@ -194,22 +193,29 @@ class GCHD {
         void stopStream( bool emptyBuffer );
 
         void clearEnableState();
-        void readVersion( std::vector<unsigned char> &version ); 
-               
+        void readVersion( std::vector<unsigned char> &version );
+
         void transcoderWriteVideoAndAudioPids();
         void transcoderDefaultsInitialize();
-        void transcoderSetup();
-        void transcoderFinalConfigure();
+        void transcoderSetup(InputSettings &inputSettings,
+                             TranscoderSettings &settings);
+        void transcoderFinalConfigure(InputSettings &inputSettings, TranscoderSettings &settings);
+
         void transcoderOutputEnable(bool enable);
 
 		DeviceType deviceType_;
 		Process *process_;
-		Settings *settings_;
+
+        //InputSettings as set by command line. vs current settings
+        InputSettings passedInputSettings_;
+        InputSettings currentInputSettings_;
+
+        //Transcoder settings as set by command line. vs current settings
+        TranscoderSettings passedTranscoderSettings_;
+        TranscoderSettings currentTranscoderSettings_;
 
         uint16_t specialDetectMask_;
 
-        bool interlaced_;  //true or false
-        unsigned refreshRate_; //50 or 60hz
 
 };
 
