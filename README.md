@@ -149,7 +149,7 @@ This will make it accessible to non-root users.
 If no commandline options are set, the device will autodetect what source you
 have, HDMI, Component, or Composite. It will also autodetect the streamed
 resolution and colorspace. It will not however handle these changing on the fly.
-The detection for whetjer you are using HDMI/Component/Composite may malfunction
+The detection for whether you are using HDMI/Component/Composite may malfunction
 in the following cases:
 
  * There is no signal at all. It often will detect no signal as a signal of
@@ -166,7 +166,7 @@ around.
 
 If you're done using this driver, close the file, stop the terminal using
 "Ctrl + C" and wait for the program to successfully terminate. The driver will
-resetting your device. If you interrupt this step, it will leave your device in
+reset your device. If you interrupt this step, it will leave your device in
 an undefined state and you will need to manually reset your device by 
 reconnecting it.
 
