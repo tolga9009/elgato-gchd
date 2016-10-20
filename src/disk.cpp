@@ -29,7 +29,7 @@ void Disk::disable() {
 	}
 }
 
-void Disk::output(std::array<unsigned char, DATA_BUF> *buffer) {
+void Disk::output(std::vector<unsigned char> *buffer) {
 	if (!disk_.is_open()) {
 		return;
 	}

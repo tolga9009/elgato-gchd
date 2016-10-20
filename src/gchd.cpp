@@ -67,7 +67,9 @@ int GCHD::init() {
 	return 0;
 }
 
-void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer, unsigned timeout) {
+void GCHD::stream(std::vector<unsigned char> *buffer, unsigned timeout) {
+    buffer->resize(DATA_BUF); //Make sure full size.
+
 	if (!isInitialized_) {
 		return;
 	}
@@ -75,6 +77,10 @@ void GCHD::stream(std::array<unsigned char, DATA_BUF> *buffer, unsigned timeout)
 	int transfer;
 
 	libusb_bulk_transfer(devh_, 0x81, buffer->data(), static_cast<int>(buffer->size()), &transfer, timeout);
+
+    buffer->resize(transfer); //Resize to transferred bytes.
+                              //libusb most certainly will partially fill a buffer than timeout
+                              //with this operation broken up into multiple transfers.
 }
 
 int GCHD::checkFirmware() {

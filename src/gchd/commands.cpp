@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <vector>
+#include <unistd.h>
 
 #include "../utility.hpp"
 #include "../gchd.hpp"
@@ -31,7 +32,7 @@ void GCHD::read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint1
         libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), static_cast<uint16_t>(recv.size()), 0);
 
     if (returnSize != wLength)
-    {   
+    {
         throw( usb_error( "libusb_control_transfer did not return all bytes.\n" ) );
     }
 }
@@ -42,7 +43,7 @@ void GCHD::write_config_buffer( uint8_t bRequest, uint16_t wValue, uint16_t wInd
         libusb_control_transfer(devh_, 0x40, bRequest, wValue, wIndex, buffer, wLength, 0);
 
     if (returnSize != wLength)
-    {   
+    {
         throw( usb_error( "libusb_control_transfer did not write all bytes.\n" ) );
     }
 }
@@ -52,7 +53,7 @@ void GCHD::interruptPend()
 	unsigned char input[3];
     int returnSize;
 	int status=
-        libusb_interrupt_transfer(devh_, 0x83, input, 3, &returnSize, 0); 
+        libusb_interrupt_transfer(devh_, 0x83, input, 3, &returnSize, 0);
     if( status != 0 )
     {
         throw usb_error("USB error when pending on USB interrupt.\n");
@@ -74,8 +75,8 @@ void GCHD::sendEnableState()
 
 /* Doesn't return value to emphasize that something in object is being changed */
 void GCHD::readEnableState()
-{   
-    savedEnableStateRegister_ = read_config<uint16_t>(MAIL_SEND_ENABLE_REGISTER_STATE); 
+{
+    savedEnableStateRegister_ = read_config<uint16_t>(MAIL_SEND_ENABLE_REGISTER_STATE);
 }
 
 //This enables what I expect are GPIOs in register ENABLE_REGISTER
@@ -93,17 +94,17 @@ void GCHD::doEnable( uint16_t setMask, uint16_t valueMask ) //Set mask
 
     write_config<uint16_t>( MAIL_SEND_ENABLE_REGISTER_STATE, savedEnableStateRegister_ );
     write_config<uint16_t>( ENABLE_REGISTER, savedEnableRegister_ );
-    savedEnableStateRegister_ = read_config<uint16_t>( MAIL_SEND_ENABLE_REGISTER_STATE );    
-    savedEnableRegister_ = read_config<uint16_t>( ENABLE_REGISTER );    
+    savedEnableStateRegister_ = read_config<uint16_t>( MAIL_SEND_ENABLE_REGISTER_STATE );
+    savedEnableRegister_ = read_config<uint16_t>( ENABLE_REGISTER );
 }
 
-void GCHD::enableAnalogInput() 
+void GCHD::enableAnalogInput()
 {
     //Configure input choice from settings.
     //In original windows driver this might have changed on the fly.
     bool analog = currentInputSettings_.getSource() != InputSource::HDMI;
     uint16_t analogInputBit = analog ? EB_ANALOG_INPUT : 0;
-    
+
     //First is mask of what we are configuring, second is values.
     doEnable( EB_ANALOG_INPUT, analogInputBit );
 }
@@ -121,7 +122,7 @@ void GCHD::clearEnableStateBits( uint16_t clearMask ) {
  * @param command there are currently three commands, we have *identified*.
  *  1: SCMD_IDLE
  *     This is used to enter idle state. This also forces our effective
- *     state to SCMD_STATE_STOP in terms of what we read back in the lower 
+ *     state to SCMD_STATE_STOP in terms of what we read back in the lower
  *     nybble of SCMD_STATE_READBACK_REGISTER
  *
  *  2: SCMD_RESET
@@ -131,7 +132,7 @@ void GCHD::clearEnableStateBits( uint16_t clearMask ) {
  *      b) During device uninitialization, it is the last thing done.
  *
  *     The mode parameter is used with this. Mode is set to 1 or 0
- *     probably signifying to what level the state is reset. 
+ *     probably signifying to what level the state is reset.
  *       mode=0 is used for case a
  *       mode=1 is used for case b
  *
@@ -141,7 +142,7 @@ void GCHD::clearEnableStateBits( uint16_t clearMask ) {
  *     (as determined by reading SCMD_STATE_READBACK_REGISTER)
  *     is SCMD_STATE_STOP. It doesn't matter if we are currently idle or not.
  *
- *     The mode parameter is used with this. 
+ *     The mode parameter is used with this.
  *        mode=0x00 means that this also kicks of an load of the encode firmware
  *            and an interrupt will be generated.
  *        mode=0xa0 means no firmware load is done, and no interrupt
@@ -149,8 +150,8 @@ void GCHD::clearEnableStateBits( uint16_t clearMask ) {
  *
  *  5: SCMD_STATE_CHANGE
  *     This sets the devices encoding state, IE, SCMD_STATE_STOP, SCMD_STATE_START
- *     amd SCMD_STATE_NULL. 
- *      
+ *     amd SCMD_STATE_NULL.
+ *
  * @param mode This is used with SCMD_INIT. 0x0 loads firmware, 0xa0 does
  *    not.  It is also used with SCMD_RESET to set type of reset.
  *
@@ -171,7 +172,7 @@ void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
 	send[4] = data >> 8;
 	send[5] = data & 0xff;
 
-    if(deviceType_ == DeviceType::GameCaptureHD) 
+    if(deviceType_ == DeviceType::GameCaptureHD)
     {
         write_config_buffer(SCMD_REGISTER, send, 6);
     }
@@ -195,7 +196,8 @@ void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
 }
 
 uint16_t GCHD::completeStateChange( uint16_t currentState,
-                                    uint16_t nextState )
+                                    uint16_t nextState,
+                                    bool forceStreamEmpty )
 {
     bool firstTime=true;
     uint16_t state;
@@ -204,38 +206,49 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
     {
         do
         {
+            state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER);
 
-            state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); 
-
-            state &= 0x1f; //Masking off bits we don't ever see. 
+            state &= 0x1f; //Masking off bits we don't ever see.
             if((state != currentState) && (state != nextState))
             {
                 //Successful reset can clear state.
-                if( firstTime ) {   
+                if( firstTime ) {
                     return state;
                 } else {
                     throw std::runtime_error( "Device transitioned to unexpected state.");
-                }   
+                }
             }
             firstTime=false;
 
-            uint16_t completion=read_config<uint16_t>(SCMD_STATE_CHANGE_COMPLETE);  
+            //forceStreamEmpty is a terrible hack that needs to die.
+            if( forceStreamEmpty )
+            {
+                 std::vector<unsigned char> buffer=std::vector<unsigned char>(DATA_BUF);
+                 //Streaming happens at top of loop, and after each 0x01b0 command, this seems
+                 //proper place to put it.
+                 for (int i = 0; i < 50; i++)
+                 {
+                     stream(&buffer);
+                 }
+             }
+
+            uint16_t completion=read_config<uint16_t>(SCMD_STATE_CHANGE_COMPLETE);
             changed = (completion & 0x4)>0; //Check appropriate bit
 
 
             read_config<uint16_t>(0xbc, 0x0900, 0x01b0); //Not sure what to do with this if anything
         } while(not changed);
-        
-        //Double read here for unknown purposes. 
-        state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); 
-        state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); 
+
+        //Double read here for unknown purposes.
+        state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER);
+        state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER);
         state &= 0x1f;
 
         //Reset sticky bit and possibly acknowledgement.
         write_config<uint16_t>(SCMD_STATE_CHANGE_COMPLETE, 0x0004);
-        write_config<uint16_t>(0xbc, 0x0900, 0x01b0, 0x0000); 
+        write_config<uint16_t>(0xbc, 0x0900, 0x01b0, 0x0000);
     } while ( state != nextState );
-    
+
     return state;
 }
 
@@ -246,8 +259,6 @@ void GCHD::stateConfirmedScmd(uint8_t command,
 
 {
     uint16_t expectedState;
-    scmd(command, mode, data);
-    
     switch(command) {
         case SCMD_IDLE:
             expectedState=0x11; //IDLE + STOPPED
@@ -269,6 +280,7 @@ void GCHD::stateConfirmedScmd(uint8_t command,
             throw std::logic_error( "stateConfirmedScmd used with illegal scmd.");
             break;
     }
+    scmd(command, mode, data);
 
     currentState=completeStateChange( currentState, expectedState);
     if(currentState != expectedState) {
@@ -284,15 +296,15 @@ void GCHD::stateConfirmedScmd(uint8_t command,
     stateConfirmedScmd( command, mode, data, currentState );
 }
 
-/** 
+/**
  * Reverse engineered function used by official drivers.
- * The data is sent out via an 8 byte value.  
+ * The data is sent out via an 8 byte value.
  * Ultimately we want:
  *    libusb_control_transfer( dev_h, SETUP_H264_TRANSCODER, address, send, 8, 0);
- * Where buffer is an eight byte field divided into two parts, a 4 byte value, 
- * followed by a 4 byte mask.  The processor on the other side makes sure that only 
+ * Where buffer is an eight byte field divided into two parts, a 4 byte value,
+ * followed by a 4 byte mask.  The processor on the other side makes sure that only
  * the bits in the mask get set to the same as the same bits in value.
- * 
+ *
  * address is the address of a register, but it must be divisible by 4, such that things
  * are always done on 32 bit word boundary.
  *
@@ -303,7 +315,7 @@ void GCHD::stateConfirmedScmd(uint8_t command,
  * This takes data and writes it to address (which only has to be 16 bit word
  *  aligned). The data is shifted left such that its least significant is at
  * the position specified by lsb. And then we specify the length of the data
- * field in bitLength, so we can generate the mask so only those bits are 
+ * field in bitLength, so we can generate the mask so only those bits are
  * modified.
  */
 void GCHD::sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data) {
@@ -314,12 +326,12 @@ void GCHD::sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data) {
     //So now outputData and outputMask are set up, but they both need to be
     //shifted into position.
     unsigned int shift=lsb;
-    
+
     //If the bit 1 of address is clear,
     //We will be righting to upper half of 32 bit register.
     if((address & 2)==0)
     {
-        shift+=16; 
+        shift+=16;
     }
     uint16_t outputAddress= address & ~3; //Clear lower 2 bits. bit 0 better not be set
                                          //anyways. Now we have 4 byte address.
@@ -335,7 +347,7 @@ void GCHD::sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data) {
     Utility::byteify<uint32_t>( send, outputData );
     Utility::byteify<uint32_t>( send+4, outputMask );
 
-    
+
     int returnSize =
 	    libusb_control_transfer(devh_, 0x40, SEND_H264_TRANSCODER_BITFIELD, outputAddress, send, 8, 0);
 
@@ -343,7 +355,7 @@ void GCHD::sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data) {
     {
         throw usb_error("USB error when sending sparam.\n");
     }
-}    
+}
 
 //Polymorphic one that takes struct
 void GCHD::sparam(const bitfield_t &bitfield, uint16_t data) {
@@ -369,7 +381,7 @@ void GCHD::slsi(uint16_t address, uint16_t data) {
 
     int returnSize =
     	libusb_control_transfer(devh_, 0x40, SEND_H264_TRANSCODER_WORD, address, send, 2, 0);
-    
+
     if(returnSize != 2 )
     {
         throw usb_error("USB error in SLSI.\n");
@@ -378,18 +390,18 @@ void GCHD::slsi(uint16_t address, uint16_t data) {
 
 //
 //This writes a vector of values out to the 16 bit slsi writable
-//registers at address. 
+//registers at address.
 //
 //Since we don't know the end range of register blocks
 //that use this function, we do no error checking.
 //
-void GCHD::transcoderTableWrite(uint16_t address, std::vector<uint8_t> &data) 
+void GCHD::transcoderTableWrite(uint16_t address, std::vector<uint8_t> &data)
 {
     auto offset=data.begin();
     int leftSize=data.size();
     while( leftSize >= 2 ) {
         uint16_t data=Utility::debyteify<uint16_t>(&(*offset));
-        slsi( address, data ); 
+        slsi( address, data );
         offset+=2;
         leftSize-=2;
         address+=2;
@@ -423,7 +435,7 @@ void GCHD::mailWrite( uint8_t port, const std::vector<unsigned char> &writeVecto
     {
         std::vector<unsigned char> paddedBuffer=writeVector;
 
-        if( writeVector.size() & 1) 
+        if( writeVector.size() & 1)
         {
             //Writes are padded at end to even boundary.
             //Pad by one byte.
@@ -437,7 +449,7 @@ void GCHD::mailWrite( uint8_t port, const std::vector<unsigned char> &writeVecto
 
         write_config_buffer( HDNEW_MAIL_REQUEST_CONFIGURE, mailRequestBuffer, 4 );
         interruptPend();
-        
+
         read_config( HDNEW_INTERRUPT_STATUS, 2 ); //EXPECTED=0x09, 0x00
                                                   //universally
         mailReadyWait();
@@ -475,15 +487,15 @@ std::vector<unsigned char> GCHD::mailRead( uint8_t port,
         unsigned char mailRequestBuffer[4]={0x09, 0x01, 0x0, 0x0};
         mailRequestBuffer[2]=port<<1;
         mailRequestBuffer[3]=size;
-        write_config_buffer( HDNEW_MAIL_REQUEST_CONFIGURE, mailRequestBuffer, 4 );       
+        write_config_buffer( HDNEW_MAIL_REQUEST_CONFIGURE, mailRequestBuffer, 4 );
 
         interruptPend();
-        
+
         read_config( HDNEW_INTERRUPT_STATUS, 2 ); //EXPECTED=0x09, 0x00
                                                            //universally
         mailReadyWait();
 
-        int readSize=size+2 + (size & 1); //2 extra bytes of 
+        int readSize=size+2 + (size & 1); //2 extra bytes of
                                           //leader+ 1 byte padding if odd.
 
         input.resize(readSize);
@@ -523,7 +535,7 @@ void GCHD::dlfirm(const char *file) {
     if( deviceType_ == DeviceType::GameCaptureHDNew ) {
         bufferSize=32768; //Must use bigger chunks.
     }
-    
+
 	// read firmware from file to buffer and bulk transfer to device
 	for (auto i = 0; i <= filesize; i += bufferSize) {
 		std::vector<unsigned char> buffer=std::vector<unsigned char>(bufferSize);
@@ -550,7 +562,7 @@ uint8_t GCHD::readDevice0x9DCD( uint8_t index )
 
 //Reads from unknown device. Done so often, made it a subroutine
 void GCHD::pollOn0x9989ED()
-{   
+{
     uint8_t input;
     do
     {
@@ -572,7 +584,7 @@ void GCHD::readFrom0x9989EC( unsigned count )
 //and dump bulk transfers which are usually read in separate
 //thread.
 //TODO--get rid of that flag.
-void GCHD::stopStream( bool emptyBuffer ) 
+void GCHD::stopStream( bool emptyBuffer )
 {
 	// state change - output null
 	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_NULL);
@@ -584,7 +596,7 @@ void GCHD::stopStream( bool emptyBuffer )
 	 * I'm working with. Receive empty data, after setting state change to
 	 * null transfer.
 	 */
-	std::array<unsigned char, DATA_BUF> buffer;
+	std::vector<unsigned char> buffer=std::vector<unsigned char>(DATA_BUF);
 
     if( emptyBuffer )
     {
@@ -592,7 +604,7 @@ void GCHD::stopStream( bool emptyBuffer )
 		    stream(&buffer);
 	    }
     }
-    completeStateChange(  SCMD_STATE_START, SCMD_STATE_NULL );
+    completeStateChange(  SCMD_STATE_START, SCMD_STATE_NULL, emptyBuffer );
     if( emptyBuffer )
     {
 	    for (int i = 0; i < 20; i++) {
@@ -600,9 +612,14 @@ void GCHD::stopStream( bool emptyBuffer )
 	    }
     }
 	// state change - stop encoding
-	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP); 
-    completeStateChange(  SCMD_STATE_NULL, SCMD_STATE_STOP );
-    stream(&buffer, 250); //Quarter second timeout.
+	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
+    completeStateChange(  SCMD_STATE_NULL, SCMD_STATE_STOP, emptyBuffer );
+    if( emptyBuffer )
+    {
+        for( int i=0; i < 5 ; i++ ) {
+            stream(&buffer);
+        }
+    }
 }
 
 void GCHD::clearEnableState()
@@ -627,12 +644,12 @@ void GCHD::clearEnableState()
     {
         mailWrite( 0x33, VC{0xab, 0xa9, 0x0f, 0xa4, 0x55} );
         read=mailRead( 0x33, 3 ); //EXPECTED {0x33, 0x44, 0x55};
-        result=Utility::debyteify<uint32_t>(read.data(),3); 
-    } while(result != 0x334455); 
+        result=Utility::debyteify<uint32_t>(read.data(),3);
+    } while(result != 0x334455);
 }
 
 //Read firmware version information.
-void GCHD::readVersion( std::vector<unsigned char> &version ) 
+void GCHD::readVersion( std::vector<unsigned char> &version )
 {
     uint32_t value0=read_config<uint32_t>(HDNEW_VERSION_REGISTER0);
     uint32_t value1=read_config<uint32_t>(HDNEW_VERSION_REGISTER1);
@@ -642,21 +659,20 @@ void GCHD::readVersion( std::vector<unsigned char> &version )
 
     if (( value0 | value1 )==0) //On HD device, not HDNew
     {
-	    read_config_buffer(HD_VERSION_REGISTER0, version.data(), 4); 
-	    read_config_buffer(HD_VERSION_REGISTER1, version.data()+4, 4); 
-	    read_config_buffer(HD_VERSION_REGISTER2, temporary, 4); 
+	    read_config_buffer(HD_VERSION_REGISTER0, version.data(), 4);
+	    read_config_buffer(HD_VERSION_REGISTER1, version.data()+4, 4);
+	    read_config_buffer(HD_VERSION_REGISTER2, temporary, 4);
         *(version.data()+4)=temporary[0];
     }
     else
     {
-	    read_config_buffer(HDNEW_VERSION_REGISTER0, version.data(), 4); 
-	    read_config_buffer(HDNEW_VERSION_REGISTER1, version.data()+4, 4); 
-	    read_config_buffer(HDNEW_VERSION_REGISTER2, temporary, 4); 
+	    read_config_buffer(HDNEW_VERSION_REGISTER0, version.data(), 4);
+	    read_config_buffer(HDNEW_VERSION_REGISTER1, version.data()+4, 4);
+	    read_config_buffer(HDNEW_VERSION_REGISTER2, temporary, 4);
         *(version.data()+4)=temporary[0];
     }
 
     //Null terminate.
     version[9]=0;
 }
-
 

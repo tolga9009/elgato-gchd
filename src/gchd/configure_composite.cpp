@@ -24,43 +24,64 @@ void GCHD::configureComposite()
     ScanMode autodetectScanMode=ScanMode::Interlaced;
     double autodetectRefreshRate=0.0;
     Resolution autodetectResolution;
-
-    if( value == 6 ) {
-        autodetectResolution = Resolution::NTSC;
-        autodetectRefreshRate = 60.0;
-    } else if ( value == 7 ) {
-        autodetectResolution = Resolution::PAL;
-        autodetectRefreshRate = 50.0;
-    } else {
-        if( passedInputSettings_.getResolution() == Resolution::Unknown ) {
-           throw runtime_error( "Mode detection failed, does not appear to be a supported mode for Composite.");
+    try {
+        if( value == 6 ) {
+            autodetectResolution = Resolution::NTSC;
+            autodetectRefreshRate = 60.0;
+        } else if ( value == 7 ) {
+            autodetectResolution = Resolution::PAL;
+            autodetectRefreshRate = 50.0;
+        } else {
+            if( passedInputSettings_.getResolution() == Resolution::Unknown ) {
+                throw std::runtime_error( "Mode detection failed, does not appear to be a supported mode for Composite.");
+            }
         }
-    }
-    if (autodetectRefreshRate == 0.0) {
-        switch(currentInputSettings_.getResolution()) {
-            case Resolution::NTSC:
-                autodetectRefreshRate=60.0;
-                break;
-            case Resolution::PAL:
-                autodetectRefreshRate=50.0;
-                break;
-            default:
-                throw setting_error( "Mode is not a supported mode for Composite.");
-                break;
+        if (autodetectRefreshRate == 0.0) {
+            switch(currentInputSettings_.getResolution()) {
+                case Resolution::NTSC:
+                    autodetectRefreshRate=60.0;
+                    break;
+                case Resolution::PAL:
+                    autodetectRefreshRate=50.0;
+                    break;
+                default:
+                    throw setting_error( "Mode is not a supported mode for Composite.");
+                    break;
+            }
         }
+        //Merge passed arguments and autodetect information.
+        currentInputSettings_.mergeAutodetect( passedInputSettings_,
+                                               autodetectResolution,
+                                               autodetectScanMode,
+                                               autodetectRefreshRate );
+        if( passedInputSettings_.getColorSpace()==ColorSpace::Unknown ) {
+            currentInputSettings_.setColorSpace( ColorSpace::YUV ); //Composite=YUV unless overridden.
+        } else {
+            currentInputSettings_.setColorSpace( passedInputSettings_.getColorSpace() );
+        }
+        currentTranscoderSettings_.mergeAutodetect( passedTranscoderSettings_, currentInputSettings_ );
+    } catch( usb_error &error ) {
+        throw;
+    } catch( std::runtime_error &error ) {
+        //This snippet prevents lockup.
+        //No idea how, seems all of it needs to be there.
+        readDevice0x9DCD(0x3f); //EXPECTED 0xb0
+        mailWrite( 0x4e, VC{0x00, 0xcc} );
+        readDevice0x9DCD(0x94); //EXPECTED 0xb2
+        mailWrite( 0x4e, VC{0xab, 0x4c} );
+        readDevice0x9DCD(0x3f); //EXPECTED 0xb2
+        mailWrite( 0x4e, VC{0x00, 0xce} );
+        mailWrite( 0x4e, VC{0x1b, 0x33} );
+        readDevice0x9DCD(0x3f); //EXPECTED 0xb0
+        mailWrite( 0x4e, VC{0x00, 0xcc} );
+        readDevice0x9DCD(0x88); //EXPECTED 0xb0
+        mailWrite( 0x4e, VC{0xb7, 0xce} );
+        mailWrite( 0x4e, VC{0xb8, 0xdc} );
+        mailWrite( 0x4e, VC{0xb8, 0xcc} );
+        readDevice0x9DCD(0x3f); //EXPECTED 0xb2
+        throw; //Do not "throw error", that causes exception slicing.
     }
-    //Merge passed arguments and autodetect information.
-    currentInputSettings_.mergeAutodetect( passedInputSettings_,
-                                           autodetectResolution,
-                                           autodetectScanMode,
-                                           autodetectRefreshRate );
-    if( passedInputSettings_.getColorSpace()==ColorSpace::Unknown ) {
-        currentInputSettings_.setColorSpace( ColorSpace::YUV ); //Composite=YUV unless overridden.
-    } else {
-        currentInputSettings_.setColorSpace( passedInputSettings_.getColorSpace() );
-    }
-    currentTranscoderSettings_.mergeAutodetect( passedTranscoderSettings_, currentInputSettings_ );
-
+ 
     if (currentInputSettings_.getResolution()==Resolution::NTSC) {
         mailWrite( 0x44, VC{0x07, 0x8a} );
         mailWrite( 0x44, VC{0x08, 0x9b} );

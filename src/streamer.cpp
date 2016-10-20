@@ -11,15 +11,18 @@
 #include <streamer.hpp>
 
 void Streamer::loop() {
-	std::array<unsigned char, DATA_BUF> buffer;
+	std::vector<unsigned char> buffer=std::vector<unsigned char>(DATA_BUF);
+
     if (process_->isActive()) {
 	    std::cerr << "Streamer has been started." << std::endl;
     }
-	while (process_->isActive()) {
-		gchd_->stream(&buffer);
-		disk.output(&buffer);
-		fifo.output(&buffer);
-		socket.output(&buffer);
+    while (process_->isActive()) {
+        gchd_->stream(&buffer);
+        if( buffer.size() != 0 ) {
+            disk.output(&buffer);
+            fifo.output(&buffer);
+            socket.output(&buffer);
+        }
 	}
 }
 

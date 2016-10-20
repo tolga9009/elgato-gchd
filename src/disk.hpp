@@ -18,7 +18,7 @@ class Disk {
 	public:
 		int enable(std::string diskPath);
 		void disable();
-		void output(std::array<unsigned char, DATA_BUF> *buffer);
+		void output(std::vector<unsigned char> *buffer);
 		Disk();
 		~Disk();
 

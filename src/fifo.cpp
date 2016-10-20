@@ -50,7 +50,7 @@ void Fifo::disable() {
 	}
 }
 
-void Fifo::output(std::array<unsigned char, DATA_BUF> *buffer) {
+void Fifo::output(std::vector<unsigned char> *buffer) {
 	if (fd_ == -1) {
 		return;
 	}

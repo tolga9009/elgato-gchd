@@ -17,7 +17,7 @@ class Fifo {
 	public:
 		int enable(std::string output);
 		void disable();
-		void output(std::array<unsigned char, DATA_BUF> *buffer);
+		void output(std::vector<unsigned char> *buffer);
 		Fifo();
 		~Fifo();
 

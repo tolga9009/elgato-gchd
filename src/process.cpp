@@ -17,7 +17,7 @@
 #include <process.hpp>
 
 // constants
-constexpr auto version = "0.2.0";
+constexpr auto version = "0.8.0";
 
 std::atomic<bool> Process::isActive_;
 

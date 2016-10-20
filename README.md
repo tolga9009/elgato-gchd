@@ -82,59 +82,69 @@ executables to `/usr/bin`.
 ### Commandline
 
 ```
-Usage: gchd [options]
+Usage:
+   ./gchd [options] [<destination>]
+      For `disk` and `fifo` output formats <destination> is a filename.
+      For the `socket` output format, <destination> is [<ip address>][:<port>].
 
-Options:
-  -c <color-space>   Color Space settings [default: autodetect]
-  -f <format>        Format for <output> [default: fifo]
-  -h                 Print this screen
-  -i <input-source>  Input Source [default: autodetect]
-  -n <ip-address>    IP address for UDP streaming [default: 0.0.0.0]
-  -o <output>        Output Path [default: /tmp/gchd.ts]
-  -p <port>          Port for UDP streaming [default: 57384]
-  -r <resolution>    Output resolution [default: same as input source]
-  -v                 Print program version
-  -P <pid-path>      PID path [default: /var/run/gchd.pid]
+      The default for `fifo` is `/tmp/gchd.ts`.
+      The default for `socket` is `0.0.0.0:57384`
+      There is no default for `disk`, <destination> is required.
+
+Input Options:
+   -i, -input <input-source>
+      Set input source to `hdmi`, `component`, `composite` or `auto` (default)
+      With no input, or multiple input types `auto` may detect incorrectly.
+
+   -c, -color-space <color-space>
+      Set the input color space to `yuv`, `rgb`, or `auto` (default).
+      Only has meaning for hdmi and component input.
+
+Output Options:
+   -of, -output-format <format>
+      Format is `disk`, `socket, or `fifo`. `disk` is default if a 
+      <destination> file is specified, otherwise the default is `fifo`
+
+   -or, -output-resolution <resolution>
+      Output resolution can be `ntsc`, `pal`, `720`, `1080`, or `auto`.
+      `auto` (default) matches input resolution. `480` and `576` can be used
+      instead of `ntsc` and `pal`. You can also use <xres>x<yres>, IE 720x480.
+
+   -br, -bit-rate <mbit-rate>
+      <mbit-rate> is either `auto` which will do relatively high quality output,
+      or a bit rate number in mbps. You can do variable bit rate by specifying
+      the bit rate in a [max]:[average]:[min] format.
+
+General Options:
+   -h, -?, -help
+      Displays commonly used switches
+
+   -hh, -??, -full-help
+      Displays extended help
 ```
-
-Options for `<color-space>` are `yuv` and `rgb`. Consoles and PCs output in
- either format and usually don't support switching Color Spaces. If this option
-is set incorrectly, your capture will either have a green or purple tint.
-If this is not set the driver will attempt to autodetect.
-
-Options for `<format>` are `disk`, `fifo` and `socket`. Use `disk`, if you want
-to directly record to your harddrive. Else, FIFO will cover almost all use cases
-(default). Please note, that FIFOs won't grow in size, making them optimal for
-streaming and more controlled capturing on systems with limited amount of memory
-or SSDs. When set to `socket`, this driver will stream the output via UDP to
-`<ip-address>`:`<port>` (default `0.0.0.0:57384`).
 
 Options for `<input-source>` are `composite`, `component` and `hdmi`. Choose,
 whichever source you're using. Some resolutions are not available on all input
 sources. If you do not specify the input source, the driver will attempt
 to autodetect.
 
-You can specify `<ip-address>` using `-n` option. The driver will stream to this
-IP address, instead of default `0.0.0.0`. Please note, UDP streaming is highly
-experimental at this point. Unicast works well, but Multicasting has performance
-issues, causing artefacts. Multicast IPs are in the range of `224.0.0.0` -
-`239.255.255.255` (RFC 5771).
+Options for `<color-space>` are `yuv` and `rgb`. Consoles and PCs output in
+either format and usually don't support switching Color Spaces. If this option
+is set incorrectly, your capture will either have a green or purple tint. The
+autodetection for this is not currently working.
 
-`<output>` sets the location either for the FIFO or the capture file,
-depending on whether `-d` has been set or not.
+Options for `<format>` are `disk`, `fifo` and `socket`. Use `disk`, if you want
+to directly record to your harddrive. Else, FIFO will cover almost all use cases
+(default). Please note, that FIFOs won't grow in size, making them optimal for
+streaming and more controlled capturing on systems with limited amount of memory
+or SSDs. When set to `socket`, this driver will stream the output via UDP.
 
-You can change the default `<port>` using `-p` option. Default is set in private
-port range (RFC 6335) to `57384` (EGCHD).
+You can specify the UDP ip address and port to bind to for for udp streaming
+via the `<destination> field passed on the command line. 
 
-Options for `<resolution>` are `ntsc`, `pal`, `720` and `1080`. If unspecified
-this defaults to using whatever resolution the input source is at. Note that
-currently some users are experiencing video and audio artifacts if the 
-resolution doesn't match the input size.
-
-`<pid-path>` is unused at the moment. Once implemented, it will provide a
-single-instance mechanism, which will prevent this driver from opening multiple
-times. You can use this option in the future, if you're running this driver as a
-non-root user and don't have write access to the default `<pid-path>` location.
+Please note, UDP streaming is highly experimental at this point. Unicast works
+well, but Multicasting has performance issues, causing artifacts. Multicast IPs
+ are in the range of `224.0.0.0` - `239.255.255.255` (RFC 5771).
 
 
 ### General

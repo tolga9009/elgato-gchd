@@ -23,7 +23,7 @@
 
 // constants
 #define DATA_BUF	0x4000 //Has to big enough for HDNew firmware transfers.
-#define TIMEOUT		5000 // TODO measure and set more reasonable timeout
+#define TIMEOUT		5 // 5 milliseconds is as long a extra time we want to occur.
 
 using std::runtime_error;
 class usb_error: public runtime_error
@@ -38,7 +38,7 @@ class GCHD {
 	public:
 		int checkDevice();
 		int init();
-		void stream(std::array<unsigned char, DATA_BUF> *buffer, unsigned timeout=TIMEOUT);
+		void stream(std::vector<unsigned char> *buffer, unsigned timeout=TIMEOUT);
 		GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings);
 		~GCHD();
 
@@ -170,7 +170,8 @@ class GCHD {
         void stateConfirmedScmd(uint8_t command, uint8_t mode, uint16_t data, uint16_t currentState);
 
         uint16_t completeStateChange( uint16_t currentState,
-                                      uint16_t nextState );
+                                      uint16_t nextState,
+                                      bool forceStreamEmpty=false );
 
 		void sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data);
         void sparam(const bitfield_t &bitField, uint16_t data);
@@ -188,7 +189,6 @@ class GCHD {
         uint8_t readDevice0x9DCD( uint8_t index );
         void pollOn0x9989ED();
         void readFrom0x9989EC( unsigned count );
-
 
         void stopStream( bool emptyBuffer );
 
