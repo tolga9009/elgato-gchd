@@ -11,7 +11,8 @@
 #include <stdexcept>
 
 #define MAXIMUM_AUDIO_BIT_RATE 576 //Maximum AAC audio bit rate for two channels
-#define MAXIMUM_BIT_RATE 40000
+#define MAXIMUM_BIT_RATE 40.0
+#define MINIMUM_BIT_RATE .032 //Woah that is slow.
 
 enum class ColorSpace {
 	Unknown,
@@ -50,6 +51,17 @@ enum class BitRateMode {
 	Constant,
 	Variable,
 };
+
+enum class H264Profile {
+	Baseline,
+	Main,
+	High
+};
+
+void convertResolution( unsigned &horizontal, unsigned &vertical, const Resolution resolution );
+
+//Unsigned longs so I can use strtoul, just convenience
+Resolution convertResolution( unsigned long horizontal, unsigned long vertical );
 
 using std::runtime_error;
 class setting_error: public std::runtime_error
@@ -113,24 +125,28 @@ class TranscoderSettings {
 
 		void getResolution( unsigned &x, unsigned &y);
 		void setResolution( unsigned x, unsigned y);
+		void setResolution( const Resolution &resolution );
 
 		void setBitRateMode(BitRateMode bitRateMode);
 		BitRateMode getBitRateMode();
 
 		//Sets values use by variable bit rate
 		//All 0s means default high quality settings will be used.
-		//values are in kbps
-		void setVariableBitRate( unsigned max, unsigned average, unsigned minimum );
-		void getVariableBitRate( unsigned &max, unsigned &average, unsigned &minimum );
+		//values are in mbps
+		void setVariableBitRateMbps( float max, float average, float minimum );
+		void getVariableBitRateMbps( float &max, float &average, float &minimum );
+		void getVariableBitRateKbps( unsigned &max, unsigned &average, unsigned &minimum );
 
 		//Sets value used by constant bit rate.
 		//0 means default high quality settings will be used.
-		//Values are in kbps.
-		void setConstantBitRate( unsigned bitRate );
-		unsigned getConstantBitRate();
+		//Values are in mbps.
+
+		void setConstantBitRateMbps( float bitRate );
+		float getConstantBitRateMbps();
+		unsigned getConstantBitRateKbps();
 
 		//Maximum bitrate based on settings, variable or constant.
-		unsigned getRealMaxBitRate();
+		unsigned getRealMaxBitRateKbps();
 
 		void setFrameRate(double frameRate); //0.0 means auto.
 		double getFrameRate();               //0.0 means auto.
@@ -139,6 +155,9 @@ class TranscoderSettings {
 		//Value is in kbps
 		void setAudioBitRate(unsigned bitRate);
 		unsigned getAudioBitRate();
+
+		void setH264Profile( H264Profile value );
+		H264Profile getH264Profile();
 
 		//Setting it to 0.0 will make it auto-set
 		//based on bit rates and whatnot.
@@ -160,6 +179,7 @@ class TranscoderSettings {
 		unsigned audioBitRate_;
 		double frameRate_;
 		double effectiveFrameRate_; //If frameRate_ ends up 0, this will be refresh rate.
+		H264Profile h264Profile_;
 		float h264Level_;
 
 };

@@ -193,7 +193,7 @@ void GCHD::configureDevice()
 					if( forced ) {
 						std::cerr << "forced." << std::endl;;
 					} else {
-						std::cerr << "found." << std::endl;
+						std::cerr << "found?" << std::endl;
 					}
 				}
 
@@ -688,7 +688,6 @@ void GCHD::uninitDevice()
 	if(( state == SCMD_STATE_START ) || ( state==SCMD_STATE_NULL )) {
 		stopStream( true );
 	}
-
 	//0x12 means already unininitialized (SCMD_RESET with mode=0x1),
 	//0x10 means already unininitialized (SCMD_RESET with mode=0x0).
 	//ox00 means never initialized.
@@ -708,8 +707,8 @@ void GCHD::uninitDevice()
 
 		read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //seems no reason for this read..
 		transcoderOutputEnable( false );
-		scmd(SCMD_INIT, 0xa0, 0x0000);
 
+		scmd(SCMD_INIT, 0xa0, 0x0000);
 		clearEnableState();
 
 		//This command appears to do nothing, it appears to be a doEnable
@@ -1251,9 +1250,11 @@ void GCHD::configureCommonBlockB2()
 
 	//This is a subroutine in original driver as it happens at a few lone times.
 	{
+		uint8_t testValue;
 		do {
 			mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
-		} while (( mailRead( 0x33, 1 )[0] & 0x90) == 0);
+			testValue = mailRead( 0x33, 1 )[0] & 0x90;
+		} while (testValue == 0);
 
 		mailWrite( 0x33, VC{0x99, 0x89, 0xfd} );
 		mailRead( 0x33, 1 ); //EXPECTED {0x6e}

@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <vector>
+#include <unistd.h>
 
 #include "../utility.hpp"
 #include "../gchd.hpp"
@@ -195,7 +196,8 @@ void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
 }
 
 uint16_t GCHD::completeStateChange( uint16_t currentState,
-				    uint16_t nextState )
+				    uint16_t nextState,
+				    bool forceStreamEmpty )
 {
 	bool firstTime=true;
 	uint16_t state;
@@ -204,7 +206,6 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
 	{
 		do
 		{
-
 			state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER);
 
 			state &= 0x1f; //Masking off bits we don't ever see.
@@ -218,6 +219,18 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
 				}
 			}
 			firstTime=false;
+
+			//forceStreamEmpty is a terrible hack that needs to die.
+			if( forceStreamEmpty )
+			{
+				std::vector<unsigned char> buffer=std::vector<unsigned char>(DATA_BUF);
+				//Streaming happens at top of loop, and after each 0x01b0 command, this seems
+				//proper place to put it.
+				for (int i = 0; i < 50; i++)
+				{
+					stream(&buffer);
+				}
+			}
 
 			uint16_t completion=read_config<uint16_t>(SCMD_STATE_CHANGE_COMPLETE);
 			changed = (completion & 0x4)>0; //Check appropriate bit
@@ -246,8 +259,6 @@ void GCHD::stateConfirmedScmd(uint8_t command,
 
 {
 	uint16_t expectedState;
-	scmd(command, mode, data);
-
 	switch(command) {
 		case SCMD_IDLE:
 			expectedState=0x11; //IDLE + STOPPED
@@ -269,6 +280,7 @@ void GCHD::stateConfirmedScmd(uint8_t command,
 			throw std::logic_error( "stateConfirmedScmd used with illegal scmd.");
 			break;
 	}
+	scmd(command, mode, data);
 
 	currentState=completeStateChange( currentState, expectedState);
 	if(currentState != expectedState) {
@@ -584,7 +596,7 @@ void GCHD::stopStream( bool emptyBuffer )
 	 * I'm working with. Receive empty data, after setting state change to
 	 * null transfer.
 	 */
-	std::array<unsigned char, DATA_BUF> buffer;
+	std::vector<unsigned char> buffer=std::vector<unsigned char>(DATA_BUF);
 
 	if( emptyBuffer )
 	{
@@ -592,7 +604,7 @@ void GCHD::stopStream( bool emptyBuffer )
 			stream(&buffer);
 		}
 	}
-	completeStateChange(  SCMD_STATE_START, SCMD_STATE_NULL );
+	completeStateChange(  SCMD_STATE_START, SCMD_STATE_NULL, emptyBuffer );
 	if( emptyBuffer )
 	{
 		for (int i = 0; i < 20; i++) {
@@ -601,8 +613,13 @@ void GCHD::stopStream( bool emptyBuffer )
 	}
 	// state change - stop encoding
 	scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_STOP);
-	completeStateChange(  SCMD_STATE_NULL, SCMD_STATE_STOP );
-	stream(&buffer, 250); //Quarter second timeout.
+	completeStateChange(  SCMD_STATE_NULL, SCMD_STATE_STOP, emptyBuffer );
+	if( emptyBuffer )
+	{
+		for( int i=0; i < 5 ; i++ ) {
+			stream(&buffer);
+		}
+	}
 }
 
 void GCHD::clearEnableState()
@@ -658,5 +675,4 @@ void GCHD::readVersion( std::vector<unsigned char> &version )
 	//Null terminate.
 	version[9]=0;
 }
-
 

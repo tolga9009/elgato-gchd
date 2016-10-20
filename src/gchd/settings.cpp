@@ -8,6 +8,55 @@
 #include "settings.hpp"
 #include <cmath>
 #include <iostream>
+#include <sstream>
+#include <iomanip>
+
+void convertResolution( unsigned &horizontal, unsigned &vertical, const Resolution resolution ) {
+	switch (resolution) {
+		case Resolution::Unknown:
+			horizontal=0;
+			vertical=0;
+			break;
+
+		case Resolution::NTSC:
+			horizontal=720;
+			vertical=480;
+			break;
+
+		case Resolution::PAL:
+			horizontal=720;
+			vertical=576;
+			break;
+
+		case Resolution::HD720:
+			horizontal=1280;
+			vertical=720;
+			break;
+
+		case Resolution::HD1080:
+			horizontal=1920;
+			vertical=1080;
+			break;
+
+		default:
+			throw std::runtime_error("Unsupported configuration.");
+			break;
+	}
+}
+
+Resolution convertResolution( unsigned long horizontal, unsigned long vertical ) {
+	if(( horizontal == 1920 ) && (vertical == 1080 )) {
+		return Resolution::HD1080;
+	} else if ((horizontal == 1280) && (vertical == 720)) {
+		return Resolution::HD720;
+	} else if ((horizontal == 720) && (vertical == 576)) {
+		return Resolution::PAL;
+	} else if ((horizontal == 720) && (vertical == 480)) {
+		return Resolution::NTSC;
+	} else {
+		throw setting_error( "Unsupported resolution." );
+	}
+}
 
 InputSettings::InputSettings() {
 	source_ = InputSource::Unknown;
@@ -34,38 +83,7 @@ Resolution InputSettings::getResolution() {
 }
 
 void InputSettings::getResolution(unsigned &horizontal, unsigned &vertical) {
-	Resolution resolution = getResolution();
-
-	switch (resolution) {
-		case Resolution::Unknown:
-			horizontal=0;
-			vertical=0;
-			break;
-
-		case Resolution::NTSC:
-			horizontal=720;
-			vertical=480;
-			break;
-
-		case Resolution::PAL:
-			horizontal=720;
-			vertical=480;
-			break;
-
-		case Resolution::HD720:
-			horizontal=1280;
-			vertical=720;
-			break;
-
-		case Resolution::HD1080:
-			horizontal=1920;
-			vertical=1080;
-			break;
-
-		default:
-			throw std::runtime_error("Unsupported configuration.");
-			break;
-	}
+	convertResolution( horizontal, vertical, getResolution() );
 }
 
 void InputSettings::setResolution(Resolution resolution) {
@@ -186,11 +204,11 @@ void InputSettings::checkInputSettingsValidity(bool configured)
 				case Resolution::Unknown:
 					break;
 				default:
-					throw setting_error( "Composite signal only support NTSC or PAL resolution." );
+					throw setting_error( "Composite signal only supports NTSC or PAL resolution." );
 					break;
 			}
 			if ( (refreshRate_ != 50.0) && (refreshRate_ != 60.0) ) {
-				throw std::logic_error( "Composite signal only support 50 or 60hz refresh rate." );
+				throw std::logic_error( "Composite signal only supports 50 or 60hz refresh rate." );
 			}
 			break;
 		case InputSource::Component:
@@ -302,6 +320,7 @@ TranscoderSettings::TranscoderSettings() {
 	audioBitRate_=320;
 	frameRate_=0.0; //Auto
 	effectiveFrameRate_=0.0;
+	h264Profile_=H264Profile::High;
 	h264Level_=0.0; //Auto
 }
 
@@ -311,11 +330,18 @@ void TranscoderSettings::getResolution( unsigned &x, unsigned &y) {
 }
 
 void TranscoderSettings::setResolution( unsigned x, unsigned y) {
+	if((x<=64) || (y<=32)) {
+		throw setting_error( "Output resolution must be *bigger* than 64x32" );
+	}
 	if((x>1920) || (y>1080)) {
 		throw setting_error( "Output resolution cannot be made greater than 1920x1080" );
 	}
 	resolution_[0]=x;
 	resolution_[1]=y;
+}
+
+void TranscoderSettings::setResolution( const Resolution &resolution ) {
+	convertResolution( resolution_[0], resolution_[1], resolution );
 }
 
 void TranscoderSettings::setBitRateMode( BitRateMode mode ) {
@@ -326,36 +352,60 @@ BitRateMode TranscoderSettings::getBitRateMode() {
 	return bitRateMode_;
 }
 
-void TranscoderSettings::setVariableBitRate( unsigned maximum, unsigned average, unsigned minimum ) {
+void TranscoderSettings::setVariableBitRateMbps( float maximum, float average, float minimum ) {
+	std::stringstream output;
+
 	if (( maximum < average ) || (average < minimum)) {
 		throw setting_error( "Bit rate setting max:average:min must satisfy max>=average>=min." );
 	}
 	if ( maximum > MAXIMUM_BIT_RATE ) {
-		throw setting_error( "Maximum bit rate supported is " + std::to_string(MAXIMUM_BIT_RATE) + " kbps." );
+		output << "Maximum bit rate supported is " << std::setprecision(3) << MAXIMUM_BIT_RATE << " mbps.";
+		throw setting_error( output.str() );
 	}
-	maxVariableBitRate_=maximum;
-	averageVariableBitRate_=average;
-	minVariableBitRate_=minimum;
+	if ( (average < MINIMUM_BIT_RATE) && (maximum != 0.0 )) {
+		output << "Minmum bit rate supported is " << std::setprecision(3) << MINIMUM_BIT_RATE << " mbps.";
+		throw setting_error( output.str() );
+	}
+	//The values are stored as integer kbps.
+	maxVariableBitRate_= (unsigned)std::round(maximum*1000.0);
+	averageVariableBitRate_= (unsigned)std::round(average*1000.0);
+	minVariableBitRate_=(unsigned)std::round(minimum*1000.0);
 }
 
-void TranscoderSettings::getVariableBitRate( unsigned &maximum, unsigned &average, unsigned &minimum ) {
+void TranscoderSettings::getVariableBitRateMbps( float &maximum, float &average, float &minimum ) {
+	maximum=maxVariableBitRate_/1000.0;
+	average=averageVariableBitRate_/1000.0;
+	minimum=minVariableBitRate_/1000.0;
+}
+
+void TranscoderSettings::getVariableBitRateKbps( unsigned &maximum, unsigned &average, unsigned &minimum ) {
 	maximum=maxVariableBitRate_;
 	average=averageVariableBitRate_;
 	minimum=minVariableBitRate_;
 }
 
-void TranscoderSettings::setConstantBitRate( unsigned bitRate ) {
-	if (bitRate > MAXIMUM_BIT_RATE ) {
-		throw setting_error( "Maximum bit rate supported is " + std::to_string(MAXIMUM_BIT_RATE) + " kbps." );
+void TranscoderSettings::setConstantBitRateMbps( float bitRate ) {
+	std::stringstream output;
+	if ( bitRate > MAXIMUM_BIT_RATE ) {
+		output << "Maximum bit rate supported is " << std::setprecision(3) << MAXIMUM_BIT_RATE << " mbps.";
+		throw setting_error( output.str() );
 	}
-	constantBitRate_=bitRate;
+	if (( bitRate < MINIMUM_BIT_RATE ) && (bitRate != 0.0)) {
+		output << "Minmum bit rate supported is " << std::setprecision(3) << MINIMUM_BIT_RATE << " mbps.";
+		throw setting_error( output.str() );
+	}
+	constantBitRate_=(unsigned)std::round(bitRate * 1000.0);
 }
 
-unsigned TranscoderSettings::getConstantBitRate() {
+float TranscoderSettings::getConstantBitRateMbps() {
+	return constantBitRate_/1000.0;
+}
+
+unsigned TranscoderSettings::getConstantBitRateKbps() {
 	return constantBitRate_;
 }
 
-unsigned TranscoderSettings::getRealMaxBitRate() {
+unsigned TranscoderSettings::getRealMaxBitRateKbps() {
 	switch( bitRateMode_ ) {
 		case BitRateMode::Constant:
 			return constantBitRate_;
@@ -368,7 +418,6 @@ unsigned TranscoderSettings::getRealMaxBitRate() {
 			break;
 	}
 }
-
 
 void TranscoderSettings::setFrameRate(double frameRate) {
 	if (frameRate > 60.0) {
@@ -390,10 +439,35 @@ unsigned TranscoderSettings::getAudioBitRate() {
 }
 
 void TranscoderSettings::setAudioBitRate( unsigned bitRate ) {
-	if (bitRate > MAXIMUM_AUDIO_BIT_RATE ) {
-		throw( setting_error( "Maximum constant bit rate supported is " + std::to_string(MAXIMUM_AUDIO_BIT_RATE) + " kbps." ) );
+	switch( bitRate ) {
+		case 64:
+		case 96:
+		case 112:
+		case 128:
+		case 160:
+		case 192:
+		case 224:
+		case 256:
+		case 320:
+		case 384:
+			break;
+		default:
+			throw( setting_error( "Unsupported audio bit rate: " + std::to_string(bitRate) + "." ) );
+			break;
 	}
 	audioBitRate_=bitRate;
+}
+
+
+void TranscoderSettings::setH264Profile( H264Profile value ) {
+	if( value == H264Profile::Baseline ) {
+		throw( setting_error( "h.264 baseline profile currently not supported." ) );
+	}
+	h264Profile_ = value;
+}
+
+H264Profile TranscoderSettings::getH264Profile() {
+	return h264Profile_;
 }
 
 unsigned TranscoderSettings::unsignedH264Level(float value) {
@@ -517,7 +591,7 @@ void TranscoderSettings::mergeAutodetect( TranscoderSettings &prototype, InputSe
 
 	//Figure out bit rates. This sets reasonable defaults.
 	uint32_t reasonableBitrate=int(31.25 * horizontal); //Seems to be what a lot of settings use.
-	double highestBitrate=MAXIMUM_BIT_RATE;
+	double highestBitrate=MAXIMUM_BIT_RATE * 1000.0;
 
 	unsigned autoBitrate        = std::min(reasonableBitrate*1.0, highestBitrate );
 	unsigned autoMaxBitrate     = std::min(reasonableBitrate*.9, highestBitrate);
@@ -533,7 +607,7 @@ void TranscoderSettings::mergeAutodetect( TranscoderSettings &prototype, InputSe
 		this->minVariableBitRate_ = autoMinBitrate;
 	}
 	if( prototype.h264Level_ == 0.0 ) {
-		h264Level_=determineH264Level( horizontal, vertical, frameRate, getRealMaxBitRate() );
+		h264Level_=determineH264Level( horizontal, vertical, frameRate, getRealMaxBitRateKbps() );
 	}
 }
 

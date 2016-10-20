@@ -17,7 +17,7 @@ class Socket {
 	public:
 		int enable(std::string ip, std::string port);
 		void disable();
-		void output(std::array<unsigned char, DATA_BUF> *buffer);
+		void output(std::vector<unsigned char> *buffer);
 		Socket();
 		~Socket();
 

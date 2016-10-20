@@ -301,6 +301,10 @@ void GCHD::transcoderSetup(InputSettings &inputSettings, TranscoderSettings &set
 
 	//This is distance between anchor frames (I or P) for a group of pictures
 	uint16_t distanceBetweenAnchorFrames=3; //Always 3.
+	if( settings.getH264Profile()==H264Profile::Baseline ) {
+		//No B frames allowed.
+		distanceBetweenAnchorFrames=1;
+	}
 	//Okay default gopGroupSize is going to be (inputFrameRate+10)/5
 
 	Utility::fraction_t fpsFraction={0, 0};
@@ -332,10 +336,10 @@ void GCHD::transcoderSetup(InputSettings &inputSettings, TranscoderSettings &set
 	}
 
 	//Figure out bit rates. This sets reasonable defaults.
-	unsigned bitRate        = settings.getConstantBitRate();
+	unsigned bitRate        = settings.getConstantBitRateKbps();
 
 	unsigned maxBitRate, averageBitRate, minBitRate;
-	settings.getVariableBitRate( maxBitRate, averageBitRate, minBitRate );
+	settings.getVariableBitRateKbps( maxBitRate, averageBitRate, minBitRate );
 
 	// How often an IDR frame is sent.
 	uint32_t idrInterval=0; //I believe setting it to 0 means every frame is IDR frame
@@ -344,6 +348,17 @@ void GCHD::transcoderSetup(InputSettings &inputSettings, TranscoderSettings &set
 	//The Fujitsu mb86H58 only is documented to support high, main, and baseline
 	//h.264 profile setting. May have to change PMT if this changes. No need to ever change.
 	unsigned h264Profile=1;
+	switch( settings.getH264Profile() ) {
+		case H264Profile::High:
+			h264Profile=1;
+			break;
+		case H264Profile::Main:
+			h264Profile=2;
+			break;
+		default: //Currently don't support Baseline
+			h264Profile=2;
+			break;
+	}
 
 	//This is shifted left on decimal place: IE 31 is 3.1
 	//https://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Levels
@@ -423,7 +438,7 @@ void GCHD::transcoderSetup(InputSettings &inputSettings, TranscoderSettings &set
 	/////////////////////////
 	//This will not yield the exact same numbers
 	//as original driver, but slightly more conservative settings.
-	uint32_t systemBitRate =  (1.075 *(settings.getRealMaxBitRate()+audioBitRate) + 256);
+	uint32_t systemBitRate =  (1.075 *(settings.getRealMaxBitRateKbps()+audioBitRate) + 256);
 
 	sparam( system_rate, systemBitRate ); //Always set higher than the bitRate...
 	sparam( system_min_rate, 0 );
