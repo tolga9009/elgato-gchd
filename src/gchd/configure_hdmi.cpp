@@ -272,6 +272,7 @@ void GCHD::configureHDMI()
     uint16_t state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER); //EXPECTED=0x0001
     scmd(SCMD_STATE_CHANGE, 0x00, SCMD_STATE_START);
     completeStateChange(state, SCMD_STATE_START); //EXPECTED 0x0001
+    currentInputSettings_.dumpMode();
 }
 
 
