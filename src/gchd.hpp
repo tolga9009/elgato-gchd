@@ -25,8 +25,17 @@
 #define DATA_BUF	0x4000 //Has to big enough for HDNew firmware transfers.
 #define TIMEOUT		5 // 5 milliseconds is as long a extra time we want to occur.
 
+
+//For when there is a usb problem
 using std::runtime_error;
 class usb_error: public runtime_error
+{
+    using runtime_error::runtime_error; //This inherits all constructors.
+};
+
+//For when there is a problem writing to output file/network
+using std::runtime_error;
+class output_error: public runtime_error
 {
     using runtime_error::runtime_error; //This inherits all constructors.
 };

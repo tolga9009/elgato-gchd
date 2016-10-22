@@ -739,6 +739,9 @@ int main(int argc, char *argv[]) {
     } catch ( setting_error &error ) {
         std::cerr << std::endl << error.what() << std::endl;
         return EXIT_FAILURE;
+    } catch ( output_error &error ) {
+        std::cerr << std::endl << error.what() << std::endl;
+        return EXIT_FAILURE;
     } catch ( std::logic_error &error ) {
         std::cerr << std::endl << "LOGIC ERROR: " << error.what() << std::endl << std::endl;
         return EXIT_FAILURE;

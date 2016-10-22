@@ -11,7 +11,7 @@
 #include <array>
 #include <string>
 
-#include <gchd.hpp>
+#include "gchd.hpp"
 
 class Fifo {
 	public:
@@ -22,8 +22,14 @@ class Fifo {
 		~Fifo();
 
 	private:
+        void setOpen(bool open);
+        void setPaused(bool paused);
 		int fd_;
 		std::string output_;
+
+        bool paused_;
+        bool open_;
+        bool neverOpened_;
 };
 
 #endif
