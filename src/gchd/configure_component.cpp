@@ -96,7 +96,7 @@ void GCHD::configureComponent()
 		//Enough time to lock
 
 		iterationCount+=1;
-	} while( (iterationCount < 2) || (std::abs( value6665 - 0xad4d )<10.0) );
+	} while( (iterationCount < 3) || (std::abs( value6665 - 0xad4d )<10.0) );
 	//^^^^^ Need to go through loop at least twice, to stabilize read, and value read must not be value
 	//gotten when no signal
 
