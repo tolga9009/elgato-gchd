@@ -106,6 +106,7 @@ class InputSettings {
 				      double refreshRate);
 
 		void checkInputSettingsValidity(bool configured);
+		void dumpMode();
 
 	private:
 		void checkRefresh( double value, const char *string );

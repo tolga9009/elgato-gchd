@@ -292,6 +292,67 @@ void InputSettings::checkInputSettingsValidity(bool configured)
 	}
 }
 
+void InputSettings::dumpMode() {
+	std::cerr << std::endl;
+	std::cerr << "Configured Mode:" <<std::endl;
+	switch( source_ ) {
+		case InputSource::HDMI:
+			std::cerr << "HDMI";
+			break;
+		case InputSource::Component:
+			std::cerr << "Component";
+			break;
+		case InputSource::Composite:
+			std::cerr << "Composite";
+			break;
+		case InputSource::Unknown:
+			std::cerr << "Unknown";
+			break;
+	}
+	unsigned horizontal, vertical;
+	getResolution(horizontal, vertical);
+	std::cerr <<" " << horizontal << "x" <<vertical << "@";
+	std::cerr << (unsigned)std::round(refreshRate_) << "hz (";
+
+
+	switch( scanMode_ ) {
+		case ScanMode::Interlaced:
+			std::cerr << "interlaced";
+			break;
+		case ScanMode::Progressive:
+			std::cerr << "progressive scan";
+			break;
+		case ScanMode::Unknown:
+			std::cerr << "unknown scan";
+			break;
+
+	}
+	std::cerr <<"). ";
+	switch( colorSpace_ ) {
+		case ColorSpace::RGB:
+			std::cerr << "RGB";
+			break;
+		case ColorSpace::YUV:
+			std::cerr << "YUV";
+			break;
+		case ColorSpace::Unknown:
+			std::cerr << "unknown";
+			break;
+
+	}
+	std::cerr << " color space. Aspect ratio is: ";
+	if(( resolution_ == Resolution::PAL ) ||
+			( resolution_ == Resolution::NTSC ) ) {
+		if (stretchedSD_) {
+			std::cerr << "16:9 (SD stretch).";
+		} else {
+			std::cerr << "4:3 (SD no stretch).";
+		}
+	} else {
+		std::cerr << "16:9." << std::endl;
+	}
+	std::cerr << std::endl;
+}
 
 TranscoderSettings::TranscoderSettings() {
 	//These are the options that meet the following criteria:
