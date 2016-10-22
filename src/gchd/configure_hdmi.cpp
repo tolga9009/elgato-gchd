@@ -110,7 +110,7 @@ void GCHD::configureHDMI()
                                //Should be enough to lock on.
 
         iterationCount+=1;
-    } while( (iterationCount < 2) || (std::abs( value6665 - 0xad4d )<10.0) );
+    } while( (iterationCount < 3) || (std::abs( value6665 - 0xad4d )<10.0) );
     //^^^^^ Need to go through loop at least twice, to stabilize read, and value read must not be value
     //gotten when no signal
 
@@ -120,6 +120,7 @@ void GCHD::configureHDMI()
 
     if (currentInputSettings_.getResolution() == Resolution::Unknown) {
         double value6463=((double)sum6463) / countSum6463;
+        printf("Unknown resolution %f\n", value6463);
         //0xb690
         if(fabs( value6463 - 0xb6d7 )<10.0) { //Allow for error.
             //1080p
