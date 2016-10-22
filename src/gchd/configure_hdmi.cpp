@@ -120,7 +120,6 @@ void GCHD::configureHDMI()
 
 	if (currentInputSettings_.getResolution() == Resolution::Unknown) {
 		double value6463=((double)sum6463) / countSum6463;
-		printf("Unknown resolution %f\n", value6463);
 		//0xb690
 		if(fabs( value6463 - 0xb6d7 )<10.0) { //Allow for error.
 			//1080p
