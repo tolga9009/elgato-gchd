@@ -112,11 +112,11 @@ void Fifo::output(std::vector<unsigned char> *buffer) {
 
         int timeout;
         if( !this->paused_ ) {
-            timeout=250; //250 millis is more than reasonable to wait for remote.
+            timeout=5000; //5 seconds is more than reasonable to wait for remote.
         } else {
             timeout=0; //If not unpaused dump immediately.
         }
-        int value=poll( &descriptor, 1, timeout ); //250 millis is more than reasonable.
+        int value=poll( &descriptor, 1, timeout ); 
         switch( value ) {
             case 0: //We have a timeout
                 this->setPaused(true);
