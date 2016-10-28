@@ -25,13 +25,20 @@ int Fifo::enable(std::string output) {
 	ignore.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &ignore, nullptr);
 
-	if (mkfifo(output_.c_str(), 0644)) {
-		std::cerr << "Error creating FIFO." << std::endl;
+    struct stat statInfo;
+    if (stat(output_.c_str(), &statInfo)!=0) {
+        if (mkfifo(output_.c_str(), 0644)) {
+            std::cerr << "Error creating FIFO." << std::endl;
+            return 1;
+	    }
+	    std::cerr << "FIFO: " << output << " has been created." << std::endl;
+    } else {
+        if (!S_ISFIFO( statInfo.st_mode ))  {
+            std::cerr << output_.c_str() << " exists, but is not fifo. Cannot use it." << std::endl;
+            return 1;
+        }
+    }
 
-		return 1;
-	}
-
-	std::cerr << "FIFO: " << output << " has been created." << std::endl;
 
     //Check that we can access it.
     fd_ = open(output_.c_str(), O_WRONLY | O_NONBLOCK );
@@ -53,7 +60,9 @@ void Fifo::disable() {
             close(fd_);
         }
         fd_ = -1;
-        unlink(output_.c_str());
+        //We no longer delete the fifo, add this back
+        //if we want to add this back.
+        //unlink(output_.c_str());
     }
     paused_=true;
     open_=false;
@@ -131,7 +140,7 @@ void Fifo::output(std::vector<unsigned char> *buffer) {
                 throw output_error( "Output fifo error." );
                 break;
         }
-        if( current != end ) {
+        if( current < end ) {
             int size=write(fd_, current, end-current);
             if( size == -1 ) {
                 if( errno == EPIPE ) {

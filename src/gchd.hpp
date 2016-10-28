@@ -23,7 +23,7 @@
 
 // constants
 #define DATA_BUF	0x4000 //Has to big enough for HDNew firmware transfers.
-#define TIMEOUT		5 // 5 milliseconds is as long a extra time we want to occur.
+#define TIMEOUT		50 // 50 milliseconds is as long a extra time we want to occur.
 
 
 //For when there is a usb problem
