@@ -207,8 +207,8 @@ int main(int argc, char *argv[]) {
 	process.setName(argv[0]);
 
 	// objects for storing device settings
-	InputSettings inputSettings;
-	TranscoderSettings transcoderSettings;
+	InputSettings inputSettings=InputSettings();
+	TranscoderSettings transcoderSettings=TranscoderSettings();
 
 	// commandline-specific settings
 	std::string ip;
