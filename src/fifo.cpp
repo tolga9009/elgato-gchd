@@ -19,7 +19,7 @@
 
 int Fifo::enable(std::string output) {
 	output_ = output;
-
+    enabled_ = true;
 	// ignore SIGPIPE, else program terminates on unsuccessful write()
 	struct sigaction ignore;
 	ignore.sa_handler = SIG_IGN;
@@ -66,6 +66,7 @@ void Fifo::disable() {
     }
     paused_=true;
     open_=false;
+    enabled_=false;
     neverOpened_=true;
 }
 
@@ -99,6 +100,10 @@ void Fifo::setPaused(bool paused) {
 }
 
 void Fifo::output(std::vector<unsigned char> *buffer) {
+    if( ! enabled_ ) {
+        return;
+    }
+
     if(fd_ == -1) {
         fd_ = open(output_.c_str(), O_WRONLY | O_NONBLOCK );
     }

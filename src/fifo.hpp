@@ -27,6 +27,7 @@ class Fifo {
 		int fd_;
 		std::string output_;
 
+        bool enabled_;
         bool paused_;
         bool open_;
         bool neverOpened_;
