@@ -226,13 +226,21 @@ void GCHD::configureDevice()
 				break;
 		}
 	}
-	do {
+	for (int i=0; i<5; ++i) {
 		mailWrite( 0x33, {0xab, 0xa9, 0x0f, 0xa4, 0x5b} );
 		input=mailRead( 0x33, 3 ); /* read 3 bytes from 0x33 */
 		enableAnalogInput();
 		deviceModeMagic=
 				Utility::debyteify<uint32_t>(input.data(), 3);
-	} while(deviceModeMagic != 0x78e045);
+		//In one known case a user has reported different values
+		//then our captured 0x78e045 coming back here,
+		//kueller reported on gitter that he gets back 0x7bec47
+		//so this is less than ideal, but gonna use a mask to
+		//catch both values, and put in terminating loop regardless.
+		if( (deviceModeMagic & 0xf8f0f0) == 0x78e040 ) {
+			break;
+		}
+	}
 	doEnable( EB_ENCODER_ENABLE, EB_ENCODER_ENABLE );
 
 	//We can go back to 0x334455 after we turn on EB_ENCODER_ENABLE in some cases,
@@ -611,13 +619,22 @@ void GCHD::configureDevice()
 
 	mailRead( 0x33, 8 ); //EXPECTED {0xe9, 0x5c, 0xcf, 0x42, 0xb5, 0x28, 0x9b, 0x0e}
 	mailWrite( 0x33, VC{0xaa, 0x8d, 0x35} );
-	do {
+	for (int i=0; i<5; ++i) {
 		mailWrite( 0x33, {0xab, 0xa9, 0x0f, 0xa4, 0x5b} );
 		input=mailRead( 0x33, 3 ); /* read 3 bytes from 0x33 */
 		enableAnalogInput();
 		deviceModeMagic=
 				Utility::debyteify<uint32_t>(input.data(), 3);
-	} while(deviceModeMagic != 0x78e045);
+		//In one known case a user has reported different values
+		//then our captured 0x78e045 coming back here,
+		//kueller reported on gitter that he gets back 0x7bec47,
+		//(but only verified for earlier incarnation of this loop)
+		//so this patch is less than ideal, but gonna use a mask to
+		//catch both values, and put in terminating loop regardless.
+		if( (deviceModeMagic & 0xf8f0f0) == 0x78e040 ) {
+			break;
+		}
+	}
 
 	transcoderSetup( currentInputSettings_, currentTranscoderSettings_ );
 	transcoderOutputEnable(true);
