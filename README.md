@@ -7,9 +7,6 @@ supported by Elgato.
 Use at your own risk! This software is experimental and not intended for
 production use.
 
-Official Groupchat at Gitter: https://gitter.im/tolga9009/elgato-gchd
-
-
 ### Supported devices
 
 * Elgato Game Capture HD
@@ -29,7 +26,7 @@ licensing issues, they're not part of this repository.
 You need to extract them yourself from the Windows "Game Capture" software,
 or the official Mac OS X drivers. Getting it from each is a different process.
 
-See https://github.com/tolga9009/elgato-gchd/wiki/Firmware
+See [Firmware](/wiki/Firmware)
 
 **Note**: If you're a Mac OS X user, simply install the official drivers. You
 don't need to manually extract the firmware files.
@@ -150,9 +147,7 @@ are in the range of `224.0.0.0` - `239.255.255.255` (RFC 5771).
 ### General
 
 This driver must be run as root, as it needs to access your Game Capture HD
-device. Under Linux, you can alternatively follow the directions at:
-
-https://github.com/tolga9009/elgato-gchd/wiki/Configuring-the-Driver-to-be-Run-Without-Root-Permissions
+device. Under Linux, you can alternatively follow the directions [here](/wiki/Configuring-the-Driver-to-be-Run-Without-Root-Permissions)
 
 This will make it accessible to non-root users.
 
@@ -191,4 +186,4 @@ Currently supported input sources:
 ## License
 
 This project is made available under the MIT License. For more information,
-please refer to the LICENSE file.
+please refer to the [LICENSE](https://github.com/joshraphael/elgato-gchd/blob/master/LICENSE) file.
