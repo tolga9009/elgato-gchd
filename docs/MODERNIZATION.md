@@ -168,11 +168,21 @@ six-byte payload filter was removed for this broader check. Thus the missing
 payloads cannot be attributed solely to that narrow filter. Register values
 and command contents remain unavailable from these ETW traces.
 
-No USBPcap driver was installed and Windows was not restarted. Repeating the
+During the ETW experiments no USBPcap driver was installed and Windows was
+not restarted. Repeating the
 same ETW capture is not a useful next step. A payload-capable native capture or
 an independent native-Linux hardware comparison is needed before changing the
 boot protocol based on assumptions. See [USB-TRACING.md](USB-TRACING.md) for the
 trace settings, verified limits and next-capture scope.
+
+On 2026-11-16 the user approved USBPcap installation. Official version 1.5.4.0
+installed with exit 0; installer and driver signatures are valid. Capture
+interfaces are unavailable before the required Windows restart, which has not
+been initiated. usbipd-win now reports its known USBPcap filter incompatibility;
+no forced binding has been attempted. The next step is the full native Windows
+trace after restart, followed by a separately reviewed resolution of the filter
+conflict before the WSL comparison. This is diagnostic setup, not a successful
+capture or a driver protocol fix.
 
 ## Defect and verification summary
 

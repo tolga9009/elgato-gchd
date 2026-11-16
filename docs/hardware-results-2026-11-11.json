@@ -84,5 +84,19 @@
     "usbpcap_installed": false,
     "windows_restarted": false,
     "hardware_recording_verified": false
+  },
+  {
+    "test": "usbpcap-install-20261116",
+    "version": "1.5.4.0",
+    "installer_exit_code": 0,
+    "installer_signature": "Valid",
+    "installed_driver_signature": "Valid",
+    "installed_driver_state": "Stopped",
+    "capture_interface_count_before_restart": 0,
+    "interface_enumeration_exit_code": 0,
+    "windows_restarted": false,
+    "forced_binding_attempted": false,
+    "usbipd_filter_conflict_observed": true,
+    "usbpcap_payload_capture_performed": false
   }
 ]

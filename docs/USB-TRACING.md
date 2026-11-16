@@ -1,4 +1,6 @@
-# Windows USB diagnostics without a capture-driver installation
+# Windows USB diagnostics
+
+## Built-in tracing without a capture-driver installation
 
 Windows ETW/Logman was used successfully to capture the original 0fd9:0044
 card's startup headers on 2026-11-11. No USBPcap installation or Windows restart
@@ -71,8 +73,32 @@ matter later. Keep raw captures private and outside Git; firmware payloads must
 never be published. Do not capture unrelated USB devices when the tool supports
 a device filter.
 
-USBPcap is a possible next tool, not an installed dependency. Its
-[official installation instructions](https://desowin.org/usbpcap/) require a
-Windows restart. Installation/restart needs separate user approval. An
-independent native-Linux test is another way to isolate the USB/IP transport,
-but does not replace the missing official Windows command payloads.
+An independent native-Linux test is another way to isolate the USB/IP
+transport, but does not replace the missing official Windows command payloads.
+
+## Approved USBPcap installation, 2026-11-16
+
+After explicit user approval, the official USBPcap 1.5.4.0 installer was
+installed successfully (exit code 0). The installer and installed driver both
+have valid Windows Authenticode signatures from Tomasz Mon. The installer came
+from the [official release](https://github.com/desowin/usbpcap/releases/tag/1.5.4.0)
+and has SHA-256
+`87a7edf9bbbcf07b5f4373d9a192a6770d2ff3add7aa1e276e82e38582ccb622`.
+The registered version and installed driver version are both 1.5.4.0.
+
+The [official installation instructions](https://desowin.org/usbpcap/) require
+a Windows restart. No restart was initiated by the agent. Before restart,
+the driver service was stopped and noninteractive --extcap-interfaces
+returned no capture interfaces (exit 0). No USBPcap payload capture has yet
+been performed. Installation evidence stays locally under artifacts/.
+
+After installation, usbipd-win 5.3.0 list reported that USBPcap is an
+incompatible USB filter and bind --force would be required. This warning
+matches its [filter compatibility check](https://github.com/dorssel/usbipd-win/blob/v5.3.0/Usbipd/ConsoleTools.cs).
+The card was still present in Windows as 0fd9:0044, shared at bus 9-4.
+No forced binding or controller restart was attempted. Collect the native
+Windows startup/preview/shutdown trace first after restart; resolve the filter
+conflict before resuming WSL tests. A forced binding changes the Windows driver
+association and must be reviewed separately rather than folded into the usual
+attach command. An alternative is to remove USBPcap after collecting the native
+trace, then follow its restart requirements before returning to normal WSL use.
