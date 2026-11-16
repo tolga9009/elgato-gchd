@@ -116,3 +116,18 @@ hub trees. Restarting this hub would affect more than the capture card. No USB
 hub or controller restart was performed during the service-only attempt;
 separate approval was requested for the targeted root-hub restart. Do not use
 USBPcap's interactive restart-all-controllers option for this comparison.
+
+## Targeted root-hub restart attempt, 2026-11-16
+
+The user explicitly approved a restart of only the card's root hub. Its live
+parent chain was resolved again before invoking PnPUtil /restart-device with
+that single root-hub instance ID. No wildcard, device-class, parent-controller
+or /reboot option was used. Windows returned 3010 and reported that a system
+reboot was needed to complete configuration operations.
+
+After this attempt the USBPcap service was Running, but repeated elevated
+--extcap-interfaces calls still produced no interfaces (exit 0). The Elgato
+card remained present with PnP status OK. No USBPcap payload trace was obtained,
+and no Windows restart was initiated. This targeted attempt did not avoid the
+restart requirement on the tested host. The user plans to restart later;
+no broader controller restart was attempted.

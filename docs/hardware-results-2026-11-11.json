@@ -108,5 +108,18 @@
     "usb_hub_restarted": false,
     "usb_controller_restarted": false,
     "payload_capture_performed": false
+  },
+  {
+    "test": "usbpcap-targeted-root-hub-restart-20261116",
+    "restart_exit_code": 3010,
+    "windows_reported_reboot_required": true,
+    "driver_state": "Running",
+    "interface_enumeration_exit_code": 0,
+    "capture_interface_count": 0,
+    "card_present": true,
+    "card_pnp_status": "OK",
+    "windows_restart_initiated": false,
+    "parent_controller_restart_attempted": false,
+    "payload_capture_performed": false
   }
 ]

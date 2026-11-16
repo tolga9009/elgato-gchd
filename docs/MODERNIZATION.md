@@ -179,8 +179,10 @@ On 2026-11-16 the user approved USBPcap installation. Official version 1.5.4.0
 installed with exit 0; installer and driver signatures are valid. Capture
 interfaces were initially unavailable. At the user's request, starting the
 USBPcap service without reboot succeeded, but elevated interface enumeration
-still returned no interfaces. No Windows, USB hub or controller restart has
-been initiated. usbipd-win now reports its known USBPcap filter incompatibility;
+still returned no interfaces. No Windows restart has been initiated. A subsequently approved single-root-hub
+restart attempt returned 3010 (system reboot required); USBPcap still exposed
+no interfaces and the card remained present with PnP status OK. No parent USB
+controller restart was attempted. usbipd-win now reports its known USBPcap filter incompatibility;
 no forced binding has been attempted. The next step is the full native Windows
 trace after restart, followed by a separately reviewed resolution of the filter
 conflict before the WSL comparison. This is diagnostic setup, not a successful
