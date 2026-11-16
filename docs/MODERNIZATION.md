@@ -177,7 +177,9 @@ trace settings, verified limits and next-capture scope.
 
 On 2026-11-16 the user approved USBPcap installation. Official version 1.5.4.0
 installed with exit 0; installer and driver signatures are valid. Capture
-interfaces are unavailable before the required Windows restart, which has not
+interfaces were initially unavailable. At the user's request, starting the
+USBPcap service without reboot succeeded, but elevated interface enumeration
+still returned no interfaces. No Windows, USB hub or controller restart has
 been initiated. usbipd-win now reports its known USBPcap filter incompatibility;
 no forced binding has been attempted. The next step is the full native Windows
 trace after restart, followed by a separately reviewed resolution of the filter

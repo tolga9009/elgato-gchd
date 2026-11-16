@@ -98,5 +98,15 @@
     "forced_binding_attempted": false,
     "usbipd_filter_conflict_observed": true,
     "usbpcap_payload_capture_performed": false
+  },
+  {
+    "test": "usbpcap-service-only-no-reboot-20261116",
+    "driver_state": "Running",
+    "interface_enumeration_exit_code": 0,
+    "capture_interface_count": 0,
+    "windows_restarted": false,
+    "usb_hub_restarted": false,
+    "usb_controller_restarted": false,
+    "payload_capture_performed": false
   }
 ]

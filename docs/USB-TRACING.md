@@ -102,3 +102,17 @@ conflict before resuming WSL tests. A forced binding changes the Windows driver
 association and must be reviewed separately rather than folded into the usual
 attach command. An alternative is to remove USBPcap after collecting the native
 trace, then follow its restart requirements before returning to normal WSL use.
+
+The user subsequently requested a no-Windows-restart attempt. Starting only the
+USBPcap service succeeded: its state became Running, but another elevated,
+noninteractive interface enumeration returned exit 0 with empty output.
+No usable capture interface was observed. The [matching driver source](https://github.com/desowin/usbpcap/blob/1.5.4.0/USBPcapDriver/USBPcapFilterManager.c) attaches
+to root hubs in AddDevice and creates its capture control device there; merely
+loading the driver does not attach it to an already-running root-hub stack.
+A USB root-hub restart is a possible next attempt, not a tested recovery step.
+
+The card's root hub also has Bluetooth, UPS USB monitoring and two downstream
+hub trees. Restarting this hub would affect more than the capture card. No USB
+hub or controller restart was performed during the service-only attempt;
+separate approval was requested for the targeted root-hub restart. Do not use
+USBPcap's interactive restart-all-controllers option for this comparison.
