@@ -106,12 +106,19 @@ int PSI_UnknownDescriptor::calculateSizeInternal()
 	return this->data.size();
 }
 
+void PSI_UnknownDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
+                                         std::vector<uint8_t>::iterator &offset)
+{
+    offset=std::copy(data.begin(), data.end(), offset);
+}
+
 void PSI_UnknownDescriptor::unpackInternal(const std::vector<uint8_t> &/*inputData*/,
 					   std::vector<uint8_t>::const_iterator &offset,
 					   int size)
 {
 	this->data.resize(size);
 	std::copy_n( offset, size, this->data.begin() );
+	offset+=size;
 }
 
 int PSI_ProgramDescriptor::calculateSizeInternal()
@@ -132,6 +139,7 @@ void PSI_ProgramDescriptor::unpackInternal(const std::vector<uint8_t> &/*inputDa
 {
 	data_.resize(size);
 	std::copy_n( offset, size, data_.begin() );
+	offset+=size;
 }
 
 PSI_AVC_VideoDescriptor::PSI_AVC_VideoDescriptor( uint8_t profile_idc,

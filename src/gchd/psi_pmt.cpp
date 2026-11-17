@@ -107,7 +107,7 @@ void PMT_Mapping::unpack( const std::vector<uint8_t> &inputData,
 	descriptors_ = std::vector< std::shared_ptr<PSI_Descriptor> >();
 
 	while(offset < endOfDescriptors) {
-		auto descriptor=std::shared_ptr<PSI_ParseDescriptor>();
+		auto descriptor=std::make_shared<PSI_ParseDescriptor>();
 		descriptor->unpack(inputData, offset, endOfDescriptors-offset);
 		descriptors_.push_back( descriptor->getParsedDescriptor() );
 	}
