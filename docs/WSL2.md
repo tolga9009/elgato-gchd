@@ -129,6 +129,27 @@ sudo chmod 0660 /dev/bus/usb/001/002
 This applies only to that device node and must be repeated after reattach or
 re-enumeration. Avoid broad permissions on all USB nodes. Keep ffmpeg unprivileged.
 
+## Color handling on the tested source
+
+The RGB 480p color-bar source was misidentified as YUV by automatic detection.
+The recordings then had pink whites and incorrect colors; forcing `-c rgb`
+matched the earlier official-Windows-app reference. A stable-cable comparison
+reproduced the issue with explicit YUV and corrected it with explicit RGB.
+This is a separate input-color limitation, not evidence of USB packet loss.
+
+For this source, use:
+
+```sh
+build/src/gchd -i hdmi -c rgb --duration 60s capture.ts
+GCHD_COLOR_SPACE=rgb scripts/gchd-record.sh capture.mp4 60s
+```
+
+`GCHD_COLOR_SPACE` accepts rgb, yuv or auto. Leave it unset for the driver's
+existing default. This override is source-specific; do not force RGB for every
+HDMI device. Automatic color detection remains unchanged. The user changed
+cables during the one-minute acceptance recording, so that run does not validate
+uninterrupted HDMI input or automatic recovery after a source change.
+
 ## WSL: record and inspect
 
 Prefer the Linux filesystem for builds and initial recording:

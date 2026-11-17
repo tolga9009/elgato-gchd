@@ -86,10 +86,24 @@ scripts/gchd-record.sh capture.mp4 10m
 
 The wrapper refuses existing destinations, copies streams for TS/MKV, and uses
 AAC audio for MP4/MOV. It requires Python 3 and ffmpeg. `GCHD_BIN` can select a
-different binary. SIGINT/SIGTERM/SIGHUP are forwarded to the driver as SIGINT;
+different binary. `GCHD_COLOR_SPACE=rgb`, `yuv`, or `auto` selects an explicit
+input color space for the wrapper; an unset variable preserves driver defaults.
+SIGINT/SIGTERM/SIGHUP are forwarded to the driver as SIGINT;
 ffmpeg receives EOF and finishes its container. An interrupted wrapper returns
 `128 + signal`. A driver or ffmpeg failure returns nonzero. Direct disk mode
 retains the historical behavior of truncating its destination.
+
+For the tested 480p RGB source, automatic color detection selected YUV and
+produced pink whites. Explicit RGB matched the official Windows reference:
+
+```sh
+build/src/gchd -i hdmi -c rgb --duration 60s capture.ts
+GCHD_COLOR_SPACE=rgb scripts/gchd-record.sh capture.mp4 60s
+```
+
+The color setting programs the card's input processing. Keep cables stable
+when comparing colors; a successful USB stream does not establish correct colors
+or an uninterrupted HDMI source. Use YUV when that is the source's actual format.
 
 Existing single-dash flags remain accepted. Use `gchd --help` or `--full-help`:
 `-i hdmi|component|composite|auto`, `-c yuv|rgb|auto`, `-or 1280x720`, `-br 10`,

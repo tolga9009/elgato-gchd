@@ -15,6 +15,11 @@ ffmpeg=shutil.which("ffmpeg")
 if not ffmpeg: raise SystemExit("ffmpeg is required")
 args=[driver]
 if len(sys.argv)==4: args += ["--duration",sys.argv[3]]
+color_space=os.environ.get("GCHD_COLOR_SPACE")
+if color_space is not None:
+    if color_space not in ("auto","rgb","yuv"):
+        raise SystemExit("GCHD_COLOR_SPACE must be auto, rgb, or yuv")
+    args += ["-c",color_space]
 args += ["-"]
 capture=None
 mux=None

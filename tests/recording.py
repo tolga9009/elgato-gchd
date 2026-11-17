@@ -8,7 +8,8 @@ with tempfile.TemporaryDirectory(prefix="gchd-record-test-") as directory:
                     "-c:v","libx264","-pix_fmt","yuv420p","-c:a","mp2","-f","mpegts",str(fixture)],check=True,timeout=15)
     fake=work/"fake-gchd"
     fake.write_text("""#!/usr/bin/env python3
-import os, pathlib, signal, sys, time
+import json, os, pathlib, signal, sys, time
+pathlib.Path(os.environ['GCHD_TEST_ARGS']).write_text(json.dumps(sys.argv[1:]))
 marker=pathlib.Path(os.environ['GCHD_TEST_MARKER'])
 def stop(sig, frame):
     marker.write_text('SIGINT' if sig==signal.SIGINT else str(sig))
@@ -21,20 +22,29 @@ if os.environ.get('GCHD_TEST_WAIT'):
     while True: time.sleep(0.1)
 """)
     fake.chmod(0o755)
-    env=os.environ.copy(); env.update(GCHD_BIN=str(fake),GCHD_TEST_TS=str(fixture),GCHD_TEST_MARKER=str(work/"marker"))
+    env=os.environ.copy(); env.update(GCHD_BIN=str(fake),GCHD_TEST_TS=str(fixture),GCHD_TEST_MARKER=str(work/"marker"),GCHD_TEST_ARGS=str(work/"args.json"))
     def codecs(path):
         result=subprocess.run(["ffprobe","-v","error","-show_streams","-of","json",str(path)],capture_output=True,check=True,timeout=5)
         return {s['codec_name'] for s in json.loads(result.stdout)['streams']}
     for suffix, audio in [('mkv','mp2'),('mp4','aac')]:
         output=work/('capture.'+suffix)
+        if suffix=='mkv': env['GCHD_COLOR_SPACE']='rgb'
+        else: env.pop('GCHD_COLOR_SPACE',None)
         result=subprocess.run([str(wrapper),str(output),'1s'],env=env,capture_output=True,timeout=20)
         assert result.returncode==0, result.stderr.decode()
+        expected=['--duration','1s']+(['-c','rgb'] if suffix=='mkv' else [])+['-']
+        assert json.loads((work/'args.json').read_text())==expected
         assert {'h264',audio} <= codecs(output)
         original=output.read_bytes()
         refused=subprocess.run([str(wrapper),str(output)],env=env,capture_output=True,timeout=3)
         assert refused.returncode!=0 and output.read_bytes()==original
+    (work/'marker').unlink(); (work/'args.json').unlink()
+    invalid_env=dict(env,GCHD_COLOR_SPACE='invalid')
+    invalid=subprocess.run([str(wrapper),str(work/'invalid-color.mkv')],env=invalid_env,capture_output=True,timeout=3)
+    assert invalid.returncode!=0 and b'GCHD_COLOR_SPACE' in invalid.stderr
+    assert not (work/'args.json').exists() and not (work/'invalid-color.mkv').exists()
     env['GCHD_TEST_WAIT']='1'
-    marker=pathlib.Path(env['GCHD_TEST_MARKER']); marker.unlink()
+    marker=pathlib.Path(env['GCHD_TEST_MARKER']); marker.unlink(missing_ok=True)
     interrupted=work/'interrupted.mkv'
     recording=subprocess.Popen([str(wrapper),str(interrupted)],env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     deadline=time.monotonic()+5
