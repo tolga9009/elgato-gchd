@@ -210,5 +210,194 @@
       "stderr_bytes": 69,
       "note": "One H.264 warning in the tail beyond the clean first 30 seconds; raw TS ends with a partial 176-byte packet."
     }
+  },
+  {
+    "test": "recording-acceptance-20261117T002312Z",
+    "sigint": {
+      "started": true,
+      "returncode": 0,
+      "wall_seconds": 11.476,
+      "shutdown_seconds": 2.87,
+      "capture_bytes": 16646144,
+      "probe": {
+        "programs": [
+          {
+            "streams": [
+              {
+                "index": 0,
+                "codec_name": "h264",
+                "codec_type": "video",
+                "width": 720,
+                "height": 480
+              },
+              {
+                "index": 1,
+                "codec_name": "mp2",
+                "codec_type": "audio",
+                "sample_rate": "48000",
+                "channels": 2
+              }
+            ]
+          }
+        ],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "index": 1,
+            "codec_name": "mp2",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "5.538856"
+        },
+        "returncode": 0,
+        "stderr": ""
+      },
+      "last_stats": [
+        "Final stats: 16646144 bytes written, 16646144 USB bytes, 25.7647 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts"
+      ]
+    },
+    "restart_mp4": {
+      "returncode": 0,
+      "wall_seconds": 13.002,
+      "bytes": 15563477,
+      "requested_duration": "5s",
+      "last_stats": [
+        "Final stats: 16089088 bytes written, 16089088 USB bytes, 25.7361 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts"
+      ],
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "5.371344"
+        },
+        "returncode": 0,
+        "stderr": ""
+      }
+    },
+    "one_minute_mkv": {
+      "returncode": 0,
+      "wall_seconds": 67.008,
+      "bytes": 185626603,
+      "requested_duration": "60s",
+      "last_stats": [
+        "Final stats: 191135744 bytes written, 191135744 USB bytes, 25.476 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts"
+      ],
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "index": 1,
+            "codec_name": "mp2",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "64.965000"
+        },
+        "returncode": 0,
+        "stderr": ""
+      }
+    },
+    "color_space_auto_selected": "YUV",
+    "source_pattern": "vertical color bars",
+    "user_changed_hdmi_cables_during_one_minute_test": true,
+    "uninterrupted_hdmi_input_verified": false,
+    "long_recording_test_waived_by_user": true
+  },
+  {
+    "test": "stable-cable-rgb-yuv-comparison",
+    "captures": {
+      "rgb": {
+        "returncode": 0,
+        "elapsed_seconds": 9.235,
+        "bytes": 9453568,
+        "frame_returncode": 0
+      },
+      "yuv": {
+        "returncode": 0,
+        "elapsed_seconds": 10.237,
+        "bytes": 9928704,
+        "frame_returncode": 0
+      }
+    },
+    "rgb_matches_official_windows_reference": true,
+    "yuv_reproduces_pink_whites": true,
+    "user_confirms_rgb_restored_normal_passthrough_colors": true,
+    "rgb_wrapper": {
+      "returncode": 0,
+      "wall_seconds": 11.491,
+      "bytes": 15407829,
+      "color_space_override": "rgb",
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "5.371344"
+        }
+      },
+      "probe_returncode": 0,
+      "frame_returncode": 0
+    },
+    "automatic_color_detection_fixed": false
+  },
+  {
+    "test": "usbip-detach-during-streaming",
+    "disconnect_method": "usbipd detach during active streaming",
+    "physical_unplug_tested": false,
+    "stream_started": true,
+    "returncode": 1,
+    "exit_after_detach_request_seconds": 0.621,
+    "capture_bytes": 7815168,
+    "device_removed_error": true,
+    "clean_error_exit": true,
+    "normal_binding_restored": true,
+    "normal_windows_binding_restored": true
   }
 ]

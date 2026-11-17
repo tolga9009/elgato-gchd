@@ -142,13 +142,15 @@ request, further root-cause tracing is deferred. No speculative firmware or
 async streaming change was made. Recovery through USB reset is not established.
 
 The requested 30-second streaming interval produced a TS container duration of
-32.733 s, including data already queued by initialization. ffprobe found H.264
+32.733 s. The reason for this timing difference has not been established.
+ffprobe found H.264
 720×480 video and stereo MP2 audio at 48 kHz. The first 30 seconds also decode without diagnostics and no TS continuity,
 sync or transport-error indicators were found. The raw file ends with a partial
 176-byte TS packet; full-file decoding reports one H.264 warning beyond the
 clean first 30 seconds. Zero reported queue drops alone does not establish
 stream integrity. Ctrl+C/restart, live unplug recovery,
-wrapper-on-hardware and 30+ minute recording remain to be tested.
+wrapper-on-hardware and 30+ minute recording remained to be tested at that point;
+subsequent results follow below.
 
 USBPcap 1.5.4.0 was installed with explicit approval; the user rebooted Windows.
 Native traces include proprietary firmware and remain in ignored artifacts/.
@@ -163,6 +165,38 @@ Sanitized evidence: [November 16 results](hardware-results-2026-11-16.json).
 [Earlier failures](hardware-results-2026-11-11.json) remain for historical context.
 Full logs, captures and firmware remain local and excluded from Git. The other
 agent's shared-workspace evidence was preserved.
+
+### Short acceptance checks and color override
+
+The user replaced the planned 31-minute test with a one-minute recording.
+Long-duration reliability remains unverified. On the same WSL attachment:
+
+| Test | Observed result |
+| --- | --- |
+| Ctrl+C during active streaming | Exit 0; shutdown in 2.870 s; valid H.264/MP2 output |
+| Restart without replugging | MP4 wrapper completed, exit 0; H.264 video and AAC stereo audio |
+| One-minute wrapper/MKV recording | Exit 0; 185,626,603-byte file; H.264/MP2; 0 reported drops or USB overflows |
+| Explicit RGB/YUV comparison with stable cables | RGB matched the official Windows color bars; YUV reproduced pink whites |
+| RGB wrapper override | Five-second MP4 completed with H.264/AAC; user confirmed normal HDMI pass-through colors |
+| USB/IP detach during active streaming | LIBUSB_ERROR_NO_DEVICE; exit 1 in 0.621 s after detach request; no abort or forced signal |
+| Cleanup | Card detached, unbound and returned to normal shared Windows binding |
+
+Automatic color detection chose YUV for this RGB source. The existing `-c rgb`
+corrected capture and pass-through colors; automatic detection remains unchanged.
+The wrapper now accepts validated `GCHD_COLOR_SPACE=rgb|yuv|auto` and preserves
+existing defaults when unset. Forwarding and invalid-value rejection are tested.
+
+The user changed HDMI cables during the one-minute recording. Its successful
+transport/mux result does not establish uninterrupted source video. Representative
+frames still contained the expected color bars. The container duration was
+64.965 s for the requested 60-second streaming interval; timestamp/trim precision
+has not been validated. ffmpeg also reported a final truncated PES at EOF while
+finalizing the short MP4 and MKV outputs, with exit 0 and readable containers.
+
+Physical USB unplug during streaming and long-duration recording were not tested. A real USB/IP
+disconnect was tested, which covers the observed userspace removal/error path
+without claiming a physical power-loss test. Further WSL handoff root-cause
+investigation remains deferred at the user's request.
 
 ## Defect and verification summary
 

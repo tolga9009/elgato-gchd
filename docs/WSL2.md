@@ -171,7 +171,9 @@ build/src/gchd --duration 90s - | ffmpeg -i - -c copy "$HOME/capture.mkv"
 Stop with Ctrl+C once and wait. Disconnects should exit nonzero and cleanup
 cannot throw; these paths are covered by USB fault mocks. Actual initialization
 timeout and SIGINT tests exited cleanly; the timed recording also exited 0 after
-shutdown. Ctrl+C during real streaming and unplug tests are still pending.
+shutdown. Ctrl+C during real streaming and restart on the same attachment
+succeeded. A USB/IP detach during streaming produced LIBUSB_ERROR_NO_DEVICE
+and exit 1 promptly; physical USB unplug remains unverified.
 Stats appear every five seconds on stderr. Nonzero drop/overflow counts mean
 loss; persistent timeouts with zero bytes do not establish a working stream.
 If protocol readiness fails, capture stderr and try a physical power cycle;
@@ -185,10 +187,15 @@ failure; use the tested cold-start sequence for that condition.
 
 ## Hardware acceptance checklist
 
-Verified: both firmware uploads; 30-second capture with ffprobe-confirmed video
-and audio; non-root access; timed exit and shutdown. Still required: Ctrl+C
-followed by restart; real unplug during streaming; and 30+ minutes over usbipd
-with loss counters and ffmpeg diagnostics.
+Verified: both firmware uploads, non-root access, timed capture, Ctrl+C/restart,
+MP4/MKV wrapper output and a USB/IP disconnect during streaming. A one-minute
+recording completed with zero reported dropped buffers/overflows, but the user
+changed HDMI cables during it, so uninterrupted input was not validated.
+The planned 31-minute run was replaced with this short check at the user's
+request. Physical USB unplug during streaming and long-duration reliability remain unverified.
+The requested 60-second streaming interval produced a 64.965-second container;
+precise timestamp/trim behavior is unverified. EOF can leave a partial TS/PES;
+ffmpeg finalized the tested containers successfully despite a final PES warning.
 If measurements implicate USB/IP round-trip latency, evaluate 4–8 async bulk-IN
 transfers against FF-5's MIT-licensed experimental branch. Its existence is not
 evidence of working capture. V4L2 and analog/mode-detection changes are deferred.

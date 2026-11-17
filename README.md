@@ -7,8 +7,10 @@ verified on the original `0fd9:0044` card under WSL 2: H.264 720×480 video,
 stereo 48 kHz MP2 audio, and zero reported dropped buffers or USB overflows.
 **A known WSL/USB-IP handoff issue requires a cold start while force-bound** on
 the tested setup; see the [tested startup procedure](docs/WSL2.md#known-wslusb-ip-transferhandoff-issue).
-The protocol remains experimental. Streaming restart, unplug recovery and
-30+ minute recording still need validation. See the [phase report](docs/MODERNIZATION.md).
+The protocol remains experimental. Ctrl+C/restart, wrapper recording and
+USB/IP-disconnect handling were tested. Physical unplug during streaming and long-duration
+reliability remain unverified; the user requested short recording checks.
+See the [phase report](docs/MODERNIZATION.md).
 
 ## Build and install
 
