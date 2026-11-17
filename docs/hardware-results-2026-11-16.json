@@ -192,6 +192,23 @@
     "requested_streaming_duration_seconds": 30,
     "final_stats": "Final stats: 96468992 bytes written, 96468992 USB bytes, 25.7094 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts",
     "firmware_uploads_succeeded": true,
-    "device_reenumeration_during_firmware_upload": false
+    "device_reenumeration_during_firmware_upload": false,
+    "ts_integrity": {
+      "initial_sync_offset": 0,
+      "trailing_bytes": 176,
+      "sync_errors": 0,
+      "transport_error_indicator_packets": 0,
+      "continuity_errors_by_pid": {},
+      "flagged_discontinuities_by_pid": {}
+    },
+    "first_30_seconds_decode": {
+      "returncode": 0,
+      "diagnostic_bytes": 0
+    },
+    "full_file_decode": {
+      "returncode": 0,
+      "stderr_bytes": 69,
+      "note": "One H.264 warning in the tail beyond the clean first 30 seconds; raw TS ends with a partial 176-byte packet."
+    }
   }
 ]

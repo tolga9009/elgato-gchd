@@ -143,8 +143,11 @@ async streaming change was made. Recovery through USB reset is not established.
 
 The requested 30-second streaming interval produced a TS container duration of
 32.733 s, including data already queued by initialization. ffprobe found H.264
-720×480 video and stereo MP2 audio at 48 kHz. Zero reported drops does not prove
-absence of all transport or codec errors. Ctrl+C/restart, live unplug recovery,
+720×480 video and stereo MP2 audio at 48 kHz. The first 30 seconds also decode without diagnostics and no TS continuity,
+sync or transport-error indicators were found. The raw file ends with a partial
+176-byte TS packet; full-file decoding reports one H.264 warning beyond the
+clean first 30 seconds. Zero reported queue drops alone does not establish
+stream integrity. Ctrl+C/restart, live unplug recovery,
 wrapper-on-hardware and 30+ minute recording remain to be tested.
 
 USBPcap 1.5.4.0 was installed with explicit approval; the user rebooted Windows.
