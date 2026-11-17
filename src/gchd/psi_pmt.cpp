@@ -74,6 +74,7 @@ void PMT_Mapping::unpack( const std::vector<uint8_t> &inputData,
 			  std::vector<uint8_t>::const_iterator &offset,
 			  int size )
 {
+    ensureAvailable(inputData, offset, size);
 	if( size < 5) {
 		throw PSI_FormatException("Cannot unpack PMT_Mapping entry in less than 5 bytes.");
 	}
@@ -101,7 +102,10 @@ void PMT_Mapping::unpack( const std::vector<uint8_t> &inputData,
 	}
 	dataPointer+=2;
 	offset +=2;
-	std::vector<uint8_t>::const_iterator endOfDescriptors = offset + es_info_length;
+	if (es_info_length > size-5) {
+        throw PSI_FormatException("PSI PMT descriptors exceed the mapping length.");
+    }
+    std::vector<uint8_t>::const_iterator endOfDescriptors = offset + es_info_length;
 
 	//Reset descriptors__
 	descriptors_ = std::vector< std::shared_ptr<PSI_Descriptor> >();
@@ -182,6 +186,7 @@ void PMT_Data::unpack( const std::vector<uint8_t> &inputData,
 		       std::vector<uint8_t>::const_iterator &offset,
 		       int size )
 {
+    ensureAvailable(inputData, offset, size);
 	int overhead=4; //4 byte overhead
 	if (size < overhead) {
 		throw PSI_FormatException("PSI PMT table needs to be at least 4 bytes.");
@@ -204,11 +209,10 @@ void PMT_Data::unpack( const std::vector<uint8_t> &inputData,
 		throw PSI_FormatException("PSI PMT reserved bits not set correctly.");
 	}
 	uint16_t programInfoLength=value & ((1<<10)-1);
-	std::vector<uint8_t>::const_iterator endInfoOffset = offset + programInfoLength;
-
-	if( endInfoOffset > endOffset ) {
+	if (programInfoLength > endOffset-offset) {
 		throw PSI_FormatException("PSI PMT program info length longer than rest of PMT.");
 	}
+    const auto endInfoOffset=offset+programInfoLength;
 
 	///////////////////////////////////
 	//Unpack program info            //
@@ -260,6 +264,9 @@ void PMT::pack(std::vector<uint8_t> &outputData,
 	header_.tableID_ = TABLE_ID_PMT;
 	header_.sectionSyntaxIndicator_ = true;
 	header_.privateBit_ = false;
+    if (syntaxSize + dataSize > 1017) {
+        throw PSI_ValueException("PSI table is too large for its section length.");
+    }
 	header_.innerLength_ = syntaxSize + dataSize; //sectionLength without CRC
 	header_.pack( outputData, offset );
 
@@ -278,6 +285,7 @@ void PMT::unpack( const std::vector<uint8_t> &inputData,
 		  std::vector<uint8_t>::const_iterator &offset,
 		  int size )
 {
+    ensureAvailable(inputData, offset, size);
 	std::vector<uint8_t>::const_iterator endOffset=offset+size;
 	header_.unpack( inputData, offset, endOffset-offset);
 

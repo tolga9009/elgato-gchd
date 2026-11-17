@@ -43,10 +43,11 @@ void PSI_TableHeader::pack( std::vector<uint8_t> &/*outputData*/, std::vector<ui
 	offset+=2;
 }
 
-void PSI_TableHeader::unpack(const std::vector<uint8_t> &/*data*/,
+void PSI_TableHeader::unpack(const std::vector<uint8_t> &inputData,
 			     std::vector<uint8_t>::const_iterator &offset,
 			     int size)
 {
+    ensureAvailable(inputData, offset, size);
 	std::vector<uint8_t>::const_iterator endOffset=offset+size;
 
 	const int headerSize=3;

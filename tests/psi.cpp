@@ -19,6 +19,41 @@ template<class T> static void roundtrip(T original, T parsed) {
     check(repacked==bytes);
 }
 
+template<class T> static void invalidRanges(T prototype) {
+    const std::vector<uint8_t> bytes{0,0};
+    for (int size: {-1,3,1000000}) {
+        auto parsed=prototype;
+        auto cursor=bytes.cbegin();
+        bool rejected=false;
+        try { parsed.unpack(bytes,cursor,size); }
+        catch (const PSI_FormatException &) { rejected=true; }
+        check(rejected);
+    }
+}
+
+template<class T> static void malformedCorpus(T prototype) {
+    std::vector<uint8_t> valid;
+    prototype.bytes(valid);
+    auto parse=[&](const std::vector<uint8_t> &bytes) {
+        auto parsed=prototype;
+        auto cursor=bytes.cbegin();
+        try { parsed.unpack(bytes,cursor,bytes.size()); }
+        catch (const PSI_FormatException &) { return; }
+        check(cursor==bytes.cend());
+    };
+    // Exercise all truncations and every single-byte mutation of generated
+    // input. Sanitizers check the rejection paths as well as valid round trips.
+    for (size_t length=0; length<valid.size(); ++length)
+        parse(std::vector<uint8_t>(valid.begin(),valid.begin()+length));
+    for (size_t offset=0; offset<valid.size(); ++offset) {
+        auto bytes=valid;
+        for (unsigned value=0; value<256; ++value) {
+            bytes[offset]=value;
+            parse(bytes);
+        }
+    }
+}
+
 int main() {
     // Buffers sent to the device exclude the CRC that the hardware appends.
     roundtrip(PAT(1),PAT(0));
@@ -67,6 +102,35 @@ int main() {
     SIT sit;
     sit.data_.transmissionParameters_={program,unknown};
     roundtrip(sit,SIT());
+
+    invalidRanges(PAT(0)); invalidRanges(PAT_Data()); invalidRanges(PAT_Entry());
+    invalidRanges(PMT(0,0)); invalidRanges(PMT_Data()); invalidRanges(PMT_Mapping());
+    invalidRanges(SIT()); invalidRanges(SIT_Data());
+    invalidRanges(PSI_TableHeader()); invalidRanges(PSI_Syntax());
+    invalidRanges(PSI_ParseDescriptor());
+    malformedCorpus(pat); malformedCorpus(pmt); malformedCorpus(sit);
+
+    // An impossible nested length must be rejected before an end iterator is formed.
+    for (const auto &bytes: {std::vector<uint8_t>{0x1b,0xe1,1,0xf3,0xff},
+                            std::vector<uint8_t>{0x1b,0xe1,1,0xf0,6,0x28,4}}) {
+        PMT_Mapping parsed;
+        auto cursor=bytes.cbegin();
+        bool rejected=false;
+        try { parsed.unpack(bytes,cursor,bytes.size()); }
+        catch (const PSI_FormatException &) { rejected=true; }
+        check(rejected);
+    }
+    PSI_ProgramDescriptor tooLarge(std::vector<uint8_t>(256));
+    bool tooLargeRejected=false;
+    try { std::vector<uint8_t> bytes; tooLarge.bytes(bytes); }
+    catch (const PSI_ValueException &) { tooLargeRejected=true; }
+    check(tooLargeRejected);
+    PAT tooManyEntries(1);
+    for (int i=0; i<16384; ++i) tooManyEntries.addEntry(PAT_Entry(1,0x100));
+    tooLargeRejected=false;
+    try { std::vector<uint8_t> bytes; tooManyEntries.bytes(bytes); }
+    catch (const PSI_ValueException &) { tooLargeRejected=true; }
+    check(tooLargeRejected);
 
     for (uint8_t length=0; length<4; ++length) {
         const std::vector<uint8_t> bytes{0,0xb0,length};

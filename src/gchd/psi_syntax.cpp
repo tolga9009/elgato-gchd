@@ -35,10 +35,11 @@ void PSI_Syntax::pack(std::vector<uint8_t> &/*data*/, std::vector<uint8_t>::iter
 	offset+=5;
 }
 
-void PSI_Syntax::unpack(const std::vector<uint8_t> &/*data*/,
+void PSI_Syntax::unpack(const std::vector<uint8_t> &inputData,
 			std::vector<uint8_t>::const_iterator &offset,
 			int sectionLength)
 {
+    ensureAvailable(inputData, offset, sectionLength);
 	int overhead=5; //The hardware adds the CRC; it is absent from this buffer.
 	if (sectionLength < overhead) {
 		throw PSI_FormatException("The length of a PSI Syntax section needs to be at least 5 bytes.");
