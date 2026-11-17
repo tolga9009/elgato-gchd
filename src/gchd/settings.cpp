@@ -663,7 +663,14 @@ void TranscoderSettings::mergeAutodetect( TranscoderSettings &prototype, InputSe
 		this->minVariableBitRate_ = autoMinBitrate;
 	}
 	if( prototype.h264Level_ == 0.0 ) {
-		h264Level_=determineH264Level( horizontal, vertical, effectiveFrameRate_, getRealMaxBitRateKbps() );
+		// Interlaced rates are fields/second; determineH264Level counts full
+		// frames. Two half-height fields consume one frame's macroblocks
+		// (ITU-T H.264, 7.4.3 and A.3). Preserve the encoder/GOP rate above.
+		const double levelFrameRate=effectiveFrameRate_ /
+			(currentInput.getScanMode()==ScanMode::Interlaced ? 2.0 : 1.0);
+		// Enforce the same supported levels as explicit requests, rather than
+		// sending an unsupported level or understating it by capping to 4.1.
+		setH264Level(determineH264Level(horizontal,vertical,levelFrameRate,getRealMaxBitRateKbps()));
 	}
 }
 

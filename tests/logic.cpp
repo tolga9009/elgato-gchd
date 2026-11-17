@@ -7,6 +7,21 @@
 #include <iostream>
 #include <stdexcept>
 static void check(bool ok) { if (!ok) throw std::runtime_error("logic regression"); }
+static TranscoderSettings settingsAtMode(Resolution resolution, ScanMode scanMode,
+                                         double refreshRate, double requestedRate,
+                                         float requestedLevel=0) {
+    InputSettings input;
+    input.setSource(InputSource::HDMI);
+    input.setResolution(resolution);
+    input.setScanMode(scanMode);
+    input.setRefreshRate(refreshRate);
+    TranscoderSettings requested, resolved;
+    requested.setConstantBitRateMbps(5);
+    requested.setFrameRate(requestedRate);
+    requested.setH264Level(requestedLevel);
+    resolved.mergeAutodetect(requested,input);
+    return resolved;
+}
 int main() {
     FILE *empty=tmpfile(); check(empty!=nullptr);
     bool rejected=false;
@@ -15,16 +30,7 @@ int main() {
     check(TranscoderSettings::unsignedH264Level(4.1f)==41);
     // The auto frame-rate sentinel must select the same level as its resolved rate.
     auto settingsAtRate = [](double refreshRate, double requestedRate) {
-        InputSettings input;
-        input.setSource(InputSource::HDMI);
-        input.setResolution(Resolution::HD720);
-        input.setScanMode(ScanMode::Progressive);
-        input.setRefreshRate(refreshRate);
-        TranscoderSettings requested, resolved;
-        requested.setConstantBitRateMbps(5);
-        requested.setFrameRate(requestedRate);
-        resolved.mergeAutodetect(requested,input);
-        return resolved;
+        return settingsAtMode(Resolution::HD720,ScanMode::Progressive,refreshRate,requestedRate);
     };
     for (double refreshRate: {60.0,30.0,50.0,25.0}) {
         auto automatic=settingsAtRate(refreshRate,0);
@@ -36,6 +42,34 @@ int main() {
         auto halfRate=settingsAtRate(refreshRate,refreshRate/2);
         check(halfRate.getEffectiveFrameRate()==refreshRate/2);
         check(TranscoderSettings::unsignedH264Level(halfRate.getH264Level())==31);
+    }
+    for (double fieldRate: {60.0,50.0}) {
+        auto automatic=settingsAtMode(Resolution::HD1080,ScanMode::Interlaced,fieldRate,0);
+        auto explicitRate=settingsAtMode(Resolution::HD1080,ScanMode::Interlaced,fieldRate,fieldRate);
+        auto frameEquivalent=settingsAtMode(Resolution::HD1080,ScanMode::Progressive,fieldRate/2,fieldRate/2);
+        check(automatic.getFrameRate()==0 && automatic.getEffectiveFrameRate()==fieldRate);
+        check(explicitRate.getFrameRate()==fieldRate && explicitRate.getEffectiveFrameRate()==fieldRate);
+        check(automatic.getH264Level()==explicitRate.getH264Level());
+        check(automatic.getH264Level()==frameEquivalent.getH264Level());
+        check(TranscoderSettings::unsignedH264Level(automatic.getH264Level())==40);
+        auto halfRate=settingsAtMode(Resolution::HD1080,ScanMode::Interlaced,fieldRate,fieldRate/2);
+        check(halfRate.getEffectiveFrameRate()==fieldRate/2);
+        check(TranscoderSettings::unsignedH264Level(halfRate.getH264Level())==40);
+        auto explicitLevel=settingsAtMode(Resolution::HD1080,ScanMode::Interlaced,fieldRate,0,4.1f);
+        check(TranscoderSettings::unsignedH264Level(explicitLevel.getH264Level())==41);
+    }
+    // Genuine progressive 1080p50/60 needs level 4.2; never silently cap it to
+    // the supported 4.1 maximum. A requested 25/30 fps remains supported.
+    for (double refreshRate: {60.0,50.0}) {
+        for (double requestedRate: {0.0,refreshRate}) {
+            bool unsupported=false;
+            try { settingsAtMode(Resolution::HD1080,ScanMode::Progressive,refreshRate,requestedRate); }
+            catch (const setting_error &error) { unsupported=std::string(error.what()).find("4.1")!=std::string::npos; }
+            check(unsupported);
+        }
+        auto reduced=settingsAtMode(Resolution::HD1080,ScanMode::Progressive,refreshRate,refreshRate/2);
+        check(reduced.getEffectiveFrameRate()==refreshRate/2);
+        check(TranscoderSettings::unsignedH264Level(reduced.getH264Level())==40);
     }
     double seconds=0;
     check(Utility::parseDuration(seconds,"10m") && seconds==600);
