@@ -21,6 +21,7 @@ struct UsbTestAccess {
         fclose(file); }
 };
 static int code=0, length=0, calls=0;
+static bool cancelBulkRead=false;
 static int versionLayout=0;
 static int controlCalls=0, closes=0, releases=0;
 static int startFailure=0, stopAttempts=0, cleanupReads=0;
@@ -34,6 +35,7 @@ extern "C" int __wrap_libusb_bulk_transfer(libusb_device_handle *, unsigned char
     if (!timeout) throw std::runtime_error("infinite timeout");
     ++calls;
     if (code != LIBUSB_ERROR_NO_DEVICE) *transferred=length;
+    if (cancelBulkRead) Process::setActive(false);
     return code;
 }
 extern "C" int __wrap_libusb_control_transfer(libusb_device_handle *, uint8_t type, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t size, unsigned timeout) {
@@ -145,6 +147,37 @@ int main() {
         code=LIBUSB_ERROR_IO; throws([&] { g.stream(&b); }); check(b.empty());
         code=LIBUSB_ERROR_NO_DEVICE; throws([&] { g.stream(&b); }); check(b.empty());
         const int before=calls; throws([&] { g.stream(&b); }); check(calls==before);
+    }
+    // Immediately completed recoverable errors must not busy-spin. Allow a
+    // generous call-rate margin for scheduling and timer granularity in CI.
+    for (const int error: {LIBUSB_ERROR_OVERFLOW,LIBUSB_ERROR_TIMEOUT}) {
+        GCHD g(&process,InputSettings(),TranscoderSettings()); UsbTestAccess::arm(g);
+        code=error; length=0;
+        Streamer streamer(&g,&process,StreamOutput::Disk);
+        check(streamer.disk.enable("/dev/null")==0);
+        const int before=calls;
+        const auto start=std::chrono::steady_clock::now();
+        streamer.loop(0.1);
+        check(calls>before && calls-before<=32);
+        check(std::chrono::steady_clock::now()-start<std::chrono::seconds(1));
+
+        // Cancellation occurring during a USB call must interrupt the empty
+        // retry delay, rather than hiding it until another transfer completes.
+        cancelBulkRead=true;
+        const auto cancellationStart=std::chrono::steady_clock::now();
+        throws([&] { std::vector<unsigned char> b; g.stream(&b); });
+        check(std::chrono::steady_clock::now()-cancellationStart<std::chrono::milliseconds(250));
+        cancelBulkRead=false;
+    }
+    // Useful bytes bypass empty-read pacing, even on a partial timeout. A
+    // cancellation noticed after the transfer must not discard those bytes.
+    for (const int result: {0,static_cast<int>(LIBUSB_ERROR_TIMEOUT)}) {
+        GCHD g(&process,InputSettings(),TranscoderSettings()); UsbTestAccess::arm(g);
+        code=result; length=188; cancelBulkRead=true;
+        std::vector<unsigned char> b;
+        g.stream(&b);
+        check(b.size()==188);
+        cancelBulkRead=false;
     }
     {
         GCHD g(&process,InputSettings(),TranscoderSettings()); UsbTestAccess::arm(g); UsbTestAccess::initialized(g);
