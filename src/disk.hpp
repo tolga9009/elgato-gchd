@@ -12,9 +12,11 @@
 class Disk {
     int fd_=-1;
     int restoreFlags_=-1;
+    int closeOutput() noexcept;
 public:
     int enable(const std::string &path);
     int enableStdout();
+    void finalize();
     void disable() noexcept;
     void output(std::vector<unsigned char> *buffer, const std::atomic<bool> *cancel=nullptr);
     ~Disk() { disable(); }

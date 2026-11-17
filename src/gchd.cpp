@@ -101,14 +101,27 @@ void GCHD::stream(std::vector<unsigned char> *buffer, unsigned timeout) {
     buffer->resize(DATA_BUF);
     int transferred = 0;
     const int result=libusb_bulk_transfer(devh_, 0x81, buffer->data(), DATA_BUF, &transferred, timeout ? timeout : TIMEOUT);
-    if (result == LIBUSB_ERROR_OVERFLOW) { ++overflows_; buffer->clear(); return; }
-    if (result == LIBUSB_ERROR_TIMEOUT) ++timeouts_;
-    if (result != 0 && result != LIBUSB_ERROR_TIMEOUT) {
-        buffer->clear(); usbFailure(result, "USB streaming read");
+    if (result == LIBUSB_ERROR_OVERFLOW) {
+        ++overflows_;
+        buffer->clear();
+    } else {
+        if (result == LIBUSB_ERROR_TIMEOUT) ++timeouts_;
+        if (result != 0 && result != LIBUSB_ERROR_TIMEOUT) {
+            buffer->clear(); usbFailure(result, "USB streaming read");
+        }
+        if (transferred < 0 || transferred > DATA_BUF) { buffer->clear(); throw usb_error("Invalid USB read length"); }
+        buffer->resize(static_cast<size_t>(transferred));
     }
-    if (transferred < 0 || transferred > DATA_BUF) { buffer->clear(); throw usb_error("Invalid USB read length"); }
-    buffer->resize(static_cast<size_t>(transferred));
-    if (buffer->empty() && result == 0) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    if (buffer->empty()) {
+        // Some USB backends complete errors immediately. Pace empty retries
+        // without delaying useful data, including partial timeout transfers.
+        const unsigned delayMilliseconds=result == 0 ? 1 : 5;
+        for (unsigned i=0; i<delayMilliseconds; ++i) {
+            checkUsbOperation();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        checkUsbOperation();
+    }
 }
 
 void GCHD::resetDevice() {
@@ -257,7 +270,7 @@ void GCHD::closeDevice() noexcept {
 	shuttingDown_ = true;
 	shutdownDeadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(5);
 	if (devh_) {
-		if (isInitialized_ && !deviceGone_) {
+		if ((isInitialized_ || streamStartAttempted_) && !deviceGone_) {
 			uninitDevice();
 		}
 
@@ -266,6 +279,7 @@ void GCHD::closeDevice() noexcept {
 		devh_ = nullptr;
 		interfaceClaimed_ = false;
 		isInitialized_ = false;
+		streamStartAttempted_ = false;
 	}
 }
 

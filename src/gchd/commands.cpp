@@ -174,6 +174,12 @@ void GCHD::clearEnableStateBits( uint16_t clearMask ) {
  *   stream during the encoding process.
  */
 void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
+    if (command == SCMD_STATE_CHANGE && data == SCMD_STATE_START) {
+        checkUsbOperation();
+        // A failed transfer may still have reached the device. Keep teardown
+        // responsible for stopping it even if initialization never completes.
+        streamStartAttempted_ = true;
+    }
 	uint8_t send[6] = {0};
 	send[2] = command;
 	send[3] = mode;

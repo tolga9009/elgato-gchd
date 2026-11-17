@@ -740,6 +740,8 @@ int main(int argc, char *argv[]) {
 
 		// immediately start receive loop after device init
 		streamer.loop(durationSeconds);
+		// The writer has joined; report delayed file-close errors before success.
+		if (format==Format::Disk || format==Format::Stdout) streamer.disk.finalize();
 	} catch ( setting_error &error ) {
 		std::cerr << std::endl << error.what() << std::endl;
 		return EXIT_FAILURE;

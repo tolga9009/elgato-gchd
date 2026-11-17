@@ -39,16 +39,20 @@ def first(fields, key):
     return values[0] if values else None
 
 def discover(paths, vid, pid):
-    handles = set()
+    identities = collections.defaultdict(set)
     for path in paths:
         for event in events(path):
             f = event["fields"]
-            if number(first(f, "fid_idVendor")) == vid and number(first(f, "fid_idProduct")) == pid:
-                handle = first(f, "fid_UsbDevice")
-                if handle:
-                    handles.add(handle)
+            identity = (number(first(f, "fid_idVendor")), number(first(f, "fid_idProduct")))
+            handle = first(f, "fid_UsbDevice")
+            if handle and None not in identity:
+                identities[handle].add(identity)
+    handles = {handle for handle, observed in identities.items() if (vid, pid) in observed}
     if not handles:
         raise ValueError("Selected device descriptor not found; no unfiltered export is allowed")
+    # Kernel device handles are identities only while their descriptors agree.
+    if any(len(identities[handle]) != 1 for handle in handles):
+        raise ValueError("Selected USB handle has conflicting VID/PID descriptors; refusing export")
     return handles
 
 def selected(path, handles):
@@ -89,9 +93,13 @@ def main():
     parser.add_argument("--vid", type=lambda v: int(v, 0), default=0x0fd9)
     parser.add_argument("--pid", type=lambda v: int(v, 0), default=0x0044)
     args = parser.parse_args()
-    handles = discover(args.descriptors or [args.trace], args.vid, args.pid)
-    print(json.dumps({"vid": args.vid, "pid": args.pid,
-                      "events": list(selected(args.trace, handles))}, indent=2))
+    try:
+        handles = discover([*args.descriptors, args.trace], args.vid, args.pid)
+        result = {"vid": args.vid, "pid": args.pid,
+                  "events": list(selected(args.trace, handles))}
+    except (OSError, ValueError, ET.ParseError) as error:
+        parser.exit(1, str(error) + "\n")
+    print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":
     main()

@@ -12,6 +12,7 @@
  * This file determines an interface by which you pack/unpack psi structures.
  */
 #include "psi_data.hpp"
+#include "psi_exceptions.hpp"
 
 void PSI_Data::bytes( std::vector<uint8_t> &outputVector )
 {
@@ -23,3 +24,11 @@ void PSI_Data::bytes( std::vector<uint8_t> &outputVector )
 
 
 
+
+void PSI_Data::ensureAvailable(const std::vector<uint8_t> &inputData,
+                               std::vector<uint8_t>::const_iterator offset, int size)
+{
+    if (size < 0 || size > inputData.cend()-offset) {
+        throw PSI_FormatException("PSI input length exceeds the available bytes.");
+    }
+}

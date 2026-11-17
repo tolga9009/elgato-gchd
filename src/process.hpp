@@ -26,7 +26,7 @@ class Process {
 
 	private:
 		static std::atomic<bool> isActive_;
-		static volatile sig_atomic_t stopSignal_;
+		static std::atomic<bool> stopRequested_;
 		bool hasPid_;
 		int pidFd_;
 		std::string name_;

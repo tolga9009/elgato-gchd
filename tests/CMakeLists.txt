@@ -9,6 +9,7 @@ target_link_options(usb_tests PRIVATE -Wl,--wrap=libusb_bulk_transfer -Wl,--wrap
 add_test(NAME usb_faults COMMAND usb_tests)
 add_executable(output_tests output.cpp)
 target_link_libraries(output_tests PRIVATE gchd_core)
+target_link_options(output_tests PRIVATE -Wl,--wrap=close)
 add_test(NAME output_faults COMMAND output_tests)
 set_tests_properties(output_faults PROPERTIES TIMEOUT 15)
 find_program(GCHD_FFMPEG ffmpeg)
@@ -20,3 +21,7 @@ endif()
 
 add_test(NAME etw_parser COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/etw.py)
 add_test(NAME usbpcap_parser COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/usbpcap.py)
+
+add_executable(psi_tests psi.cpp)
+target_link_libraries(psi_tests PRIVATE gchd_core)
+add_test(NAME psi_roundtrip COMMAND psi_tests)

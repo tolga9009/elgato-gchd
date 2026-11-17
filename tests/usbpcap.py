@@ -2,6 +2,7 @@ import importlib.util
 import json
 import pathlib
 import struct
+import subprocess
 import sys
 import tempfile
 sys.dont_write_bytecode = True
@@ -47,4 +48,22 @@ with tempfile.TemporaryDirectory() as directory:
     try: module.summarize(p)
     except ValueError: pass
     else: raise AssertionError('Missing descriptor permitted unfiltered export')
-print('USBPcap selection, payload exclusion and truncated-file checks passed')
+    other_descriptor=bytearray(descriptor)
+    struct.pack_into('<HH',other_descriptor,8,0x1234,0x5678)
+    target=control(10,3,(0x80,6,0x100,0,18),descriptor)
+    unrelated=(control(11,3,(0x80,6,0x100,0,18),other_descriptor)
+               + control(12,3,(0xc0,0xbc,0,0,6),b'OTHER!'))
+    for sequence in (target+unrelated,unrelated+target):
+        p.write_bytes(header+sequence)
+        for include_controls in (False,True):
+            try: module.summarize(p,include_controls=include_controls)
+            except ValueError as error: assert 'conflicting' in str(error)
+            else: raise AssertionError('Reused address permitted unrelated payload export')
+        result=subprocess.run([sys.executable,str(pathlib.Path(module.__file__)),str(p),'--controls'],
+                              capture_output=True,timeout=5)
+        assert result.returncode!=0 and not result.stdout
+        assert b'conflicting' in result.stderr
+    # Repeated descriptors for one identity are normal and remain usable.
+    p.write_bytes(header+target+target+control(13,3,(0x40,0xb8,0,0,6),b'123456'))
+    assert module.summarize(p)['system_commands'][0]['data_hex']==b'123456'.hex()
+print('USBPcap selection, payload exclusion, identity reuse and truncated-file checks passed')

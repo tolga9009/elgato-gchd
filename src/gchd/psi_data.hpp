@@ -20,6 +20,12 @@
 
 class PSI_Data
 {
+    protected:
+        // The cursor must belong to inputData. Validate lengths before forming
+        // an end iterator or dereferencing bytes from a declared sub-section.
+        static void ensureAvailable(const std::vector<uint8_t> &inputData,
+                                    std::vector<uint8_t>::const_iterator offset, int size);
+
 	public:
 		virtual ~PSI_Data() = default;
 		//Overload the following 3 methods.

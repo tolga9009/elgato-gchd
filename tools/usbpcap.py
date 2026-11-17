@@ -58,16 +58,19 @@ def control_pairs(path):
 
 
 def selected_devices(path, vid, pid):
-    devices = set()
+    identities = collections.defaultdict(set)
     for request, response in control_pairs(path):
         setup = struct.unpack_from('<BBHHH', request['data'])
         data = response['data']
         if (setup[:3] == (0x80, 6, 0x100) and response['status'] == 0
-                and len(data) >= 18 and data[:2] == b'\x12\x01'
-                and struct.unpack_from('<HH', data, 8) == (vid, pid)):
-            devices.add(request['key'])
+                and len(data) >= 18 and data[:2] == b'\x12\x01'):
+            identities[request['key']].add(struct.unpack_from('<HH', data, 8))
+    devices = {key for key, observed in identities.items() if (vid, pid) in observed}
     if not devices:
         raise ValueError('Selected VID/PID descriptor not found; refusing an unfiltered export')
+    # Addresses can be reused after reconnecting; never mix different devices.
+    if any(len(identities[key]) != 1 for key in devices):
+        raise ValueError('Selected USB address has conflicting VID/PID descriptors; refusing export')
     return devices
 
 

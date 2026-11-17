@@ -74,6 +74,9 @@ class PSI_UnknownDescriptor: public PSI_Descriptor
 
 		virtual int calculateSizeInternal();
 
+		virtual void packInternal(std::vector<uint8_t> &outputData,
+					  std::vector<uint8_t>::iterator &offset);
+
 		virtual void unpackInternal(const std::vector<uint8_t> &inputData,
 					    std::vector<uint8_t>::const_iterator &offset,
 					    int size );

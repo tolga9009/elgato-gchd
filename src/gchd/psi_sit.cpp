@@ -59,6 +59,7 @@ void SIT_Data::unpack( const std::vector<uint8_t> &inputData,
 		       std::vector<uint8_t>::const_iterator &offset,
 		       int size )
 {
+    ensureAvailable(inputData, offset, size);
 	int overhead=2; //2 byte transmissionInfoLoopLength
 	if (size < overhead) {
 		throw PSI_FormatException("PSI SIT table needs to be at least 2 bytes.");
@@ -80,10 +81,10 @@ void SIT_Data::unpack( const std::vector<uint8_t> &inputData,
 	//Unpack transmission Parameters.//
 	///////////////////////////////////
 	offset+=2;
-	std::vector<uint8_t>::const_iterator endTransmissionParametersOffset=offset+transmissionInfoLoopLength;
-	if (endTransmissionParametersOffset > endOfDataOffset) {
+	if (transmissionInfoLoopLength > endOfDataOffset-offset) {
 		throw PSI_FormatException("PSI SIT size issue.");
 	}
+    const auto endTransmissionParametersOffset=offset+transmissionInfoLoopLength;
 
 	//Reset transmissionParameters.
 	transmissionParameters_ = std::vector< std::shared_ptr<PSI_Descriptor >>();
@@ -133,6 +134,9 @@ void SIT::pack(std::vector<uint8_t> &outputData,
 	header_.tableID_ = TABLE_ID_SIT;
 	header_.sectionSyntaxIndicator_ = true;
 	header_.privateBit_ = true;
+    if (syntaxSize + dataSize > 1017) {
+        throw PSI_ValueException("PSI table is too large for its section length.");
+    }
 	header_.innerLength_ = syntaxSize + dataSize; //sectionLength without CRC
 	header_.pack( outputData, offset );
 
@@ -150,6 +154,7 @@ void SIT::unpack( const std::vector<uint8_t> &inputData,
 		  std::vector<uint8_t>::const_iterator &offset,
 		  int size )
 {
+    ensureAvailable(inputData, offset, size);
 	std::vector<uint8_t>::const_iterator endOffset=offset+size;
 	header_.unpack( inputData, offset, endOffset-offset);
 
