@@ -24,9 +24,12 @@ args += ["-"]
 capture=None
 mux=None
 stop_signal=0
+stop_sent=False
 
 def stop_driver():
-    if capture is not None and capture.poll() is None:
+    global stop_sent
+    if capture is not None and not stop_sent:
+        stop_sent=True
         try: capture.send_signal(signal.SIGINT)
         except ProcessLookupError: pass
 
@@ -37,21 +40,21 @@ def handle_signal(sig, frame):
         if mux is not None and mux.poll() is None: mux.terminate()
     else:
         stop_signal=sig
-        stop_driver()
 
 for sig in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP): signal.signal(sig,handle_signal)
 try:
-    capture=subprocess.Popen(args,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE)
+    # The wrapper owns signal forwarding; terminal signals must not reach a child twice.
+    capture=subprocess.Popen(args,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,start_new_session=True)
     if stop_signal: stop_driver()
     codecs=["-c","copy"]
     if pathlib.Path(output).suffix.lower() in (".mp4",".mov",".m4v"):
         # Original firmware commonly emits MPEG audio; AAC is widely compatible in MP4.
         codecs=["-c:v","copy","-c:a","aac","-b:a","192k"]
     mux=subprocess.Popen([ffmpeg,"-nostdin","-hide_banner","-n","-i","pipe:0","-map","0",*codecs,output],
-                         stdin=capture.stdout)
+                         stdin=capture.stdout,start_new_session=True)
     capture.stdout.close()
     while not stop_signal and capture.poll() is None and mux.poll() is None: time.sleep(0.05)
-    if mux.poll() is not None: stop_driver()
+    if stop_signal or mux.poll() is not None: stop_driver()
     try: driver_status=capture.wait(timeout=12)
     except subprocess.TimeoutExpired:
         capture.kill(); driver_status=capture.wait()
