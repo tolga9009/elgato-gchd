@@ -13,6 +13,30 @@ int main() {
     try { Firmware::validate(empty,"MB86H57_H58_IDLE"); } catch (const std::runtime_error &) { rejected=true; }
     fclose(empty); check(rejected);
     check(TranscoderSettings::unsignedH264Level(4.1f)==41);
+    // The auto frame-rate sentinel must select the same level as its resolved rate.
+    auto settingsAtRate = [](double refreshRate, double requestedRate) {
+        InputSettings input;
+        input.setSource(InputSource::HDMI);
+        input.setResolution(Resolution::HD720);
+        input.setScanMode(ScanMode::Progressive);
+        input.setRefreshRate(refreshRate);
+        TranscoderSettings requested, resolved;
+        requested.setConstantBitRateMbps(5);
+        requested.setFrameRate(requestedRate);
+        resolved.mergeAutodetect(requested,input);
+        return resolved;
+    };
+    for (double refreshRate: {60.0,30.0,50.0,25.0}) {
+        auto automatic=settingsAtRate(refreshRate,0);
+        auto explicitRate=settingsAtRate(refreshRate,refreshRate);
+        check(automatic.getFrameRate()==0);
+        check(automatic.getEffectiveFrameRate()==explicitRate.getEffectiveFrameRate());
+        check(automatic.getH264Level()==explicitRate.getH264Level());
+        check(TranscoderSettings::unsignedH264Level(automatic.getH264Level())==(refreshRate>30 ? 32u : 31u));
+        auto halfRate=settingsAtRate(refreshRate,refreshRate/2);
+        check(halfRate.getEffectiveFrameRate()==refreshRate/2);
+        check(TranscoderSettings::unsignedH264Level(halfRate.getH264Level())==31);
+    }
     double seconds=0;
     check(Utility::parseDuration(seconds,"10m") && seconds==600);
     check(Utility::parseDuration(seconds,"90s") && seconds==90);

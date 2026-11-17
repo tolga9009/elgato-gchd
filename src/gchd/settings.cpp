@@ -663,7 +663,7 @@ void TranscoderSettings::mergeAutodetect( TranscoderSettings &prototype, InputSe
 		this->minVariableBitRate_ = autoMinBitrate;
 	}
 	if( prototype.h264Level_ == 0.0 ) {
-		h264Level_=determineH264Level( horizontal, vertical, frameRate, getRealMaxBitRateKbps() );
+		h264Level_=determineH264Level( horizontal, vertical, effectiveFrameRate_, getRealMaxBitRateKbps() );
 	}
 }
 
