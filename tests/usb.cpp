@@ -9,6 +9,12 @@ struct UsbTestAccess {
     static std::string revision(GCHD &g) { std::vector<unsigned char> bytes; g.readVersion(bytes); return std::string(bytes.begin(),bytes.end()-1); }
     static int claim(GCHD &g) { g.devh_=reinterpret_cast<libusb_device_handle *>(1); return g.getInterface(); }
     static void initialized(GCHD &g) { g.isInitialized_=true; }
+    static bool isInitialized(const GCHD &g) { return g.isInitialized_; }
+    static void startAndConfirm(GCHD &g) {
+        g.deviceType_=DeviceType::GameCaptureHD;
+        g.scmd(SCMD_STATE_CHANGE,0,SCMD_STATE_START);
+        g.completeStateChange(SCMD_STATE_STOP,SCMD_STATE_START);
+    }
     static void firmware(GCHD &g, const char *path) { FILE *file=fopen(path,"rb");
         if (!file) { g.dlfirm(path); return; }
         try { g.uploadFirmware(file,16); } catch (...) { fclose(file); throw; }
@@ -16,6 +22,9 @@ struct UsbTestAccess {
 };
 static int code=0, length=0, calls=0;
 static int versionLayout=0;
+static int controlCalls=0, closes=0, releases=0;
+static int startFailure=0, stopAttempts=0, cleanupReads=0;
+static bool startFixture=false, failStartWrite=false, cancelAfterStart=false, cleanupFixture=false;
 static int configuration=1, configurationResult=0, setConfigurationCalls=0;
 extern "C" int __wrap_libusb_set_auto_detach_kernel_driver(libusb_device_handle *, int) { return 0; }
 extern "C" int __wrap_libusb_get_configuration(libusb_device_handle *, int *current) { *current=configuration; return configurationResult; }
@@ -29,6 +38,27 @@ extern "C" int __wrap_libusb_bulk_transfer(libusb_device_handle *, unsigned char
 }
 extern "C" int __wrap_libusb_control_transfer(libusb_device_handle *, uint8_t type, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t size, unsigned timeout) {
     if (!timeout) throw std::runtime_error("infinite timeout");
+    ++controlCalls;
+    if (startFixture) {
+        if (cleanupFixture) {
+            if (type==0xc0 && request==0xbc && value==0x0800 && index==0x2008 && size==2) {
+                ++cleanupReads;
+                data[0]=0; data[1]=SCMD_STATE_START;
+                return size;
+            }
+            if (type==0x40 && request==0xb8 && size==6 && data[2]==SCMD_STATE_CHANGE && data[5]==SCMD_STATE_NULL) {
+                ++stopAttempts;
+                // Cleanup itself can fail and must remain bounded and noexcept.
+                return LIBUSB_ERROR_IO;
+            }
+            throw std::runtime_error("Unexpected cleanup operation");
+        }
+        if (type==0x40 && request==0xb8 && size==6 && data[2]==SCMD_STATE_CHANGE && data[5]==SCMD_STATE_START) {
+            if (cancelAfterStart) Process::setActive(false);
+            return failStartWrite ? startFailure : size;
+        }
+        return startFailure;
+    }
     if (versionLayout && type==0xc0 && request==0xbc && value==0x0800 && size==4) {
         if (versionLayout==1 && (index==0x94 || index==0x98)) { std::memset(data,0,4); return 4; }
         const uint16_t base=versionLayout==1 ? 0x10 : 0x94;
@@ -37,8 +67,8 @@ extern "C" int __wrap_libusb_control_transfer(libusb_device_handle *, uint8_t ty
     }
     return LIBUSB_ERROR_NO_DEVICE;
 }
-extern "C" void __wrap_libusb_close(libusb_device_handle *) {}
-extern "C" int __wrap_libusb_release_interface(libusb_device_handle *, int) { return 0; }
+extern "C" void __wrap_libusb_close(libusb_device_handle *) { ++closes; }
+extern "C" int __wrap_libusb_release_interface(libusb_device_handle *, int) { ++releases; return 0; }
 static void check(bool ok) { if (!ok) throw std::runtime_error("USB regression"); }
 template<class F> void throws(F f) { bool caught=false; try { f(); } catch (const usb_error &) { caught=true; } check(caught); }
 int main() {
@@ -55,6 +85,49 @@ int main() {
     configurationResult=LIBUSB_ERROR_NO_DEVICE;
     { GCHD g(&process,InputSettings(),TranscoderSettings()); throws([&] { UsbTestAccess::claim(g); }); check(setConfigurationCalls==1); }
     configurationResult=0;
+    // Initialization has sent START but has not yet marked itself successful.
+    // A confirmation failure or ambiguous failed START still needs best-effort
+    // stop; a confirmed disconnect must never issue more device commands.
+    startFixture=true;
+    struct StartFailureScenario { int result; bool failedWrite, cancelled; };
+    const StartFailureScenario scenarios[]={
+        {LIBUSB_ERROR_TIMEOUT,false,false},
+        {LIBUSB_ERROR_IO,false,false},
+        {LIBUSB_ERROR_TIMEOUT,false,true},
+        {LIBUSB_ERROR_NO_DEVICE,false,false},
+        {LIBUSB_ERROR_TIMEOUT,true,false},
+        {LIBUSB_ERROR_NO_DEVICE,true,false}
+    };
+    for (const auto &scenario: scenarios) {
+        startFailure=scenario.result;
+        cancelAfterStart=scenario.cancelled;
+        failStartWrite=scenario.failedWrite;
+        cleanupFixture=false; stopAttempts=0; cleanupReads=0;
+        const int beforeCloses=closes, beforeReleases=releases;
+        const auto start=std::chrono::steady_clock::now();
+        {
+            GCHD g(&process,InputSettings(),TranscoderSettings()); UsbTestAccess::arm(g);
+            throws([&] { UsbTestAccess::startAndConfirm(g); });
+            check(!UsbTestAccess::isInitialized(g));
+            cleanupFixture=true;
+        }
+        check(std::chrono::steady_clock::now()-start<std::chrono::seconds(1));
+        const bool disconnected=startFailure==LIBUSB_ERROR_NO_DEVICE;
+        check(cleanupReads==(disconnected ? 0 : 1));
+        check(stopAttempts==(disconnected ? 0 : 1));
+        check(closes==beforeCloses+1 && releases==beforeReleases+1);
+    }
+    startFixture=false;
+    // Failures before START (for example, firmware upload) must not attempt
+    // protocol teardown on a device which never reached streaming setup.
+    {
+        const int beforeControls=controlCalls;
+        {
+            GCHD g(&process,InputSettings(),TranscoderSettings()); UsbTestAccess::arm(g);
+            throws([&] { UsbTestAccess::firmware(g,"/nonexistent/gchd-firmware"); });
+        }
+        check(controlCalls==beforeControls);
+    }
     UsbPollBudget attempts("test completion",std::chrono::seconds(1),1);
     attempts.check(false);
     try { attempts.check(false); check(false); }

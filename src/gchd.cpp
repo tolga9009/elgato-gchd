@@ -257,7 +257,7 @@ void GCHD::closeDevice() noexcept {
 	shuttingDown_ = true;
 	shutdownDeadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(5);
 	if (devh_) {
-		if (isInitialized_ && !deviceGone_) {
+		if ((isInitialized_ || streamStartAttempted_) && !deviceGone_) {
 			uninitDevice();
 		}
 
@@ -266,6 +266,7 @@ void GCHD::closeDevice() noexcept {
 		devh_ = nullptr;
 		interfaceClaimed_ = false;
 		isInitialized_ = false;
+		streamStartAttempted_ = false;
 	}
 }
 

@@ -78,6 +78,7 @@ class GCHD {
 		void usbFailure(int code, const std::string &operation);
 		int controlTransfer(uint8_t requestType, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t length);
 		bool isInitialized_;
+		bool streamStartAttempted_ = false;
 		std::string firmwareDirectory_;
 		std::string firmwareIdle_;
 		std::string firmwareEnc_;
