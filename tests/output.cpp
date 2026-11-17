@@ -84,6 +84,26 @@ int main() {
     child=fork(); check(child>=0);
     if (child==0) { Process p; raise(SIGTERM); raise(SIGTERM); _exit(1); }
     check(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==128+SIGTERM);
+    child=fork(); check(child>=0);
+    if (child==0) {
+        Process p; Process::setActive(true);
+        std::atomic<bool> sendSignal{false};
+        std::thread first([&] {
+            while (!sendSignal.load()) std::this_thread::yield();
+            if (raise(SIGTERM)!=0) _exit(2);
+        });
+        sendSignal=true;
+        const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(2);
+        while (Process::isActive() && std::chrono::steady_clock::now()<deadline) std::this_thread::yield();
+        first.join();
+        if (Process::isActive()) _exit(3);
+        // A different thread delivers the second signal; it must force exit
+        // using that signal's status after the first requested a clean stop.
+        std::thread second([] { raise(SIGHUP); });
+        second.join();
+        _exit(4);
+    }
+    check(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==128+SIGHUP);
     for (const auto &p: {existing,existing+".lock",alias,alias+".lock",fifoPath+".lock"}) unlink(p.c_str());
     check(rmdir(directory)==0);
 }

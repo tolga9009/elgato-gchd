@@ -19,11 +19,14 @@
 // constants
 constexpr auto version = "0.3.0";
 
+// Signal handlers may run on the output worker as well as the main thread.
+// Only lock-free atomic operations are permitted in the signal handler.
+static_assert(ATOMIC_BOOL_LOCK_FREE == 2, "Signal handling requires lock-free atomic bool");
 std::atomic<bool> Process::isActive_;
-volatile sig_atomic_t Process::stopSignal_ = 0;
+std::atomic<bool> Process::stopRequested_{false};
 
 bool Process::isActive() {
-	return isActive_ && stopSignal_ == 0;
+	return isActive_ && !stopRequested_.load(std::memory_order_relaxed);
 }
 
 void Process::setActive(bool isActive) {
@@ -83,15 +86,14 @@ std::string Process::getVersion() {
 }
 
 void Process::sigHandler(int sig) {
-    if (stopSignal_) _exit(128 + sig);
-    stopSignal_ = sig;
+    if (stopRequested_.exchange(true, std::memory_order_relaxed)) _exit(128 + sig);
 }
 
 Process::Process() {
 	isActive_ = false;
 	hasPid_ = false;
 	pidFd_ = -1;
-	stopSignal_ = 0;
+	stopRequested_.store(false, std::memory_order_relaxed);
 
 	// signal handling
 	struct sigaction action{};
