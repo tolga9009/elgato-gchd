@@ -10,7 +10,7 @@ the tested setup; see the [tested startup procedure](docs/WSL2.md#known-wslusb-i
 The protocol remains experimental. Ctrl+C/restart, wrapper recording and
 USB/IP-disconnect handling were tested. Physical unplug during streaming and long-duration
 reliability remain unverified; the user requested short recording checks.
-See the [phase report](docs/MODERNIZATION.md).
+See the [phase report](docs/MODERNIZATION.md) and [follow-up software audit](docs/AUDIT.md).
 
 ## Build and install
 

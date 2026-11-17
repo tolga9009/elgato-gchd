@@ -29,8 +29,9 @@ Defects 1–4 fixed: initialized and checked streaming lengths/status, partial
 timeout data retained, overflow data discarded, fatal errors propagated.
 Explicit libusb context, auto detach/reattach, interface ownership tracked.
 Already-active USB configurations are preserved.
-Only successful configuration sets initialized; partial configuration does not
-attempt the full shutdown protocol. Cleanup never throws, skips removed devices,
+Only successful configuration sets initialized. A separate START-attempt flag
+ensures late initialization failures still attempt shutdown; failures before
+START avoid protocol teardown on a partially booted device. Cleanup never throws, skips removed devices,
 and has a five-second budget plus at most one in-flight transfer.
 Control, interrupt and firmware transfers use 1000 ms timeouts; polling loops
 check cancellation with 15-second/2000-attempt limits. Firmware I/O and every
@@ -64,7 +65,8 @@ O_NOFOLLOW and an advisory lock. Safe stale default FIFOs can be reused.
 Writes handle partial writes/EINTR/EAGAIN; EPIPE, disk-full and UDP errors
 propagate. UDP datagrams are never split on short writes. Socket connection
 tries all addresses, frees addrinfo, and defaults to loopback as a destination.
-Signal handlers only set sig_atomic_t; SIGHUP included, second signal _exit.
+Signal handlers use a guaranteed lock-free atomic stop flag, including when
+delivered on the writer thread; SIGHUP is included and a second signal uses _exit.
 SIGPIPE disposition and masks are initialized. PID fd sentinel corrected.
 
 A 256-buffer queue (at most 4 MiB plus in-flight buffers) and writer thread
@@ -216,3 +218,12 @@ validation; matching CLI help and alias; PID descriptor sentinel.
 Deferred/out of scope: V4L2/v4l2loopback, multi-card support, upstream dev merge,
 analog fixes, HD60/HD60 S, mode detection, source changes on the fly, and
 sub-480i inputs. The large protocol configuration class remains for later work.
+
+
+## Follow-up software audit — 2026-11-16
+
+An independent review of USB lifecycle, output/concurrency, CLI/firmware tools,
+and PSI logic found additional reproducible defects. The fixes and regression
+evidence are recorded in [AUDIT.md](AUDIT.md). Eight CTest suites now cover the
+combined implementation. These follow-up changes were tested with mocks and
+synthetic data; they have not been exercised on the physical card.
