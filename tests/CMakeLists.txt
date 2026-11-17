@@ -20,3 +20,7 @@ endif()
 
 add_test(NAME etw_parser COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/etw.py)
 add_test(NAME usbpcap_parser COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/usbpcap.py)
+
+add_executable(psi_tests psi.cpp)
+target_link_libraries(psi_tests PRIVATE gchd_core)
+add_test(NAME psi_roundtrip COMMAND psi_tests)

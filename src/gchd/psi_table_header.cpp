@@ -28,7 +28,7 @@ void PSI_TableHeader::pack( std::vector<uint8_t> &/*outputData*/, std::vector<ui
 	value |= privateBit_<<14;
 	value |= 0x3 <<12; //reserved bits, set to 1.
 
-	uint16_t sectionLength=innerLength_;
+	unsigned sectionLength=innerLength_;
 	if (sectionSyntaxIndicator_) {
 		sectionLength += 4; //There will be a CRC added by hardware.
 	}
@@ -64,13 +64,16 @@ void PSI_TableHeader::unpack(const std::vector<uint8_t> &/*data*/,
 	uint16_t sectionLength = value & ((1<<10)-1);
 	innerLength_=sectionLength;
 	if( sectionSyntaxIndicator_ ) {
+		if (sectionLength < 4) {
+			throw PSI_FormatException("PSI section length is shorter than its CRC.");
+		}
 		innerLength_ -= 4; //There will be a CRC that HW will calculate.
 	}
 
 	//Check reserved and unused bits, his is strict checker that validates
 	//we set up things correctly
 	uint16_t reservedAndUnused = (value >> 10) & 0xf;
-	if( reservedAndUnused != 0x3 ) {
+	if( reservedAndUnused != 0xc ) {
 		throw PSI_FormatException("Reserved/unused bits not set correctly in PSI table header.");
 	}
 	if( sectionLength > 1021 )  { //standard dictates can't exceed this number

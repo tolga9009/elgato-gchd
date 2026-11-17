@@ -39,9 +39,9 @@ void PSI_Syntax::unpack(const std::vector<uint8_t> &/*data*/,
 			std::vector<uint8_t>::const_iterator &offset,
 			int sectionLength)
 {
-	int overhead=5+4; //5 byte header, 4 byte crc.
+	int overhead=5; //The hardware adds the CRC; it is absent from this buffer.
 	if (sectionLength < overhead) {
-		throw PSI_FormatException("The length of a PSI Syntax section needs to be at least 9 bytes.");
+		throw PSI_FormatException("The length of a PSI Syntax section needs to be at least 5 bytes.");
 	}
 
 	const uint8_t *dataPointer=&(*offset);
