@@ -694,14 +694,14 @@ void GCHD::readVersion( std::vector<unsigned char> &version )
 		read_config_buffer(HD_VERSION_REGISTER0, version.data(), 4);
 		read_config_buffer(HD_VERSION_REGISTER1, version.data()+4, 4);
 		read_config_buffer(HD_VERSION_REGISTER2, temporary, 4);
-		*(version.data()+4)=temporary[0];
+		version[8]=temporary[0];
 	}
 	else
 	{
 		read_config_buffer(HDNEW_VERSION_REGISTER0, version.data(), 4);
 		read_config_buffer(HDNEW_VERSION_REGISTER1, version.data()+4, 4);
 		read_config_buffer(HDNEW_VERSION_REGISTER2, temporary, 4);
-		*(version.data()+4)=temporary[0];
+		version[8]=temporary[0];
 	}
 
 	//Null terminate.
