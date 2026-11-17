@@ -14,7 +14,9 @@ marker=pathlib.Path(os.environ['GCHD_TEST_MARKER'])
 def stop(sig, frame):
     marker.write_text('SIGINT' if sig==signal.SIGINT else str(sig))
     sys.exit(0)
-signal.signal(signal.SIGINT,stop)
+signal.signal(signal.SIGINT,signal.SIG_IGN if os.environ.get('GCHD_TEST_IGNORE_SIGINT') else stop)
+if os.environ.get('GCHD_TEST_PID'):
+    pathlib.Path(os.environ['GCHD_TEST_PID']).write_text(str(os.getpid()))
 sys.stdout.buffer.write(pathlib.Path(os.environ['GCHD_TEST_TS']).read_bytes())
 sys.stdout.buffer.flush()
 marker.write_text('ready')
@@ -56,6 +58,30 @@ if os.environ.get('GCHD_TEST_WAIT'):
     assert marker.read_text()=='SIGINT'
     assert {'h264','mp2'} <= codecs(interrupted)
     marker.unlink()
+    # A single stop request must bound shutdown even when the producer ignores SIGINT.
+    stubborn_env=dict(env,GCHD_TEST_IGNORE_SIGINT='1',GCHD_TEST_PID=str(work/'driver.pid'))
+    stubborn_output=work/'stubborn.mkv'
+    stubborn=subprocess.Popen([str(wrapper),str(stubborn_output)],env=stubborn_env,
+                              stdout=subprocess.PIPE,stderr=subprocess.PIPE,start_new_session=True)
+    try:
+        deadline=time.monotonic()+5
+        while not marker.exists() and time.monotonic()<deadline: time.sleep(0.02)
+        assert marker.exists(), 'unresponsive fake driver did not start'
+        driver_pid=int((work/'driver.pid').read_text())
+        stubborn.send_signal(signal.SIGTERM)
+        _,errors=stubborn.communicate(timeout=20)
+        assert stubborn.returncode==128+signal.SIGTERM, errors.decode()
+        assert b'Driver did not shut down within 12 seconds' in errors
+        assert marker.read_text()=='ready', 'fake driver unexpectedly handled SIGINT'
+        try: os.kill(driver_pid,0)
+        except ProcessLookupError: pass
+        else: raise AssertionError('unresponsive driver was not killed and reaped')
+        assert {'h264','mp2'} <= codecs(stubborn_output)
+    finally:
+        if stubborn.poll() is None:
+            os.killpg(stubborn.pid,signal.SIGKILL)
+            stubborn.communicate(timeout=5)
+    marker.unlink()
     # Force a consumer failure before probing, with a producer waiting for SIGINT.
     tiny=work/'tiny.ts'; tiny.write_bytes(b'x'); env['GCHD_TEST_TS']=str(tiny)
     bin_dir=work/'bin'; bin_dir.mkdir()
@@ -63,4 +89,4 @@ if os.environ.get('GCHD_TEST_WAIT'):
     env['PATH']=str(bin_dir)+os.pathsep+env['PATH']
     bad=subprocess.run([str(wrapper),str(work/'bad.unsupported')],env=env,capture_output=True,timeout=20)
     assert bad.returncode!=0 and marker.read_text()=='SIGINT', bad.stderr.decode()
-print('Synthetic recording, container finalization, no-overwrite, and SIGINT forwarding passed')
+print('Synthetic recording, container finalization, no-overwrite, SIGINT forwarding and bounded shutdown passed')

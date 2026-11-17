@@ -50,11 +50,14 @@ try:
     mux=subprocess.Popen([ffmpeg,"-nostdin","-hide_banner","-n","-i","pipe:0","-map","0",*codecs,output],
                          stdin=capture.stdout)
     capture.stdout.close()
-    while capture.poll() is None and mux.poll() is None: time.sleep(0.05)
+    while not stop_signal and capture.poll() is None and mux.poll() is None: time.sleep(0.05)
     if mux.poll() is not None: stop_driver()
     try: driver_status=capture.wait(timeout=12)
     except subprocess.TimeoutExpired:
-        capture.kill(); capture.wait(); raise RuntimeError("Driver did not shut down within 12 seconds")
+        capture.kill(); driver_status=capture.wait()
+        message="Driver did not shut down within 12 seconds"
+        if not stop_signal: raise RuntimeError(message)
+        print(message,file=sys.stderr)
     try: mux_status=mux.wait(timeout=12)
     except subprocess.TimeoutExpired:
         mux.terminate(); mux.wait(timeout=3); raise RuntimeError("ffmpeg did not finish after driver exit")
