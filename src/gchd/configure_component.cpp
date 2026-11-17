@@ -78,7 +78,10 @@ void GCHD::configureComponent()
 	double value6665;
 
 	unsigned iterationCount=0;
+	UsbPollBudget poll0("component input lock");
 	do {
+		poll0.check(shuttingDown_);
+		checkUsbOperation();
 		if(iterationCount >= 10) { //Roughly 2 seconds given usleep below, after firmware load.
 			throw runtime_error( "No HDMI signal found.");
 		}

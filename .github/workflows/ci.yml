@@ -1,0 +1,22 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {compiler: g++, sanitize: 'OFF'}
+          - {compiler: clang++, sanitize: 'OFF'}
+          - {compiler: clang++, sanitize: 'ON'}
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev libssl-dev cppcheck ffmpeg
+      - run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DGCHD_WERROR=ON -DGCHD_SANITIZE=${{ matrix.sanitize }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - run: cmake --build build -j2
+      - run: ctest --test-dir build --output-on-failure
+      - run: cppcheck --project=build/compile_commands.json --enable=warning,portability --error-exitcode=1 --inline-suppr
+      - run: DESTDIR="$PWD/stage" cmake --install build

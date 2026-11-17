@@ -22,7 +22,11 @@
 
 int PSI_Descriptor::calculateSize(void)
 {
-	return 2+calculateSizeInternal();
+	const int length=calculateSizeInternal();
+    if (length < 0 || length > 255) {
+        throw PSI_ValueException("PSI descriptor payload exceeds its one-byte length.");
+    }
+    return 2+length;
 }
 
 //override this.
@@ -34,14 +38,15 @@ int PSI_Descriptor::calculateSizeInternal(void)
 void PSI_Descriptor::pack(std::vector<uint8_t> &outputData,
 			  std::vector<uint8_t>::iterator &offset)
 {
+	const int length=calculateSize()-2;
 	*offset++ = tag_;
-	*offset++ = calculateSizeInternal();
+	*offset++ = length;
 	packInternal( outputData, offset );
 }
 
 //override this
-void PSI_Descriptor::packInternal(std::vector<uint8_t> &outputData,
-				  std::vector<uint8_t>::iterator &offset)
+void PSI_Descriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
+				  std::vector<uint8_t>::iterator &/*offset*/)
 {
 }
 
@@ -49,6 +54,7 @@ void PSI_Descriptor::unpack(const std::vector<uint8_t> &inputData,
 			    std::vector<uint8_t>::const_iterator &offset,
 			    int size )
 {
+    ensureAvailable(inputData, offset, size);
 	if ( size < 2 ) {
 		throw PSI_FormatException( "PSI Descriptor length mismatch." );
 	}
@@ -57,7 +63,11 @@ void PSI_Descriptor::unpack(const std::vector<uint8_t> &inputData,
 	if ((size - 2) < length ) {
 		throw PSI_FormatException( "PSI Descriptor length mismatch." );
 	}
-	this->unpackInternal( inputData, offset, length );
+    const auto end=offset+length;
+    this->unpackInternal( inputData, offset, length );
+    if (offset != end) {
+        throw PSI_FormatException("PSI descriptor payload length mismatch.");
+    }
 };
 
 //Override this.
@@ -65,6 +75,7 @@ void PSI_Descriptor::unpackInternal(const std::vector<uint8_t> &inputData,
 				    std::vector<uint8_t>::const_iterator &offset,
 				    int size)
 {
+    ensureAvailable(inputData, offset, size);
 	//Do nothing by default.
 }
 
@@ -73,6 +84,7 @@ void PSI_ParseDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
 					 std::vector<uint8_t>::const_iterator &offset,
 					 int size)
 {
+    ensureAvailable(inputData, offset, size);
 	switch( tag_ ) {
 		case PROGRAM_DESCRIPTOR:
 			this->parsedDescriptor_=std::make_shared<PSI_ProgramDescriptor>();
@@ -106,12 +118,20 @@ int PSI_UnknownDescriptor::calculateSizeInternal()
 	return this->data.size();
 }
 
+void PSI_UnknownDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
+                                         std::vector<uint8_t>::iterator &offset)
+{
+    offset=std::copy(data.begin(), data.end(), offset);
+}
+
 void PSI_UnknownDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
 					   std::vector<uint8_t>::const_iterator &offset,
 					   int size)
 {
+    ensureAvailable(inputData, offset, size);
 	this->data.resize(size);
 	std::copy_n( offset, size, this->data.begin() );
+	offset+=size;
 }
 
 int PSI_ProgramDescriptor::calculateSizeInternal()
@@ -119,7 +139,7 @@ int PSI_ProgramDescriptor::calculateSizeInternal()
 	return data_.size();
 }
 
-void PSI_ProgramDescriptor::packInternal(std::vector<uint8_t> &outputData,
+void PSI_ProgramDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
 					 std::vector<uint8_t>::iterator &offset)
 {
 	std::copy_n(data_.begin(), data_.size(), offset);
@@ -130,8 +150,10 @@ void PSI_ProgramDescriptor::unpackInternal(const std::vector<uint8_t> &inputData
 					   std::vector<uint8_t>::const_iterator &offset,
 					   int size )
 {
+    ensureAvailable(inputData, offset, size);
 	data_.resize(size);
 	std::copy_n( offset, size, data_.begin() );
+	offset+=size;
 }
 
 PSI_AVC_VideoDescriptor::PSI_AVC_VideoDescriptor( uint8_t profile_idc,
@@ -166,7 +188,7 @@ int PSI_AVC_VideoDescriptor::calculateSizeInternal()
 	return 4; //4 bytes to code everything.
 }
 
-void PSI_AVC_VideoDescriptor::packInternal(std::vector<uint8_t> &outputData,
+void PSI_AVC_VideoDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
 					   std::vector<uint8_t>::iterator &offset)
 {
 	*offset++=profile_idc_;
@@ -196,6 +218,7 @@ void PSI_AVC_VideoDescriptor::unpackInternal(const std::vector<uint8_t> &inputDa
 					     std::vector<uint8_t>::const_iterator &offset,
 					     int size )
 {
+    ensureAvailable(inputData, offset, size);
 	if( size < 4) {
 		throw PSI_FormatException( "AVC video descriptor must be 4 bytes long." );
 	}
@@ -253,7 +276,7 @@ int PSI_AVC_TimingAndHRDDescriptor::calculateSizeInternal()
 }
 
 void PSI_AVC_TimingAndHRDDescriptor::packInternal
-( std::vector<uint8_t> &outputData,
+( std::vector<uint8_t> &/*outputData*/,
   std::vector<uint8_t>::iterator &offset )
 {
 	uint8_t flags = (hrd_management_valid_flag_ << 7) |
@@ -287,6 +310,7 @@ void PSI_AVC_TimingAndHRDDescriptor::unpackInternal
   std::vector<uint8_t>::const_iterator &offset,
   int size )
 {
+    ensureAvailable(inputData, offset, size);
 	if (size < 2) {
 		throw PSI_FormatException( "AVC timing and HRD descriptor contents must be at least 2 bytes long." );
 	}
@@ -343,7 +367,7 @@ int PSI_HDMV_CopyControlDescriptor::calculateSizeInternal()
 	return 4;
 }
 
-void PSI_HDMV_CopyControlDescriptor::packInternal(std::vector<uint8_t> &outputData,
+void PSI_HDMV_CopyControlDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
 						  std::vector<uint8_t>::iterator &offset)
 {
 	*offset++=0x0f;
@@ -356,6 +380,7 @@ void PSI_HDMV_CopyControlDescriptor::unpackInternal(const std::vector<uint8_t> &
 						    std::vector<uint8_t>::const_iterator &offset,
 						    int size )
 {
+    ensureAvailable(inputData, offset, size);
 	if( size < 4) {
 		throw PSI_FormatException( "HDMV copy control descriptor is invalid.");
 	}

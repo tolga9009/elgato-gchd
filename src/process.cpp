@@ -17,12 +17,16 @@
 #include <process.hpp>
 
 // constants
-constexpr auto version = "0.2.0";
+constexpr auto version = "0.3.0";
 
+// Signal handlers may run on the output worker as well as the main thread.
+// Only lock-free atomic operations are permitted in the signal handler.
+static_assert(ATOMIC_BOOL_LOCK_FREE == 2, "Signal handling requires lock-free atomic bool");
 std::atomic<bool> Process::isActive_;
+std::atomic<bool> Process::stopRequested_{false};
 
 bool Process::isActive() {
-	return isActive_;
+	return isActive_ && !stopRequested_.load(std::memory_order_relaxed);
 }
 
 void Process::setActive(bool isActive) {
@@ -54,6 +58,7 @@ int Process::createPid(std::string pidPath) {
 	if (flock(pidFd_, LOCK_EX | LOCK_NB) < 0) {
 		std::cerr << "Could not lock PID file, another instance is already running." << std::endl;
 		close(pidFd_);
+		pidFd_ = -1;
 
 		return -1;
 	}
@@ -64,9 +69,10 @@ int Process::createPid(std::string pidPath) {
 }
 
 void Process::destroyPid() {
-	if (pidFd_) {
+	if (pidFd_ >= 0) {
 		flock(pidFd_, LOCK_UN);
 		close(pidFd_);
+		pidFd_ = -1;
 	}
 
 	if (hasPid_) {
@@ -80,30 +86,28 @@ std::string Process::getVersion() {
 }
 
 void Process::sigHandler(int sig) {
-	std::cerr << std::endl << "Stop signal received." << std::endl;
-
-	switch(sig) {
-		case SIGINT:
-			setActive(false);
-			break;
-		case SIGTERM:
-			setActive(false);
-			break;
-	}
+    if (stopRequested_.exchange(true, std::memory_order_relaxed)) _exit(128 + sig);
 }
 
 Process::Process() {
 	isActive_ = false;
 	hasPid_ = false;
-	pidFd_ = 0;
+	pidFd_ = -1;
+	stopRequested_.store(false, std::memory_order_relaxed);
 
 	// signal handling
 	struct sigaction action{};
 	//{} is critical because it value initializes it to zero.
 
 	action.sa_handler = sigHandler;
+	sigfillset(&action.sa_mask);
 	sigaction(SIGINT, &action, nullptr);
 	sigaction(SIGTERM, &action, nullptr);
+    sigaction(SIGHUP, &action, nullptr);
+    struct sigaction ignore{};
+    ignore.sa_handler=SIG_IGN;
+    sigemptyset(&ignore.sa_mask);
+    sigaction(SIGPIPE,&ignore,nullptr);
 }
 
 Process::~Process() {

@@ -32,7 +32,7 @@ int PAT_Entry::calculateSize()
 	return 4;
 }
 
-void PAT_Entry::pack(std::vector<uint8_t> &outputData,
+void PAT_Entry::pack(std::vector<uint8_t> &/*outputData*/,
 		     std::vector<uint8_t>::iterator &offset)
 {
 	uint8_t *dataPointer = &(*offset);
@@ -50,11 +50,11 @@ void PAT_Entry::unpack( const std::vector<uint8_t> &inputData,
 			std::vector<uint8_t>::const_iterator &offset,
 			int size )
 {
+    ensureAvailable(inputData, offset, size);
 	if( size < 4) {
 		throw PSI_FormatException("Cannot unpack PAT entry in less than 4 bytes.");
 	}
 	const uint8_t *dataPointer=&(*offset);
-	std::vector<uint8_t>::const_iterator endOfDataOffset=offset+size;
 
 	programNumber_=Utility::debyteify<uint16_t>( dataPointer );
 	uint16_t value=Utility::debyteify<uint16_t>( dataPointer+2 );
@@ -91,6 +91,7 @@ void PAT_Data::unpack( const std::vector<uint8_t> &inputData,
 		       std::vector<uint8_t>::const_iterator &offset,
 		       int size )
 {
+    ensureAvailable(inputData, offset, size);
 	std::vector<uint8_t>::const_iterator endOffset=offset+size;
 
 	///////////////////////////////////
@@ -129,6 +130,9 @@ void PAT::pack(std::vector<uint8_t> &outputData,
 	header_.tableID_ = TABLE_ID_PAT;
 	header_.sectionSyntaxIndicator_ = true;
 	header_.privateBit_ = false;
+    if (syntaxSize + dataSize > 1017) {
+        throw PSI_ValueException("PSI table is too large for its section length.");
+    }
 	header_.innerLength_ = syntaxSize + dataSize; //sectionLength without CRC
 	header_.pack( outputData, offset );
 
@@ -147,6 +151,7 @@ void PAT::unpack( const std::vector<uint8_t> &inputData,
 		  std::vector<uint8_t>::const_iterator &offset,
 		  int size )
 {
+    ensureAvailable(inputData, offset, size);
 	std::vector<uint8_t>::const_iterator endOffset=offset+size;
 	header_.unpack( inputData, offset, endOffset-offset);
 

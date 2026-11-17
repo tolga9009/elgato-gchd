@@ -6,17 +6,22 @@
  */
 
 #include <cstdio>
+#include <memory>
+#include <iostream>
+#include <cerrno>
+#include <cstring>
 #include <vector>
 #include <unistd.h>
 
 #include "../utility.hpp"
+#include "../firmware.hpp"
 #include "../gchd.hpp"
 #include "../gchd_hardware.hpp"
 
 void GCHD::read_config_buffer( uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *buffer, uint16_t readSize) {
 	uint16_t wLength=readSize;
 	int returnSize=
-			libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, buffer, wLength, 0);
+			controlTransfer( 0xc0, bRequest, wValue, wIndex, buffer, wLength);
 
 	if (returnSize != wLength)
 	{
@@ -29,7 +34,7 @@ void GCHD::read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint1
 	std::vector<unsigned char> recv(wLength);
 
 	int returnSize=
-			libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), static_cast<uint16_t>(recv.size()), 0);
+			controlTransfer( 0xc0, bRequest, wValue, wIndex, recv.data(), static_cast<uint16_t>(recv.size()));
 
 	if (returnSize != wLength)
 	{
@@ -40,7 +45,7 @@ void GCHD::read_config(uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint1
 void GCHD::write_config_buffer( uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *buffer, uint16_t wLength) {
 
 	int returnSize=
-			libusb_control_transfer(devh_, 0x40, bRequest, wValue, wIndex, buffer, wLength, 0);
+			controlTransfer( 0x40, bRequest, wValue, wIndex, buffer, wLength);
 
 	if (returnSize != wLength)
 	{
@@ -51,19 +56,24 @@ void GCHD::write_config_buffer( uint8_t bRequest, uint16_t wValue, uint16_t wInd
 void GCHD::interruptPend()
 {
 	unsigned char input[3];
-	int returnSize;
+	int returnSize = 0;
+	checkUsbOperation();
 	int status=
-			libusb_interrupt_transfer(devh_, 0x83, input, 3, &returnSize, 0);
+			libusb_interrupt_transfer(devh_, 0x83, input, 3, &returnSize, 1000);
 	if( status != 0 )
 	{
-		throw usb_error("USB error when pending on USB interrupt.\n");
+		usbFailure(status, "USB interrupt transfer");
 	}
+	if (returnSize != 3) throw usb_error("Short USB interrupt transfer");
 }
 
 void GCHD::sendEnableState()
 {
 	uint16_t status;
+	UsbPollBudget poll0("mailbox ready after enable-state write");
 	do {
+		poll0.check(shuttingDown_);
+		checkUsbOperation();
 		write_config<uint16_t>( MAIL_SEND_ENABLE_REGISTER_STATE, savedEnableStateRegister_ );
 		status = read_config<uint16_t>(MAIL_REQUEST_READY);
 
@@ -164,6 +174,12 @@ void GCHD::clearEnableStateBits( uint16_t clearMask ) {
  *   stream during the encoding process.
  */
 void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
+    if (command == SCMD_STATE_CHANGE && data == SCMD_STATE_START) {
+        checkUsbOperation();
+        // A failed transfer may still have reached the device. Keep teardown
+        // responsible for stopping it even if initialization never completes.
+        streamStartAttempted_ = true;
+    }
 	uint8_t send[6] = {0};
 	send[2] = command;
 	send[3] = mode;
@@ -186,8 +202,11 @@ void GCHD::scmd(uint8_t command, uint8_t mode, uint16_t data) {
 			{
 				interruptPend();
 				uint16_t value;
+				UsbPollBudget poll1("system-command receipt");
 				do
 				{
+					poll1.check(shuttingDown_);
+					checkUsbOperation();
 					value=read_config<uint16_t>(HDNEW_SCMD_READBACK_REGISTER);
 				} while ((value >> 8) != command); //TODO! Probably should set timeout
 			}
@@ -202,10 +221,16 @@ uint16_t GCHD::completeStateChange( uint16_t currentState,
 	bool firstTime=true;
 	uint16_t state;
 	bool changed=false;
+	UsbPollBudget poll2("requested device state");
 	do
 	{
+		poll2.check(shuttingDown_);
+		checkUsbOperation();
+		UsbPollBudget poll3("device state-change completion");
 		do
 		{
+			poll3.check(shuttingDown_);
+			checkUsbOperation();
 			state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER);
 
 			state &= 0x1f; //Masking off bits we don't ever see.
@@ -349,7 +374,7 @@ void GCHD::sparam(uint16_t address, uint8_t lsb, uint8_t bits, uint16_t data) {
 
 
 	int returnSize =
-			libusb_control_transfer(devh_, 0x40, SEND_H264_TRANSCODER_BITFIELD, outputAddress, send, 8, 0);
+			controlTransfer( 0x40, SEND_H264_TRANSCODER_BITFIELD, outputAddress, send, 8);
 
 	if(returnSize < 8 )
 	{
@@ -380,7 +405,7 @@ void GCHD::slsi(uint16_t address, uint16_t data) {
 	Utility::byteify<uint16_t>(send, data);
 
 	int returnSize =
-			libusb_control_transfer(devh_, 0x40, SEND_H264_TRANSCODER_WORD, address, send, 2, 0);
+			controlTransfer( 0x40, SEND_H264_TRANSCODER_WORD, address, send, 2);
 
 	if(returnSize != 2 )
 	{
@@ -415,7 +440,10 @@ void GCHD::transcoderTableWrite(uint16_t address, std::vector<uint8_t> &data)
 void GCHD::mailReadyWait()
 {
 	uint16_t status;
+	UsbPollBudget poll4("mailbox ready");
 	do {
+		poll4.check(shuttingDown_);
+		checkUsbOperation();
 		status=read_config<uint16_t>(MAIL_REQUEST_READY);
 
 		uint16_t detectMask = (status >> 8) & 3; //Cable type.
@@ -520,35 +548,36 @@ std::vector<unsigned char> GCHD::mailRead( uint8_t port,
  * @param file path to binary firmware file
  */
 void GCHD::dlfirm(const char *file) {
-	int transfer;
+    auto closeFile=[](FILE *f) { fclose(f); };
+    std::unique_ptr<FILE, decltype(closeFile)> bin(fopen(file, "rb"), closeFile);
+    if (!bin) throw usb_error(std::string("Cannot open firmware: ") + file + ": " + std::strerror(errno));
+    if (fseek(bin.get(), 0, SEEK_END) != 0) throw usb_error("Cannot seek firmware file");
+    const long filesize=ftell(bin.get());
+    if (filesize <= 0 || filesize > 16*1024*1024) throw usb_error("Invalid firmware file size");
+    if (fseek(bin.get(), 0, SEEK_SET) != 0) throw usb_error("Cannot rewind firmware file");
+    Firmware::validate(bin.get(), file);
+    std::cerr << "Uploading verified firmware " << file << " (" << filesize << " bytes)\n";
+    uploadFirmware(bin.get(), filesize);
+}
 
-	FILE *bin;
-	bin = fopen(file, "rb");
-
-	// get filesize
-	fseek(bin, 0L, SEEK_END);
-	auto filesize = ftell(bin);
-	rewind(bin);
-
-	//Buffersizes must be divisble by 16.
-	unsigned bufferSize=16384;
-	if( deviceType_ == DeviceType::GameCaptureHDNew ) {
-		bufferSize=32768; //Must use bigger chunks.
-	}
-
-	// read firmware from file to buffer and bulk transfer to device
-	for (auto i = 0; i <= filesize; i += bufferSize) {
-		std::vector<unsigned char> buffer=std::vector<unsigned char>(bufferSize);
-		auto bytes_remain = filesize - i;
-
-		if (bytes_remain > bufferSize) {
-			bytes_remain = bufferSize;
-		}
-
-		fread(buffer.data(), static_cast<unsigned long>(bytes_remain), 1, bin);
-		libusb_bulk_transfer(devh_, EP_OUT, buffer.data(), static_cast<int>(bytes_remain), &transfer, 0);
-	}
-	fclose(bin);
+void GCHD::uploadFirmware(FILE *bin, long filesize) {
+    const size_t chunk=deviceType_ == DeviceType::GameCaptureHDNew ? 32768 : 16384;
+    std::vector<unsigned char> buffer(chunk);
+    for (long offset=0; offset < filesize;) {
+        checkUsbOperation();
+        const size_t count=std::min(chunk, static_cast<size_t>(filesize-offset));
+        if (fread(buffer.data(), 1, count, bin) != count) throw usb_error("Short firmware read");
+        int transferred=0;
+        const int result=libusb_bulk_transfer(devh_, EP_OUT, buffer.data(), static_cast<int>(count), &transferred, 1000);
+        if (result < 0 || transferred != static_cast<int>(count)) {
+            const std::string operation="Firmware upload at offset "+std::to_string(offset)
+                +" (requested="+std::to_string(count)+", transferred="+std::to_string(transferred)+")";
+            if (result < 0) usbFailure(result,operation);
+            throw usb_error(operation+": short transfer");
+        }
+        offset+=static_cast<long>(count);
+    }
+    if (ferror(bin)) throw usb_error("Firmware read failed");
 }
 
 //Reads from unknown device. Done so often, made it a subroutine
@@ -564,8 +593,11 @@ uint8_t GCHD::readDevice0x9DCD( uint8_t index )
 void GCHD::pollOn0x9989ED()
 {
 	uint8_t input;
+	UsbPollBudget poll5("decoder poll completion");
 	do
 	{
+		poll5.check(shuttingDown_);
+		checkUsbOperation();
 		mailWrite( 0x33, VC{ 0x99, 0x89, 0xed } );
 		input=mailRead( 0x33, 1 )[0];
 		//bit 6 will be set when polling done.
@@ -602,6 +634,7 @@ void GCHD::stopStream( bool emptyBuffer )
 	{
 		for (int i = 0; i < 200; i++) {
 			stream(&buffer);
+            if (buffer.empty()) break;
 		}
 	}
 	completeStateChange(  SCMD_STATE_START, SCMD_STATE_NULL, emptyBuffer );
@@ -609,6 +642,7 @@ void GCHD::stopStream( bool emptyBuffer )
 	{
 		for (int i = 0; i < 20; i++) {
 			stream(&buffer);
+            if (buffer.empty()) break;
 		}
 	}
 	// state change - stop encoding
@@ -618,6 +652,7 @@ void GCHD::stopStream( bool emptyBuffer )
 	{
 		for( int i=0; i < 5 ; i++ ) {
 			stream(&buffer);
+            if (buffer.empty()) break;
 		}
 	}
 }
@@ -640,8 +675,11 @@ void GCHD::clearEnableState()
 	//And we grab it again after turning it off.
 	//This time we poll on it till it is ready, just in case.
 	uint32_t result;
+	UsbPollBudget poll6("firmware processor shutdown");
 	do
 	{
+		poll6.check(shuttingDown_);
+		checkUsbOperation();
 		mailWrite( 0x33, VC{0xab, 0xa9, 0x0f, 0xa4, 0x55} );
 		read=mailRead( 0x33, 3 ); //EXPECTED {0x33, 0x44, 0x55};
 		result=Utility::debyteify<uint32_t>(read.data(),3);
@@ -662,14 +700,14 @@ void GCHD::readVersion( std::vector<unsigned char> &version )
 		read_config_buffer(HD_VERSION_REGISTER0, version.data(), 4);
 		read_config_buffer(HD_VERSION_REGISTER1, version.data()+4, 4);
 		read_config_buffer(HD_VERSION_REGISTER2, temporary, 4);
-		*(version.data()+4)=temporary[0];
+		version[8]=temporary[0];
 	}
 	else
 	{
 		read_config_buffer(HDNEW_VERSION_REGISTER0, version.data(), 4);
 		read_config_buffer(HDNEW_VERSION_REGISTER1, version.data()+4, 4);
 		read_config_buffer(HDNEW_VERSION_REGISTER2, temporary, 4);
-		*(version.data()+4)=temporary[0];
+		version[8]=temporary[0];
 	}
 
 	//Null terminate.

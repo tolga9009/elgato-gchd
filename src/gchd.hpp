@@ -9,6 +9,9 @@
 #define GCHD_H
 
 #include <array>
+#include <cstdio>
+#include <chrono>
+#include <thread>
 #include <cstdint>
 #include <string>
 #include <exception>
@@ -31,20 +34,52 @@ class usb_error: public runtime_error
 		using runtime_error::runtime_error; //This inherits all constructors.
 };
 
+class UsbPollBudget {
+    std::string operation_;
+    std::chrono::steady_clock::time_point deadline_;
+    unsigned maxAttempts_, attempts_=0;
+public:
+    explicit UsbPollBudget(const std::string &operation="device state",
+                           std::chrono::milliseconds timeout=std::chrono::seconds(15),
+                           unsigned maxAttempts=2000):
+        operation_(operation), deadline_(std::chrono::steady_clock::now()+timeout), maxAttempts_(maxAttempts) {}
+    void check(bool shuttingDown) {
+        if (!shuttingDown && !Process::isActive()) throw usb_error("USB operation interrupted");
+        if (++attempts_ > maxAttempts_ || std::chrono::steady_clock::now() >= deadline_)
+            throw usb_error("Timed out waiting for "+operation_);
+        if (attempts_ > 1) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+};
+
 //TODO this is too complicated, needs to be factored into multiple
 //classes.
 class GCHD {
 		friend class GCHDStateMachine;
+		friend struct UsbTestAccess;
 	public:
 		int checkDevice();
+		void resetDevice();
+		uint64_t overflows() const { return overflows_; }
+		uint64_t timeouts() const { return timeouts_; }
+		void setFirmwareDirectory(const std::string &directory) { firmwareDirectory_=directory; }
 		int init();
 		void stream(std::vector<unsigned char> *buffer, unsigned timeout=TIMEOUT);
 		GCHD(Process *process, InputSettings inputSettings, TranscoderSettings transcoderSettings);
-		~GCHD();
+		~GCHD() noexcept;
 
 	private:
-		int libusb_;
+		libusb_context *context_ = nullptr;
+		bool interfaceClaimed_ = false;
+		bool deviceGone_ = false;
+		uint64_t overflows_=0, timeouts_=0;
+		bool shuttingDown_ = false;
+		std::chrono::steady_clock::time_point shutdownDeadline_;
+		void checkUsbOperation();
+		void usbFailure(int code, const std::string &operation);
+		int controlTransfer(uint8_t requestType, uint8_t request, uint16_t value, uint16_t index, unsigned char *data, uint16_t length);
 		bool isInitialized_;
+		bool streamStartAttempted_ = false;
+		std::string firmwareDirectory_;
 		std::string firmwareIdle_;
 		std::string firmwareEnc_;
 		struct libusb_device_handle *devh_;
@@ -54,11 +89,11 @@ class GCHD {
 
 		int checkFirmware();
 		int openDevice(); //At USB level
-		void closeDevice(); //At USB level
+		void closeDevice() noexcept; //At USB level
 		int getInterface();
 		void setupConfiguration();
 		void configureDevice(); //At Device level
-		void uninitDevice();    //At Device level
+		void uninitDevice() noexcept;    //At Device level
 		void configureHDMI();
 		void configureComponent();
 		void configureComposite();
@@ -100,7 +135,7 @@ class GCHD {
 			std::vector<unsigned char> recv=std::vector<unsigned char>(wLength);
 
 			int returnSize=
-					libusb_control_transfer(devh_, 0xc0, bRequest, wValue, wIndex, recv.data(), recv.size(), 0);
+					controlTransfer( 0xc0, bRequest, wValue, wIndex, recv.data(), recv.size());
 
 			if  (returnSize != wLength)
 			{
@@ -141,7 +176,7 @@ class GCHD {
 			Utility::byteify<T>( send.data(), value, wLength );
 
 			int returnSize=
-					libusb_control_transfer(devh_, 0x40, bRequest, wValue, wIndex, send.data(), wLength, 0);
+					controlTransfer( 0x40, bRequest, wValue, wIndex, send.data(), wLength);
 
 			if  (returnSize != wLength)
 			{
@@ -186,6 +221,7 @@ class GCHD {
 		std::vector<unsigned char> mailRead( uint8_t port, uint8_t size );
 
 		void dlfirm(const char *file);
+		void uploadFirmware(FILE *file, long filesize);
 		uint8_t readDevice0x9DCD( uint8_t index );
 		void pollOn0x9989ED();
 		void readFrom0x9989EC( unsigned count );

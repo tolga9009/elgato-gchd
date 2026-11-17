@@ -16,7 +16,7 @@ int PSI_Syntax::calculateSize() {
 	return 5; //5=table header size.
 }
 
-void PSI_Syntax::pack(std::vector<uint8_t> &data, std::vector<uint8_t>::iterator &offset) {
+void PSI_Syntax::pack(std::vector<uint8_t> &/*data*/, std::vector<uint8_t>::iterator &offset) {
 	uint8_t *dataPointer=&(offset[0]);
 
 	Utility::byteify<uint16_t>( dataPointer, extension_ );
@@ -35,16 +35,17 @@ void PSI_Syntax::pack(std::vector<uint8_t> &data, std::vector<uint8_t>::iterator
 	offset+=5;
 }
 
-void PSI_Syntax::unpack(const std::vector<uint8_t> &data,
+void PSI_Syntax::unpack(const std::vector<uint8_t> &inputData,
 			std::vector<uint8_t>::const_iterator &offset,
 			int sectionLength)
 {
-	int overhead=5+4; //5 byte header, 4 byte crc.
+    ensureAvailable(inputData, offset, sectionLength);
+	int overhead=5; //The hardware adds the CRC; it is absent from this buffer.
 	if (sectionLength < overhead) {
-		throw PSI_FormatException("The length of a PSI Syntax section needs to be at least 9 bytes.");
+		throw PSI_FormatException("The length of a PSI Syntax section needs to be at least 5 bytes.");
 	}
 
-	const uint8_t *dataPointer=&data[0];
+	const uint8_t *dataPointer=&(*offset);
 
 	extension_=Utility::debyteify<uint16_t>( dataPointer );
 	dataPointer+=2;

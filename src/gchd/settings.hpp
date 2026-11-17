@@ -8,6 +8,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <cstdint>
 #include <stdexcept>
 
 #define MAXIMUM_AUDIO_BIT_RATE 576 //Maximum AAC audio bit rate for two channels

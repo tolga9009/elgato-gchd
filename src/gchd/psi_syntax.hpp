@@ -27,7 +27,7 @@ class PSI_Syntax: public PSI_Data
 		PSI_Syntax():
 			extension_(0xffff), version_(0), currentIndicator_(true), sectionNumber_(0), lastSectionNumber_(0) {};
 		PSI_Syntax(uint16_t extension, uint8_t version=0, bool currentIndicator=true, uint8_t sectionNumber=0, uint8_t lastSectionNumber=0):
-			extension_(extension), version_(version), currentIndicator_(true), sectionNumber_(sectionNumber), lastSectionNumber_(lastSectionNumber) {};
+			extension_(extension), version_(version), currentIndicator_(currentIndicator), sectionNumber_(sectionNumber), lastSectionNumber_(lastSectionNumber) {};
 
 
 		uint16_t extension_;

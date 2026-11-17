@@ -532,13 +532,8 @@ H264Profile TranscoderSettings::getH264Profile() {
 }
 
 unsigned TranscoderSettings::unsignedH264Level(float value) {
-	float integerF;
-	float fractionF;
-	integerF=std::modf(value, &fractionF);
-	unsigned integer=(unsigned)integerF;
-
-	unsigned fraction=(int)round( fractionF / .1 );
-	return integer*10+fraction;
+    if (!std::isfinite(value) || value<0 || value>4.1f) throw setting_error("h.264 level must be finite and between 0 and 4.1");
+    return static_cast<unsigned>(std::lround(value*10));
 }
 
 void TranscoderSettings::setH264Level(float level){
@@ -668,7 +663,14 @@ void TranscoderSettings::mergeAutodetect( TranscoderSettings &prototype, InputSe
 		this->minVariableBitRate_ = autoMinBitrate;
 	}
 	if( prototype.h264Level_ == 0.0 ) {
-		h264Level_=determineH264Level( horizontal, vertical, frameRate, getRealMaxBitRateKbps() );
+		// Interlaced rates are fields/second; determineH264Level counts full
+		// frames. Two half-height fields consume one frame's macroblocks
+		// (ITU-T H.264, 7.4.3 and A.3). Preserve the encoder/GOP rate above.
+		const double levelFrameRate=effectiveFrameRate_ /
+			(currentInput.getScanMode()==ScanMode::Interlaced ? 2.0 : 1.0);
+		// Enforce the same supported levels as explicit requests, rather than
+		// sending an unsupported level or understating it by capping to 4.1.
+		setH264Level(determineH264Level(horizontal,vertical,levelFrameRate,getRealMaxBitRateKbps()));
 	}
 }
 

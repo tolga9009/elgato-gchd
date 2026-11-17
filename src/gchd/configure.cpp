@@ -30,7 +30,7 @@ void GCHD::configureDevice()
 	//but only in the case that the current state
 	//(as read from SCMD_STATE_READBACK_REGISTER)
 	//is already 0.
-	uint16_t state;
+	uint16_t state = 0;
 	if( deviceType_ == DeviceType::GameCaptureHD )
 	{
 		//Since currentState and nextState are set to 0,
@@ -53,8 +53,11 @@ void GCHD::configureDevice()
 		if( state == 0x0000 )
 		{
 			interruptPend();
+			UsbPollBudget poll0("initial device state transition");
 			do
 			{
+				poll0.check(shuttingDown_);
+				checkUsbOperation();
 				uint16_t completion=read_config<uint16_t>(SCMD_STATE_CHANGE_COMPLETE);
 				changed = (completion & 0x4)>0; //Check appropriate bit
 			} while (!changed);
@@ -108,8 +111,11 @@ void GCHD::configureDevice()
 	uint32_t deviceModeMagic;
 	bool firstTime=true;
 
+	UsbPollBudget initializationPoll("firmware processor startup");
 	while(!loopDone)
 	{
+		initializationPoll.check(shuttingDown_);
+		checkUsbOperation();
 		mailWrite( 0x33, {0xab, 0xa9, 0x0f, 0xa4, 0x55} );
 		input=mailRead( 0x33, 3 ); /* read 3 bytes from 0x33 */
 
@@ -245,8 +251,11 @@ void GCHD::configureDevice()
 
 	//We can go back to 0x334455 after we turn on EB_ENCODER_ENABLE in some cases,
 	//Wait till we are 0x27f97b
+	UsbPollBudget poll1("encoder enable readiness");
 	do
 	{
+		poll1.check(shuttingDown_);
+		checkUsbOperation();
 		mailWrite( 0x33, {0xab, 0xa9, 0x0f, 0xa4, 0x55} );
 		input=mailRead( 0x33, 3 ); /* read 3 bytes from 0x33 */
 		deviceModeMagic=
@@ -260,8 +269,11 @@ void GCHD::configureDevice()
 	mailRead( 0x33, 2 ); //EXPECTED {0xda, 0x67}
 
 	doEnable( EB_ENCODER_TRIGGER, EB_ENCODER_TRIGGER ); //Turn on trigger bit
+	UsbPollBudget poll2("encoder trigger acknowledgement");
 	do
 	{
+		poll2.check(shuttingDown_);
+		checkUsbOperation();
 		mailWrite( 0x33, VC{0x43, 0x23, 0x84} );
 		input=mailRead( 0x33, 1 ); //EXPECTED {0xf7}
 	} while(input[0] != 0xf7);
@@ -699,8 +711,9 @@ void GCHD::configureDevice()
 }
 
 
-void GCHD::uninitDevice()
+void GCHD::uninitDevice() noexcept
 {
+  try {
 	uint16_t state=read_config<uint16_t>(SCMD_STATE_READBACK_REGISTER) & 0x1f;
 	if(( state == SCMD_STATE_START ) || ( state==SCMD_STATE_NULL )) {
 		stopStream( true );
@@ -736,6 +749,11 @@ void GCHD::uninitDevice()
 		stateConfirmedScmd( SCMD_IDLE, 0x00, 0x0000 );
 		stateConfirmedScmd( SCMD_RESET, 0x01, 0x0000 );
 	}
+  } catch (const std::exception &error) {
+      std::cerr << "Device cleanup: " << error.what() << std::endl;
+  } catch (...) {
+      std::cerr << "Device cleanup failed" << std::endl;
+  }
 }
 
 void GCHD::configureColorSpace()
@@ -1268,7 +1286,10 @@ void GCHD::configureCommonBlockB2()
 	//This is a subroutine in original driver as it happens at a few lone times.
 	{
 		uint8_t testValue;
+		UsbPollBudget poll3("video input lock");
 		do {
+			poll3.check(shuttingDown_);
+			checkUsbOperation();
 			mailWrite( 0x33, VC{0x99, 0x89, 0xf5} );
 			testValue = mailRead( 0x33, 1 )[0] & 0x90;
 		} while (testValue == 0);
