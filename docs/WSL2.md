@@ -1,18 +1,74 @@
 # WSL 2 + usbipd-win recording
 
 This targets the original Game Capture HD (`0fd9:0044`, `004e`, `0051`, `005d`).
-USB enumeration and non-root access were verified on Ubuntu 24.04 / WSL 2.
-**Recording is not yet working on the tested 0fd9:0044 card:** the first idle-
-firmware write timed out with zero bytes reported transferred. Initialization
-errors exited cleanly and SIGINT stopped a real state wait promptly. A successful
-firmware load, valid recording, streaming restart/unplug handling and long capture
-remain unverified. See [hardware results](MODERNIZATION.md#phase-8--hardware-testing-recording-not-yet-working).
+USB enumeration, non-root access, both firmware uploads and a 30-second CLI
+recording were verified on Ubuntu 24.04 / WSL 2 with an original `0fd9:0044`
+card. ffprobe found H.264 720×480 video and stereo 48 kHz MP2 audio. The capture
+contained 96,468,992 bytes with no reported dropped buffers or USB overflows.
+Other card PIDs and input modes are unverified. See [hardware results](hardware-results-2026-11-16.json).
+
+## Known WSL/USB-IP transfer/handoff issue
+
+On the tested system, transferring a previously initialized card from the
+Windows driver to WSL could leave the device in an unusable startup state:
+the state register read `0xffff`, and initialization timed out or a system
+command stalled. Earlier attempts also timed out on the first firmware write.
+A software USB reset returned success but did not recover capture.
+
+This is an **observed WSL/USB-IP handoff issue**, not a confirmed defect in a
+specific Windows, Linux, usbipd or device-firmware component. Its internal root
+cause has not been isolated. The same firmware and driver successfully recorded
+after the card was power-cycled while already force-bound to USB/IP; its initial
+state was then `0x0000`. No firmware chunk-size or streaming-queue change was
+needed for that successful test.
+
+Tested workaround for the original card (replace BUSID with its current ID):
+
+1. Close the official Elgato app. In **administrator PowerShell**, run:
+
+   ```powershell
+   usbipd list
+   usbipd bind --force --busid=BUSID
+   ```
+
+2. Leave that forced binding in place. Unplug only the card's USB power for
+   about 10 seconds, then reconnect to the same port. If HDMI keeps its lights
+   on, disconnect HDMI during the power-off interval too, then reconnect both.
+   Keep the Windows Elgato app closed.
+
+3. In normal PowerShell, attach the cold card:
+
+   ```powershell
+   usbipd attach --wsl --busid=BUSID
+   ```
+
+4. Verify permissions and record in WSL using the commands below. Both firmware
+   images loaded through the same attachment during the successful test.
+
+Forced binding changes this card's Windows driver association and prevents the
+official app from using it until unbound. This test had USBPcap installed for
+diagnostics; usbipd 5.3.0 explicitly required forced binding because of that
+filter. USBPcap is **not** a recording dependency. The workaround was verified
+with that configuration; behavior without the filter is not inferred from it.
+
+To return the card to Windows, detach in normal PowerShell and unbind in an
+administrator PowerShell:
+
+```powershell
+usbipd detach --busid=BUSID
+usbipd unbind --busid=BUSID
+# Optional: restore normal persistent sharing for a future standard attach.
+usbipd bind --busid=BUSID
+```
+
+Keep the attachment in place between Linux recording sessions. Returning the
+card to Windows and handing it back may require the cold-start procedure again.
+Automatic recovery from the unusable state is not established.
 
 ## Windows: once per installation/device
 
 These are commands for you to run in Windows; Windows-side changes require your approval. Use an administrator PowerShell for installation
-and binding. Replace `BUSID` with the current ID from `usbipd list` (the other
-agent previously observed `9-4`, which may change):
+and binding. Replace `BUSID` with the current ID from `usbipd list` (the tested ID was `9-4`, which may change):
 
 ```powershell
 winget install --interactive --exact dorssel.usbipd-win
@@ -93,22 +149,25 @@ build/src/gchd --duration 90s - | ffmpeg -i - -c copy "$HOME/capture.mkv"
 
 Stop with Ctrl+C once and wait. Disconnects should exit nonzero and cleanup
 cannot throw; these paths are covered by USB fault mocks. Actual initialization
-timeout and SIGINT tests exited cleanly, but real streaming/unplug tests are pending.
+timeout and SIGINT tests exited cleanly; the timed recording also exited 0 after
+shutdown. Ctrl+C during real streaming and unplug tests are still pending.
 Stats appear every five seconds on stderr. Nonzero drop/overflow counts mean
 loss; persistent timeouts with zero bytes do not establish a working stream.
 If protocol readiness fails, capture stderr and try a physical power cycle;
 do not repeatedly upload after an unresolved failure.
 
 Normal firmware upload uses the already-open device and does not request a USB
-reset; one attach is expected to suffice, but firmware re-enumeration behavior
-is unverified. `gchd --reset` explicitly calls libusb_reset_device and may require
-you to run the Windows attach command again. Hardware recovery is unverified.
+reset; one attach sufficed for both firmware images in the successful short
+test, without re-enumeration. `gchd --reset` explicitly calls libusb_reset_device
+and may require a new Windows attach. It did not recover the observed handoff
+failure; use the tested cold-start sequence for that condition.
 
 ## Hardware acceptance checklist
 
-Still required on this fork: successful firmware load; 30-second capture with
-ffprobe-confirmed video and audio; Ctrl+C followed by restart; real unplug during
-streaming; and 30+ minutes over usbipd with loss counters and ffmpeg diagnostics.
+Verified: both firmware uploads; 30-second capture with ffprobe-confirmed video
+and audio; non-root access; timed exit and shutdown. Still required: Ctrl+C
+followed by restart; real unplug during streaming; and 30+ minutes over usbipd
+with loss counters and ffmpeg diagnostics.
 If measurements implicate USB/IP round-trip latency, evaluate 4–8 async bulk-IN
 transfers against FF-5's MIT-licensed experimental branch. Its existence is not
 evidence of working capture. V4L2 and analog/mode-detection changes are deferred.

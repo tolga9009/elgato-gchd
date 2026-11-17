@@ -113,80 +113,53 @@ Synthetic ffmpeg H.264/MPEG-audio fixtures verified MKV stream copy, MP4/AAC
 output, stop forwarding and finalization, overwrite refusal, and cleanup after
 a forced ffmpeg error. This is not a hardware capture test.
 
-## Phase 8 — hardware testing: recording not yet working
+## Phase 8 — hardware testing
 
-Original card: 0fd9:0044, revision V1100090. User reports HDMI around 480p and
-confirmed video/audio preview in the official Windows app. Firmware from the
-approved Mac 2.0.3 installer passed size/hash validation before each upload.
-Tests ran as the regular Linux user after granting video-group access.
+A cold-start CLI recording is now verified on the original `0fd9:0044` card,
+revision `V11050900`, Ubuntu 24.04 / WSL 2 kernel 6.18.58.1 and usbipd 5.3.0.
+The native trace exposed a revision-formatting bug: the final digit overwrote
+offset 4 instead of offset 8. This is fixed with tests for both register layouts.
+The original SD source was detected as HDMI 720×480 progressive, YUV, 4:3.
 
 | Test | Observed result |
 | --- | --- |
-| First guarded capture | Firmware upload timed out; exit 1 in 1.03 s, zero stream bytes |
-| Warm retry | Device-state wait expired; exit 1 in 9.13 s, zero bytes |
-| gchd --reset | Returned 0 in 0.28 s; device remained attached |
-| Capture after reset | State wait still failed; reset did not restore firmware readiness |
-| Physical power cycle, diagnostic capture | First idle-firmware chunk: offset 0, requested 16384, transferred 0; timeout and exit 1 in 1.14 s |
-| SIGINT during real initialization | Clean interrupted-error exit 1, approximately 4 ms after SIGINT; no abort |
-| Official Windows preview then close/reattach | First idle-firmware chunk still timed out; zero stream bytes |
-| Preserve already-active USB configuration | Mock tests pass; real warm-start comparison still failed at first firmware chunk |
-| Persistent udev rule | root:video 0660 and regular-user USB access observed after reattachments |
-| Graceful Windows handoff, later test | First B8 command returned LIBUSB_ERROR_PIPE; exit 1, zero stream bytes |
-| Native versus WSL ETW headers | Matching initial control headers; native B8 success versus WSL USB STALL |
-| Broader native ETW startup | 9,751 successful control completions; command/register payloads were not emitted |
+| Earlier firmware upload / warm handoff attempts | Upload timeouts, invalid state or USB STALL; nonzero exit, zero stream bytes |
+| Initialization SIGINT | Prompt interrupted-error exit without abort |
+| Native Windows USBPcap baseline | Valid H.264 720×480 and stereo 48 kHz MP2; encoder hash matches approved firmware |
+| Native driver rebind trace | Idle and two encoder uploads match approved hashes; no video payload in that trace |
+| Warm forced WSL attach | State register `0xffff`; bounded wait failed after 4.728 s, exit 1 |
+| USB reset on warm forced attachment | Reset returned 0 in 0.268 s; next initialization stalled, exit 1 |
+| Power cycle while already force-bound, then WSL attach | Initial state `0x0000`; both firmware uploads succeeded without re-enumeration |
+| 30-second CLI capture after cold start | Exit 0 in 36.750 s including setup/shutdown; 96,468,992 bytes; valid video and audio |
+| Capture stats | 25.7094 Mbps, 0 dropped buffers, 0 USB overflows, 1 timeout |
+| udev access | Regular-user read/write access after attachment; no root pipeline needed |
 
-No successful firmware upload, valid 30-second recording, or real stream has
-been observed. Streaming Ctrl+C/restart, unplug during streaming, loss counts
-and 30+ minute USB/IP recording remain unverified. Partial upload errors can
-leave the card waiting for a state transition; USB reset did not recover that
-condition in this test. A reliable recovery guarantee has not been achieved.
+The confirmed workaround and remaining uncertainty are documented as a
+[known WSL/USB-IP transfer/handoff issue](WSL2.md#known-wslusb-ip-transferhandoff-issue).
+The failing handoff and working cold start differ in device startup state;
+the underlying component responsible has not been isolated. Per the user's
+request, further root-cause tracing is deferred. No speculative firmware or
+async streaming change was made. Recovery through USB reset is not established.
 
-Added focused diagnostics for firmware offsets/lengths and named hardware
-waits. USB setup now preserves an already-active configuration, avoiding the
-lightweight reset documented by libusb; this did not solve the observed upload
-failure. Mock tests cover configuration selection and deadline/attempt bounds.
+The requested 30-second streaming interval produced a TS container duration of
+32.733 s, including data already queued by initialization. ffprobe found H.264
+720×480 video and stereo MP2 audio at 48 kHz. Zero reported drops does not prove
+absence of all transport or codec errors. Ctrl+C/restart, live unplug recovery,
+wrapper-on-hardware and 30+ minute recording remain to be tested.
 
-Sanitized results: [hardware-results-2026-11-11.json](hardware-results-2026-11-11.json).
-Full logs remain locally under artifacts/ and are excluded from Git. The other
-agent's upstream-only logs in the shared workspace were preserved unchanged.
+USBPcap 1.5.4.0 was installed with explicit approval; the user rebooted Windows.
+Native traces include proprietary firmware and remain in ignored artifacts/.
+The tested summary exporter refuses missing VID/PID descriptors and incomplete
+PCAP files and omits bulk/interrupt data, serial strings and unrelated devices.
+The first capture utility did not stop on its quit key; only its owned process
+was terminated after the Elgato app shut down cleanly. Packet records were
+complete. Normal Windows bindings were restored after the completed WSL tests.
 
-The failure is before HDMI detection or bulk-IN streaming. There is no evidence
-that input resolution or async receive queues would fix it. The current evidence
-does not distinguish an unofficial-driver boot-protocol mismatch from USB/IP
-transport behavior. Native Windows and WSL startup headers have now been
-compared using built-in ETW, with explicit approval for Windows commands, UAC, app startup/shutdown and
-attachment changes. The first nine control headers match. The first B8 command
-succeeds natively but returns USB STALL under WSL after a graceful handoff.
-A later native warm-start trace again shows successful B8 commands. This does
-not establish whether command contents, device state or USB/IP is responsible.
-
-After the user's request to collect broader startup information, control data
-logging was enabled across UCX and the host-controller provider. The final
-20-second native trace yielded 20,010 selected-card transfer events, including
-9,751 successful control completions, but no payload-data events. The exact
-six-byte payload filter was removed for this broader check. Thus the missing
-payloads cannot be attributed solely to that narrow filter. Register values
-and command contents remain unavailable from these ETW traces.
-
-During the ETW experiments no USBPcap driver was installed and Windows was
-not restarted. Repeating the
-same ETW capture is not a useful next step. A payload-capable native capture or
-an independent native-Linux hardware comparison is needed before changing the
-boot protocol based on assumptions. See [USB-TRACING.md](USB-TRACING.md) for the
-trace settings, verified limits and next-capture scope.
-
-On 2026-11-16 the user approved USBPcap installation. Official version 1.5.4.0
-installed with exit 0; installer and driver signatures are valid. Capture
-interfaces were initially unavailable. At the user's request, starting the
-USBPcap service without reboot succeeded, but elevated interface enumeration
-still returned no interfaces. No Windows restart has been initiated. A subsequently approved single-root-hub
-restart attempt returned 3010 (system reboot required); USBPcap still exposed
-no interfaces and the card remained present with PnP status OK. No parent USB
-controller restart was attempted. usbipd-win now reports its known USBPcap filter incompatibility;
-no forced binding has been attempted. The next step is the full native Windows
-trace after restart, followed by a separately reviewed resolution of the filter
-conflict before the WSL comparison. This is diagnostic setup, not a successful
-capture or a driver protocol fix.
+Seven CTest suites pass under GCC strict warnings and Clang ASan/UBSan.
+Sanitized evidence: [November 16 results](hardware-results-2026-11-16.json).
+[Earlier failures](hardware-results-2026-11-11.json) remain for historical context.
+Full logs, captures and firmware remain local and excluded from Git. The other
+agent's shared-workspace evidence was preserved.
 
 ## Defect and verification summary
 

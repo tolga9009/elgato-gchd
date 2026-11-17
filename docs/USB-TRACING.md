@@ -131,3 +131,30 @@ card remained present with PnP status OK. No USBPcap payload trace was obtained,
 and no Windows restart was initiated. This targeted attempt did not avoid the
 restart requirement on the tested host. The user plans to restart later;
 no broader controller restart was attempted.
+
+## Post-reboot result
+
+After the user rebooted Windows, USBPcap exposed a working interface. The first
+full card-filtered native trace contained 33,048 complete packet records from
+only the selected card. Its encoder upload was 649648 bytes with SHA-256 matching
+the official installer; the recovered TS contained valid H.264 720×480 video
+and stereo 48 kHz MP2 audio. The first reset command was `000002000000`, matching
+the Linux driver. A rebind trace also captured the idle image and two encoder
+uploads with matching hashes. Firmware and video bytes are not published.
+
+Export metadata and short known vendor controls safely:
+
+```sh
+python3 tools/usbpcap.py /private/native.pcap > /tmp/card-summary.json
+# Optional detailed register/control records, still excluding firmware/video:
+python3 tools/usbpcap.py /private/native.pcap --controls > /tmp/card-controls.json
+```
+
+Use classic PCAP with LINKTYPE_USBPCAP (249). This parser does not accept PCAPNG,
+truncated packets or missing matching device descriptors. The raw trace must
+remain private even when the summary contains no bulk payloads.
+
+Subsequent testing confirmed a working cold WSL capture and a
+[WSL/USB-IP handoff issue](WSL2.md#known-wslusb-ip-transferhandoff-issue).
+Further root-cause investigation is deferred; the cold-start workaround and
+hardware acceptance checks take priority over more traces.
