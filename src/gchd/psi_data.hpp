@@ -21,6 +21,7 @@
 class PSI_Data
 {
 	public:
+		virtual ~PSI_Data() = default;
 		//Overload the following 3 methods.
 		virtual int calculateSize()=0; //Abstract
 

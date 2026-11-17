@@ -32,7 +32,7 @@ int PAT_Entry::calculateSize()
 	return 4;
 }
 
-void PAT_Entry::pack(std::vector<uint8_t> &outputData,
+void PAT_Entry::pack(std::vector<uint8_t> &/*outputData*/,
 		     std::vector<uint8_t>::iterator &offset)
 {
 	uint8_t *dataPointer = &(*offset);
@@ -46,7 +46,7 @@ void PAT_Entry::pack(std::vector<uint8_t> &outputData,
 	offset+=2;
 }
 
-void PAT_Entry::unpack( const std::vector<uint8_t> &inputData,
+void PAT_Entry::unpack( const std::vector<uint8_t> &/*inputData*/,
 			std::vector<uint8_t>::const_iterator &offset,
 			int size )
 {
@@ -54,7 +54,6 @@ void PAT_Entry::unpack( const std::vector<uint8_t> &inputData,
 		throw PSI_FormatException("Cannot unpack PAT entry in less than 4 bytes.");
 	}
 	const uint8_t *dataPointer=&(*offset);
-	std::vector<uint8_t>::const_iterator endOfDataOffset=offset+size;
 
 	programNumber_=Utility::debyteify<uint16_t>( dataPointer );
 	uint16_t value=Utility::debyteify<uint16_t>( dataPointer+2 );

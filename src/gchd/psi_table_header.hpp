@@ -24,7 +24,7 @@ class PSI_TableHeader : public PSI_Data
 	public:
 		PSI_TableHeader(): tableID_(0xff), innerLength_(0), sectionSyntaxIndicator_(false), privateBit_(true) {};
 		PSI_TableHeader( uint8_t tableID, bool sectionSyntaxIndicator=true, bool privateBit=true ):
-			tableID_(tableID), sectionSyntaxIndicator_(sectionSyntaxIndicator), privateBit_( privateBit ), innerLength_(0) {};
+			tableID_(tableID), innerLength_(0), sectionSyntaxIndicator_(sectionSyntaxIndicator), privateBit_( privateBit ) {};
 
 		virtual int calculateSize();
 

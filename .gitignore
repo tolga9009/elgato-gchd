@@ -1,2 +1,22 @@
 build
 CMakeLists.txt.user
+
+/build*/
+/artifacts/
+/firmware/
+/downloads/
+MB86H57_H58_*
+MB86M01_ASSP_NSEC_*
+mb86*.bin
+*.dmg
+*.msi
+*.ts
+*.mp4
+
+# USB traces can contain proprietary firmware payloads.
+*.pcap
+*.pcapng
+*.etl
+
+# Local Python diagnostic/test imports.
+__pycache__/

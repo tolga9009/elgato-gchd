@@ -532,13 +532,8 @@ H264Profile TranscoderSettings::getH264Profile() {
 }
 
 unsigned TranscoderSettings::unsignedH264Level(float value) {
-	float integerF;
-	float fractionF;
-	integerF=std::modf(value, &fractionF);
-	unsigned integer=(unsigned)integerF;
-
-	unsigned fraction=(int)round( fractionF / .1 );
-	return integer*10+fraction;
+    if (!std::isfinite(value) || value<0 || value>4.1f) throw setting_error("h.264 level must be finite and between 0 and 4.1");
+    return static_cast<unsigned>(std::lround(value*10));
 }
 
 void TranscoderSettings::setH264Level(float level){

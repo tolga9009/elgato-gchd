@@ -32,7 +32,7 @@ class PSI_Descriptor: public PSI_Data
 	public:
 		PSI_Descriptor( uint8_t tag ) : tag_(tag) {};
 		PSI_Descriptor() {};
-		uint8_t tag_;
+		uint8_t tag_{};
 
 		virtual int calculateSize();
 		virtual int calculateSizeInternal();
@@ -84,7 +84,7 @@ class PSI_ProgramDescriptor : public PSI_Descriptor
 {
 	public:
 		PSI_ProgramDescriptor(): PSI_Descriptor(PROGRAM_DESCRIPTOR) {};
-		PSI_ProgramDescriptor(const std::vector<uint8_t> &data): data_(data), PSI_Descriptor(PROGRAM_DESCRIPTOR) {};
+		PSI_ProgramDescriptor(const std::vector<uint8_t> &data): PSI_Descriptor(PROGRAM_DESCRIPTOR), data_(data) {};
 
 		std::vector<uint8_t> data_;
 		virtual int calculateSizeInternal();
@@ -125,18 +125,18 @@ class PSI_AVC_VideoDescriptor: public PSI_Descriptor
 					 bool AVC_24_hour_picture_flag=false,
 					 bool frame_packing_SEI_not_present_flag=true );
 
-		uint8_t profile_idc_;
-		bool constraint_set0_flag_;
-		bool constraint_set1_flag_;
-		bool constraint_set2_flag_;
-		bool constraint_set3_flag_;
-		bool constraint_set4_flag_;
-		bool constraint_set5_flag_;
-		uint8_t AVC_compatible_flags_;
-		uint8_t level_idc_;
-		bool AVC_still_present_;
-		bool AVC_24_hour_picture_flag_;
-		bool frame_packing_SEI_not_present_flag_;
+		uint8_t profile_idc_{};
+		bool constraint_set0_flag_{};
+		bool constraint_set1_flag_{};
+		bool constraint_set2_flag_{};
+		bool constraint_set3_flag_{};
+		bool constraint_set4_flag_{};
+		bool constraint_set5_flag_{};
+		uint8_t AVC_compatible_flags_{};
+		uint8_t level_idc_{};
+		bool AVC_still_present_{};
+		bool AVC_24_hour_picture_flag_{};
+		bool frame_packing_SEI_not_present_flag_{};
 
 		virtual int calculateSizeInternal();
 		virtual void packInternal(std::vector<uint8_t> &outputData,
@@ -162,20 +162,20 @@ class PSI_AVC_TimingAndHRDDescriptor: public PSI_Descriptor
 						bool picture_to_display_conversion_flag );
 
 
-		bool hrd_management_valid_flag_;
-		bool picture_and_timing_info_present_;
+		bool hrd_management_valid_flag_{};
+		bool picture_and_timing_info_present_{};
 
 		//FOLLOWING only avaliable if picture_and_timing_info_present_
 		//START
-		bool kHz90_flag_;
-		uint32_t N_; //Only pressent if 90kHz_flag_ is false.
-		uint32_t K_; //Only pressent if 90kHz_flag_ is false.
-		uint32_t num_units_in_tick_;
+		bool kHz90_flag_{};
+		uint32_t N_{}; //Only pressent if 90kHz_flag_ is false.
+		uint32_t K_{}; //Only pressent if 90kHz_flag_ is false.
+		uint32_t num_units_in_tick_{};
 		//END
 
-		bool fixed_frame_rate_flag_;
-		bool temporal_poc_flag_;
-		bool picture_to_display_conversion_flag_;
+		bool fixed_frame_rate_flag_{};
+		bool temporal_poc_flag_{};
+		bool picture_to_display_conversion_flag_{};
 
 		virtual int calculateSizeInternal();
 		virtual void packInternal(std::vector<uint8_t> &outputData,

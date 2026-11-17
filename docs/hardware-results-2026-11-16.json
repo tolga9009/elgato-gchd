@@ -1,0 +1,403 @@
+[
+  {
+    "test": "native-windows-full-usbpcap-20261116",
+    "packet_count": 33048,
+    "all_packets_selected_card_only": true,
+    "pcap_packet_records_complete": true,
+    "control_requests": 15963,
+    "encoder_upload_bytes": 649648,
+    "encoder_sha256": "c38b004ae7be1cbd956b8a1e11d3341d3d2df2bd3f92460538a37252dbfffc6b",
+    "stream_bytes": 29949952,
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 720,
+        "height": 480
+      },
+      {
+        "index": 1,
+        "codec_name": "mp2",
+        "codec_type": "audio",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "ffprobe_duration_seconds": 11.232,
+    "first_reset_matches_linux_driver": true,
+    "first_state_register_hex": "0012",
+    "final_state_register_hex": "0012",
+    "system_commands": [
+      {
+        "time": 5.718571,
+        "out": "000002000000",
+        "usb_status": 0
+      },
+      {
+        "time": 5.931156,
+        "out": "000001000000",
+        "usb_status": 0
+      },
+      {
+        "time": 6.174711,
+        "out": "000004000000",
+        "usb_status": 0
+      },
+      {
+        "time": 9.599749,
+        "out": "000004a00000",
+        "usb_status": 0
+      },
+      {
+        "time": 13.331071,
+        "out": "000004a00000",
+        "usb_status": 0
+      },
+      {
+        "time": 13.337138,
+        "out": "000005000002",
+        "usb_status": 0
+      },
+      {
+        "time": 14.399062,
+        "out": "000005000004",
+        "usb_status": 0
+      },
+      {
+        "time": 14.702232,
+        "out": "000005000001",
+        "usb_status": 0
+      },
+      {
+        "time": 15.624983,
+        "out": "000004a00000",
+        "usb_status": 0
+      },
+      {
+        "time": 15.630342,
+        "out": "000005000002",
+        "usb_status": 0
+      },
+      {
+        "time": 26.882024,
+        "out": "000005000004",
+        "usb_status": 0
+      },
+      {
+        "time": 27.220902,
+        "out": "000005000001",
+        "usb_status": 0
+      },
+      {
+        "time": 28.039999,
+        "out": "000004a00000",
+        "usb_status": 0
+      },
+      {
+        "time": 28.265255,
+        "out": "000001000000",
+        "usb_status": 0
+      },
+      {
+        "time": 28.466872,
+        "out": "000002010000",
+        "usb_status": 0
+      }
+    ],
+    "app_closed_gracefully": true,
+    "capture_process_force_stopped_after_quit_failed": true,
+    "linux_capture_verified": false,
+    "user_reported_video_preview": true,
+    "audible_playback_confirmed_this_test": false
+  },
+  {
+    "test": "native-device-rebind-initialization-20261116",
+    "packet_count": 24404,
+    "control_requests": 12070,
+    "all_packets_selected_card_only": true,
+    "pcap_packet_records_complete": true,
+    "firmware_uploads": [
+      {
+        "name": "MB86H57_H58_IDLE",
+        "size": 234912,
+        "sha256": "49c4b2fc9c1d1be8206cca4b356c13b3ded640ea328fdbd464a6aab279cd47f2"
+      },
+      {
+        "name": "MB86H57_H58_ENC_H",
+        "size": 649648,
+        "sha256": "c38b004ae7be1cbd956b8a1e11d3341d3d2df2bd3f92460538a37252dbfffc6b"
+      },
+      {
+        "name": "MB86H57_H58_ENC_H",
+        "size": 649648,
+        "sha256": "c38b004ae7be1cbd956b8a1e11d3341d3d2df2bd3f92460538a37252dbfffc6b"
+      }
+    ],
+    "nonfinal_firmware_chunk_bytes": 32768,
+    "stream_bytes": 0,
+    "normal_binding_restored": true,
+    "forced_binding_after_test": false,
+    "app_closed_gracefully": true,
+    "capture_process_force_stopped": true
+  },
+  {
+    "test": "hardware-force-retry-20261116T234820Z",
+    "returncode": 1,
+    "elapsed_seconds": 4.728,
+    "capture_bytes": 0,
+    "regular_user_access": true,
+    "cold_power_cycle_while_force_bound": false,
+    "initial_state_register_hex": "ffff",
+    "error": "FATAL ERROR: Timed out waiting for device state-change completion"
+  },
+  {
+    "test": "hardware-force-retry-20261116T235917Z",
+    "returncode": 1,
+    "elapsed_seconds": 0.016,
+    "capture_bytes": 0,
+    "reset_returncode": 0,
+    "reset_elapsed_seconds": 0.268,
+    "regular_user_access": true,
+    "cold_power_cycle_while_force_bound": false,
+    "initial_state_register_hex": "ffff",
+    "error": "FATAL ERROR: USB control transfer (type=0x40, request=0xb8, value=0x0, index=0x0, length=6): LIBUSB_ERROR_PIPE"
+  },
+  {
+    "test": "hardware-cold-force-20261117T000529Z",
+    "returncode": 0,
+    "elapsed_seconds": 36.75,
+    "capture_bytes": 96468992,
+    "ffprobe_returncode": 0,
+    "regular_user_access": true,
+    "cold_power_cycle_while_force_bound": true,
+    "initial_state_register_hex": "0000",
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 720,
+        "height": 480
+      },
+      {
+        "index": 1,
+        "codec_name": "mp2",
+        "codec_type": "audio",
+        "sample_rate": "48000",
+        "channels": 2
+      }
+    ],
+    "container_duration_seconds": 32.732689,
+    "requested_streaming_duration_seconds": 30,
+    "final_stats": "Final stats: 96468992 bytes written, 96468992 USB bytes, 25.7094 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts",
+    "firmware_uploads_succeeded": true,
+    "device_reenumeration_during_firmware_upload": false,
+    "ts_integrity": {
+      "initial_sync_offset": 0,
+      "trailing_bytes": 176,
+      "sync_errors": 0,
+      "transport_error_indicator_packets": 0,
+      "continuity_errors_by_pid": {},
+      "flagged_discontinuities_by_pid": {}
+    },
+    "first_30_seconds_decode": {
+      "returncode": 0,
+      "diagnostic_bytes": 0
+    },
+    "full_file_decode": {
+      "returncode": 0,
+      "stderr_bytes": 69,
+      "note": "One H.264 warning in the tail beyond the clean first 30 seconds; raw TS ends with a partial 176-byte packet."
+    }
+  },
+  {
+    "test": "recording-acceptance-20261117T002312Z",
+    "sigint": {
+      "started": true,
+      "returncode": 0,
+      "wall_seconds": 11.476,
+      "shutdown_seconds": 2.87,
+      "capture_bytes": 16646144,
+      "probe": {
+        "programs": [
+          {
+            "streams": [
+              {
+                "index": 0,
+                "codec_name": "h264",
+                "codec_type": "video",
+                "width": 720,
+                "height": 480
+              },
+              {
+                "index": 1,
+                "codec_name": "mp2",
+                "codec_type": "audio",
+                "sample_rate": "48000",
+                "channels": 2
+              }
+            ]
+          }
+        ],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "index": 1,
+            "codec_name": "mp2",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "5.538856"
+        },
+        "returncode": 0,
+        "stderr": ""
+      },
+      "last_stats": [
+        "Final stats: 16646144 bytes written, 16646144 USB bytes, 25.7647 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts"
+      ]
+    },
+    "restart_mp4": {
+      "returncode": 0,
+      "wall_seconds": 13.002,
+      "bytes": 15563477,
+      "requested_duration": "5s",
+      "last_stats": [
+        "Final stats: 16089088 bytes written, 16089088 USB bytes, 25.7361 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts"
+      ],
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "5.371344"
+        },
+        "returncode": 0,
+        "stderr": ""
+      }
+    },
+    "one_minute_mkv": {
+      "returncode": 0,
+      "wall_seconds": 67.008,
+      "bytes": 185626603,
+      "requested_duration": "60s",
+      "last_stats": [
+        "Final stats: 191135744 bytes written, 191135744 USB bytes, 25.476 Mbps, 0 dropped buffers (0 bytes), 0 USB overflows, 1 timeouts"
+      ],
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "index": 1,
+            "codec_name": "mp2",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "64.965000"
+        },
+        "returncode": 0,
+        "stderr": ""
+      }
+    },
+    "color_space_auto_selected": "YUV",
+    "source_pattern": "vertical color bars",
+    "user_changed_hdmi_cables_during_one_minute_test": true,
+    "uninterrupted_hdmi_input_verified": false,
+    "long_recording_test_waived_by_user": true
+  },
+  {
+    "test": "stable-cable-rgb-yuv-comparison",
+    "captures": {
+      "rgb": {
+        "returncode": 0,
+        "elapsed_seconds": 9.235,
+        "bytes": 9453568,
+        "frame_returncode": 0
+      },
+      "yuv": {
+        "returncode": 0,
+        "elapsed_seconds": 10.237,
+        "bytes": 9928704,
+        "frame_returncode": 0
+      }
+    },
+    "rgb_matches_official_windows_reference": true,
+    "yuv_reproduces_pink_whites": true,
+    "user_confirms_rgb_restored_normal_passthrough_colors": true,
+    "rgb_wrapper": {
+      "returncode": 0,
+      "wall_seconds": 11.491,
+      "bytes": 15407829,
+      "color_space_override": "rgb",
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 720,
+            "height": 480
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "48000",
+            "channels": 2
+          }
+        ],
+        "format": {
+          "duration": "5.371344"
+        }
+      },
+      "probe_returncode": 0,
+      "frame_returncode": 0
+    },
+    "automatic_color_detection_fixed": false
+  },
+  {
+    "test": "usbip-detach-during-streaming",
+    "disconnect_method": "usbipd detach during active streaming",
+    "physical_unplug_tested": false,
+    "stream_started": true,
+    "returncode": 1,
+    "exit_after_detach_request_seconds": 0.621,
+    "capture_bytes": 7815168,
+    "device_removed_error": true,
+    "clean_error_exit": true,
+    "normal_binding_restored": true,
+    "normal_windows_binding_restored": true
+  }
+]

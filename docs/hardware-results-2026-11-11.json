@@ -1,0 +1,125 @@
+[
+  {
+    "test": "hardware-20261112T015738Z",
+    "revision": "2b6edb4c7d49eed8aff678ce9199b25a32527b3a",
+    "returncode": 1,
+    "elapsed_seconds": 1.03,
+    "capture_bytes": 0
+  },
+  {
+    "test": "hardware-after-reset-20261112T020521Z",
+    "returncode": 1,
+    "elapsed_seconds": 6.146,
+    "capture_bytes": 0
+  },
+  {
+    "test": "hardware-cold-20261112T020911Z",
+    "revision": "8d5ce41b6c1c25a76f9ca0318b2b505899e0ea3a",
+    "returncode": 1,
+    "elapsed_seconds": 1.141,
+    "capture_bytes": 0,
+    "access_via_udev_video_group": true
+  },
+  {
+    "test": "hardware-diagnostic-20261112T020256Z",
+    "revision": "fcc71e589a714d764d9a6afcecc80a6e0ba69b83",
+    "returncode": 1,
+    "elapsed_seconds": 9.132,
+    "capture_bytes": 0
+  },
+  {
+    "test": "hardware-preserve-config-20261112T021652Z",
+    "revision": "4b8a978384f36cf4218715f46c1dd5f0185c9168",
+    "returncode": 1,
+    "elapsed_seconds": 1.054,
+    "capture_bytes": 0,
+    "windows_warm_start": true
+  },
+  {
+    "test": "hardware-reset-20261112T020453Z",
+    "reset_returncode": 0,
+    "elapsed_seconds": 0.282
+  },
+  {
+    "test": "hardware-sigint-20261112T021151Z",
+    "returncode": 1,
+    "running_when_sigint_sent": true,
+    "seconds_after_sigint": 0.004,
+    "capture_bytes": 0
+  },
+  {
+    "test": "hardware-windows-warm-20261112T021340Z",
+    "revision": "8d5ce41b6c1c25a76f9ca0318b2b505899e0ea3a",
+    "returncode": 1,
+    "elapsed_seconds": 1.072,
+    "capture_bytes": 0,
+    "windows_preview_audio_confirmed_by_user": true,
+    "udev_permissions_after_reattach": true
+  },
+  {
+    "test": "hardware-etw-wsl-20261112T061112Z",
+    "returncode": 1,
+    "elapsed_seconds": 0.025,
+    "capture_bytes": 0,
+    "observed_error": "LIBUSB_ERROR_PIPE on first B8 command"
+  },
+  {
+    "test": "hardware-graceful-handoff-20261112T060507Z",
+    "revision": "1ce119636f264c0f978775ae9d2c7182e12a3181",
+    "returncode": 1,
+    "elapsed_seconds": 0.042,
+    "capture_bytes": 0,
+    "observed_error": "LIBUSB_ERROR_PIPE on first B8 command"
+  },
+  {
+    "test": "native-broader-etw-20261112T063916Z",
+    "duration_seconds": 20,
+    "selected_transfer_events": 20010,
+    "control_submissions": 9751,
+    "successful_control_completions": 9751,
+    "bulk_interrupt_submissions": 274,
+    "bulk_interrupt_completions": 234,
+    "control_payload_data_events": 0,
+    "payload_fields": 0,
+    "usbpcap_installed": false,
+    "windows_restarted": false,
+    "hardware_recording_verified": false
+  },
+  {
+    "test": "usbpcap-install-20261116",
+    "version": "1.5.4.0",
+    "installer_exit_code": 0,
+    "installer_signature": "Valid",
+    "installed_driver_signature": "Valid",
+    "installed_driver_state": "Stopped",
+    "capture_interface_count_before_restart": 0,
+    "interface_enumeration_exit_code": 0,
+    "windows_restarted": false,
+    "forced_binding_attempted": false,
+    "usbipd_filter_conflict_observed": true,
+    "usbpcap_payload_capture_performed": false
+  },
+  {
+    "test": "usbpcap-service-only-no-reboot-20261116",
+    "driver_state": "Running",
+    "interface_enumeration_exit_code": 0,
+    "capture_interface_count": 0,
+    "windows_restarted": false,
+    "usb_hub_restarted": false,
+    "usb_controller_restarted": false,
+    "payload_capture_performed": false
+  },
+  {
+    "test": "usbpcap-targeted-root-hub-restart-20261116",
+    "restart_exit_code": 3010,
+    "windows_reported_reboot_required": true,
+    "driver_state": "Running",
+    "interface_enumeration_exit_code": 0,
+    "capture_interface_count": 0,
+    "card_present": true,
+    "card_pnp_status": "OK",
+    "windows_restart_initiated": false,
+    "parent_controller_restart_attempted": false,
+    "payload_capture_performed": false
+  }
+]

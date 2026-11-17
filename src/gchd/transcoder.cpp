@@ -593,7 +593,7 @@ void GCHD::transcoderOutputEnable(bool value)
 }
 
 using namespace Transcoder;
-void GCHD::transcoderFinalConfigure(InputSettings &inputSettings, TranscoderSettings &settings)
+void GCHD::transcoderFinalConfigure(InputSettings &inputSettings, TranscoderSettings &/*settings*/)
 {
 	transcoderWriteVideoAndAudioPids();
 	sparam( dma_sel_out, 1 );

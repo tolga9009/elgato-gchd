@@ -19,7 +19,7 @@ int PSI_TableHeader::calculateSize()
 	return 3; //size of PsiTableHeader
 }
 
-void PSI_TableHeader::pack( std::vector<uint8_t> &outputData, std::vector<uint8_t>::iterator &offset )
+void PSI_TableHeader::pack( std::vector<uint8_t> &/*outputData*/, std::vector<uint8_t>::iterator &offset )
 {
 	*offset++ = tableID_;
 
@@ -43,7 +43,7 @@ void PSI_TableHeader::pack( std::vector<uint8_t> &outputData, std::vector<uint8_
 	offset+=2;
 }
 
-void PSI_TableHeader::unpack(const std::vector<uint8_t> &data,
+void PSI_TableHeader::unpack(const std::vector<uint8_t> &/*data*/,
 			     std::vector<uint8_t>::const_iterator &offset,
 			     int size)
 {

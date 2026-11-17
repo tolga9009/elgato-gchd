@@ -9,6 +9,7 @@
 #define SOCKET_CLASS_H
 
 #include <array>
+#include <atomic>
 #include <string>
 
 #include <gchd.hpp>
@@ -17,7 +18,7 @@ class Socket {
 	public:
 		int enable(std::string ip, std::string port);
 		void disable();
-		void output(std::vector<unsigned char> *buffer);
+		void output(std::vector<unsigned char> *buffer, const std::atomic<bool> *cancel=nullptr);
 		Socket();
 		~Socket();
 

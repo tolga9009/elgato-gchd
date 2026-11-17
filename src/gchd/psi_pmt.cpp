@@ -77,7 +77,6 @@ void PMT_Mapping::unpack( const std::vector<uint8_t> &inputData,
 	if( size < 5) {
 		throw PSI_FormatException("Cannot unpack PMT_Mapping entry in less than 5 bytes.");
 	}
-	std::vector<uint8_t>::const_iterator endOfDataOffset=offset+size;
 
 	const uint8_t *dataPointer=&(*offset);
 	streamType_ = *dataPointer++;

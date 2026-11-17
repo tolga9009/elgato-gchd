@@ -5,107 +5,47 @@
  * MIT License. For more information, see LICENSE file.
  */
 
+#include "socket.hpp"
+#include "output_io.hpp"
 #include <iostream>
-
-#include <fcntl.h>
+#include <thread>
+#include <chrono>
+#include <memory>
+#include <cstring>
+#include <cerrno>
 #include <netdb.h>
+#include <fcntl.h>
 #include <unistd.h>
-
 #include <sys/socket.h>
-#include <sys/stat.h>
-
-#include <socket.hpp>
-
 int Socket::enable(std::string ip, std::string port) {
-	struct addrinfo hints = {};
-	struct addrinfo *result, *entry;
-
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_flags = AI_PASSIVE;
-
-	// if <ip> is unconfigured, set it to nullptr, effectively IP 0.0.0.0
-	const char *ipAddress;
-
-	if (ip.empty()) {
-		ipAddress = nullptr;
-	} else {
-		ipAddress = ip.c_str();
-	}
-
-	auto ret = getaddrinfo(ipAddress, port.c_str(), &hints, &result);
-
-	//Removal of this message makes socket error cryptic sometimes.
-	std::cerr << "SOCKET: Binding to address ";
-	if( ipAddress != NULL ) {
-		std::cerr << "[" <<ipAddress << "]";
-	}
-	std::cerr << ":" <<port <<std::endl;
-
-	if (ret) {
-		std::cerr << "Socket error: " << gai_strerror(ret) << std::endl;
-		return 1;
-	}
-
-	for (entry = result; entry != nullptr; entry = entry->ai_next) {
-		fd_ = socket(entry->ai_family, entry->ai_socktype, entry->ai_protocol);
-
-		if (fd_ < 0) {
-			// error, try next iteration
-			continue;
-		}
-
-		if (connect(fd_, entry->ai_addr, entry->ai_addrlen) != -1) {
-			// success
-			break;
-		}
-
-		close(fd_);
-		fd_ = -1;
-
-		return 1;
-	}
-
-	freeaddrinfo(result);
-
-	auto flags = fcntl(fd_, F_GETFL);
-
-	if (flags == -1) {
-		std::cerr << "Socket error: fcntl get flags." << std::endl;
-
-		return 1;
-	}
-
-	flags |= O_NONBLOCK;
-
-	if (fcntl(fd_, F_SETFL, flags) == -1) {
-		std::cerr << "Socket error: fcntl set flags." << std::endl;
-
-		return 1;
-	}
-
-	return 0;
+    addrinfo hints{}; hints.ai_family=AF_UNSPEC; hints.ai_socktype=SOCK_DGRAM;
+    addrinfo *raw=nullptr;
+    const int status=getaddrinfo(ip.empty() ? "127.0.0.1" : ip.c_str(),port.c_str(),&hints,&raw);
+    if (status) { std::cerr << "Socket address: " << gai_strerror(status) << '\n'; return 1; }
+    std::unique_ptr<addrinfo,decltype(&freeaddrinfo)> addresses(raw,freeaddrinfo);
+    for (addrinfo *entry=raw; entry; entry=entry->ai_next) {
+        int candidate=::socket(entry->ai_family,entry->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,entry->ai_protocol);
+        if (candidate<0) continue;
+        if (connect(candidate,entry->ai_addr,entry->ai_addrlen)==0) { fd_=candidate; break; }
+        close(candidate);
+    }
+    if (fd_<0) { std::cerr << "Socket connect: " << std::strerror(errno) << '\n'; return 1; }
+    std::cerr << "SOCKET: Connecting to " << (ip.empty() ? "127.0.0.1" : ip) << ':' << port << '\n'; return 0;
 }
-
-void Socket::disable() {
-	if (fd_ != -1) {
-		close(fd_);
-		fd_ = -1;
-	}
+void Socket::disable() { if (fd_>=0) { close(fd_); fd_=-1; } }
+void Socket::output(std::vector<unsigned char> *buffer, const std::atomic<bool> *cancel) {
+    if (fd_<0) return;
+    // Each upstream USB buffer remains one UDP datagram. Never split a short datagram.
+    for (;;) {
+        if (cancel && cancel->load()) throw output_cancelled();
+        const ssize_t sent=send(fd_,buffer->data(),buffer->size(),MSG_NOSIGNAL);
+        if (sent==static_cast<ssize_t>(buffer->size())) return;
+        if (sent<0 && errno==EINTR) continue;
+        if (sent<0 && (errno==EAGAIN || errno==EWOULDBLOCK)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); continue;
+        }
+        throw std::runtime_error(std::string("UDP output failed: ")+(sent<0 ? std::strerror(errno) : "short datagram"));
+    }
 }
-
-void Socket::output(std::vector<unsigned char> *buffer) {
-	if (fd_ == -1) {
-		return;
-	}
-
-	write(fd_, buffer->data(), buffer->size());
-}
-
-Socket::Socket() {
-	fd_ = -1;
-}
-
-Socket::~Socket() {
-	disable();
-}
+Socket::Socket(): fd_(-1) {}
+Socket::~Socket() { disable(); }

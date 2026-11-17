@@ -40,8 +40,8 @@ void PSI_Descriptor::pack(std::vector<uint8_t> &outputData,
 }
 
 //override this
-void PSI_Descriptor::packInternal(std::vector<uint8_t> &outputData,
-				  std::vector<uint8_t>::iterator &offset)
+void PSI_Descriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
+				  std::vector<uint8_t>::iterator &/*offset*/)
 {
 }
 
@@ -61,9 +61,9 @@ void PSI_Descriptor::unpack(const std::vector<uint8_t> &inputData,
 };
 
 //Override this.
-void PSI_Descriptor::unpackInternal(const std::vector<uint8_t> &inputData,
-				    std::vector<uint8_t>::const_iterator &offset,
-				    int size)
+void PSI_Descriptor::unpackInternal(const std::vector<uint8_t> &/*inputData*/,
+				    std::vector<uint8_t>::const_iterator &/*offset*/,
+				    int /*size*/)
 {
 	//Do nothing by default.
 }
@@ -106,7 +106,7 @@ int PSI_UnknownDescriptor::calculateSizeInternal()
 	return this->data.size();
 }
 
-void PSI_UnknownDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
+void PSI_UnknownDescriptor::unpackInternal(const std::vector<uint8_t> &/*inputData*/,
 					   std::vector<uint8_t>::const_iterator &offset,
 					   int size)
 {
@@ -119,14 +119,14 @@ int PSI_ProgramDescriptor::calculateSizeInternal()
 	return data_.size();
 }
 
-void PSI_ProgramDescriptor::packInternal(std::vector<uint8_t> &outputData,
+void PSI_ProgramDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
 					 std::vector<uint8_t>::iterator &offset)
 {
 	std::copy_n(data_.begin(), data_.size(), offset);
 	offset+=data_.size();
 }
 
-void PSI_ProgramDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
+void PSI_ProgramDescriptor::unpackInternal(const std::vector<uint8_t> &/*inputData*/,
 					   std::vector<uint8_t>::const_iterator &offset,
 					   int size )
 {
@@ -166,7 +166,7 @@ int PSI_AVC_VideoDescriptor::calculateSizeInternal()
 	return 4; //4 bytes to code everything.
 }
 
-void PSI_AVC_VideoDescriptor::packInternal(std::vector<uint8_t> &outputData,
+void PSI_AVC_VideoDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
 					   std::vector<uint8_t>::iterator &offset)
 {
 	*offset++=profile_idc_;
@@ -192,7 +192,7 @@ void PSI_AVC_VideoDescriptor::packInternal(std::vector<uint8_t> &outputData,
 	*offset++=miscellaneousFlags;
 }
 
-void PSI_AVC_VideoDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
+void PSI_AVC_VideoDescriptor::unpackInternal(const std::vector<uint8_t> &/*inputData*/,
 					     std::vector<uint8_t>::const_iterator &offset,
 					     int size )
 {
@@ -253,7 +253,7 @@ int PSI_AVC_TimingAndHRDDescriptor::calculateSizeInternal()
 }
 
 void PSI_AVC_TimingAndHRDDescriptor::packInternal
-( std::vector<uint8_t> &outputData,
+( std::vector<uint8_t> &/*outputData*/,
   std::vector<uint8_t>::iterator &offset )
 {
 	uint8_t flags = (hrd_management_valid_flag_ << 7) |
@@ -283,7 +283,7 @@ void PSI_AVC_TimingAndHRDDescriptor::packInternal
 }
 
 void PSI_AVC_TimingAndHRDDescriptor::unpackInternal
-( const std::vector<uint8_t> &inputData,
+( const std::vector<uint8_t> &/*inputData*/,
   std::vector<uint8_t>::const_iterator &offset,
   int size )
 {
@@ -343,7 +343,7 @@ int PSI_HDMV_CopyControlDescriptor::calculateSizeInternal()
 	return 4;
 }
 
-void PSI_HDMV_CopyControlDescriptor::packInternal(std::vector<uint8_t> &outputData,
+void PSI_HDMV_CopyControlDescriptor::packInternal(std::vector<uint8_t> &/*outputData*/,
 						  std::vector<uint8_t>::iterator &offset)
 {
 	*offset++=0x0f;
@@ -352,7 +352,7 @@ void PSI_HDMV_CopyControlDescriptor::packInternal(std::vector<uint8_t> &outputDa
 	*offset++=0xfc;
 }
 
-void PSI_HDMV_CopyControlDescriptor::unpackInternal(const std::vector<uint8_t> &inputData,
+void PSI_HDMV_CopyControlDescriptor::unpackInternal(const std::vector<uint8_t> &/*inputData*/,
 						    std::vector<uint8_t>::const_iterator &offset,
 						    int size )
 {

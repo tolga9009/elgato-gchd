@@ -6,6 +6,8 @@
  */
 
 #include <cstdlib>
+#include <climits>
+#include <cerrno>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -30,8 +32,8 @@ void help(std::string name, bool full) {
 		  << "      For `disk` and `fifo` output formats <destination> is a filename." << std::endl
 		  << "      For the `socket` output format, <destination> is [<ip address>][:<port>]." << std::endl
 		  << std::endl
-		  << "      The default for `fifo` is `/tmp/gchd.ts`." << std::endl
-		  << "      The default for `socket` is `0.0.0.0:" << PORT_NUM << "`" << std::endl
+		  << "      The default for `fifo` is `$XDG_RUNTIME_DIR/gchd.ts` (fallback: private `/tmp/gchd-UID/gchd.ts`)." << std::endl
+		  << "      The default for `socket` is `127.0.0.1:" << PORT_NUM << "`" << std::endl
 		  << "      There is no default for `disk`, <destination> is required." << std::endl
 		  << std::endl
 		  << "Input Options:" << std::endl
@@ -70,7 +72,7 @@ void help(std::string name, bool full) {
 	std::cerr
 			<< "Output Options:" << std::endl
 			<< "   -of, -output-format <format>" << std::endl
-			<< "      Format is `disk`, `socket, or `fifo`. `disk` is default if a " << std::endl
+			<< "      Format is `disk`, `socket`, `fifo`, or `stdout`. `disk` is default if a " << std::endl
 			<< "      <destination> file is specified, otherwise the default is `fifo`" << std::endl
 			<< std::endl
 			<< "   -or, -output-resolution <resolution>" << std::endl
@@ -90,10 +92,6 @@ void help(std::string name, bool full) {
 				<< "      <kbit-rate> is a audio bit rate number in kbps. It can be 64, 96, 112," << std::endl
 				<< "      128, 160, 192, 224, 256, 320, or 384.  The default is 320." << std::endl
 				<< std::endl
-				<< "   -fr, -frame-rate <frame-rate>" << std::endl
-				<< "      Specifies output frame rate, 0.0 (default) means match input rate" << std::endl
-				<< "      (to the limits of the device, IE 1080p60 input will be 1080p30 output)." << std::endl
-				<< std::endl
 				<< "   -hp, -h264-profile <profile>" << std::endl
 				<< "      h.264 profile. Set to `baseline`, `main`, or `high` (default) " << std::endl
 				<< std::endl
@@ -103,7 +101,13 @@ void help(std::string name, bool full) {
 				<< std::endl;
 	}
 	std::cerr
-			<< "General Options:" << std::endl
+			<< "   -o, --output <destination> (or positional destination)" << std::endl
+            << "      Use '-' for stdout, e.g. gchd - | ffmpeg -i - -c copy out.mp4" << std::endl
+            << "   --duration <time>     Stop after 90s, 10m, 1h, or seconds; starts after init" << std::endl
+            << "   --firmware-dir <dir>  Override GCHD_FIRMWARE_DIR and system search paths" << std::endl
+            << "   --reset               Reset USB device and exit; WSL may need reattach" << std::endl
+            << "      Statistics go to stderr every five seconds and at shutdown." << std::endl
+            << "General Options:" << std::endl
 			<< "   -h, -?, -help" << std::endl
 			<< "      Displays commonly used switches" << std::endl
 			<< std::endl
@@ -115,14 +119,11 @@ void help(std::string name, bool full) {
 		std::cerr
 				<< "   -v, -version" << std::endl
 				<< "      Displays program version" << std::endl
-				<< std::endl
-				<< "   -P, -pid <pid-path>" << std::endl
-				<< "      Set path to pid file (default is: /var/run/gchd.pid)" << std::endl
 				<< std::endl;
 	}
 }
 
-void option_error(std::string name, std::string option, std::string error) {
+void option_error(std::string /*name*/, std::string option, std::string error) {
 	std::cerr << "Invalid option `" << option << "':" << std::endl;
 	std::cerr << error << std::endl;
 }
@@ -139,7 +140,7 @@ void parameter_unknown(std::string name, std::string option, const std::vector<s
 	std::cerr << "Try '" << name << " -h' for more information." << std::endl;
 }
 
-void parameter_error(std::string name, std::string option, std::string error) {
+void parameter_error(std::string /*name*/, std::string option, std::string error) {
 	std::cerr << "Invalid argument '" << optarg << "' for '" << option << "':" << std::endl;
 	std::cerr << error << std::endl;
 }
@@ -148,29 +149,6 @@ void version(std::string name, std::string version) {
 	std::cerr << name << " " << version << std::endl;
 }
 
-bool parseNumericResolution( unsigned long &x, unsigned long &y, const std::string input ) {
-	std::vector<std::string> splitValues=Utility::split(input,'x');
-	std::vector<unsigned long> numbers=std::vector<unsigned long>();
-
-	for( auto it = splitValues.begin(); it != splitValues.end(); ++it) {
-		char *endPtr;
-		std::string copy=*it;
-		copy=Utility::trim(copy); //Modifies copy
-
-		long value=strtoul( copy.c_str(), &endPtr, 10);
-
-		if( *endPtr != 0 ) {
-			return false;
-		}
-		numbers.push_back(value);
-	}
-	if( numbers.size() != 2 ) {
-		return false;
-	}
-	x=numbers[0];
-	y=numbers[1];
-	return true;
-}
 
 enum class Args:int {
 	INPUT_SOURCE=1,
@@ -197,11 +175,17 @@ enum class Args:int {
 	FULL_HELP,
 	VERSION,
 	PID_PATH,
+	RESET,
+	FIRMWARE_DIR,
+	DURATION,
 };
 
 int main(int argc, char *argv[]) {
 	// object for managing runtime information
 	Process process;
+	bool reset = false;
+	std::string firmwareDirectory;
+	double durationSeconds=0;
 
 	// set program name
 	process.setName(argv[0]);
@@ -217,7 +201,7 @@ int main(int argc, char *argv[]) {
 	std::string port = PORT_NUM;
 	int portSetIndex=0;
 
-	std::string output = "/tmp/gchd.ts";
+	std::string output;
 	int outputSetIndex=0;
 
 	bool destinationSet=false;
@@ -227,16 +211,16 @@ int main(int argc, char *argv[]) {
 	std::string pid = "/var/run/gchd.pid";
 
 	// output format, default is set to FIFO
-	enum class Format {
-		Disk,
-		FIFO,
-		Socket
-	} format = Format::FIFO;
+	using Format=StreamOutput;
+	Format format=Format::FIFO;
 
 	// handling command-line options
 	int opt;
 
 	struct option longOpts[]={
+	{"duration", required_argument, NULL, (int)Args::DURATION},
+	{"firmware-dir", required_argument, NULL, (int)Args::FIRMWARE_DIR},
+	{"reset", no_argument, NULL, (int)Args::RESET},
 	{"i", required_argument, NULL, (int)Args::INPUT_SOURCE},
 	{"input", required_argument, NULL, (int)Args::INPUT_SOURCE},
 	{"c", required_argument, NULL, (int)Args::COLOR_SPACE},
@@ -260,6 +244,7 @@ int main(int argc, char *argv[]) {
 	{"input-stretch", no_argument, NULL, (int)Args::INPUT_STRETCH},
 	{"in", no_argument, NULL, (int)Args::INPUT_NO_STRETCH},
 	{"no-stretch", no_argument, NULL, (int)Args::INPUT_NO_STRETCH},
+	{"input-no-stretch", no_argument, NULL, (int)Args::INPUT_NO_STRETCH},
 	{"no-input-stretch", no_argument, NULL, (int)Args::INPUT_NO_STRETCH},
 	{"f", required_argument, NULL, (int)Args::OUTPUT_FORMAT}, //use of 'f' is deprecated.
 	{"of", required_argument, NULL, (int)Args::OUTPUT_FORMAT},
@@ -327,6 +312,11 @@ int main(int argc, char *argv[]) {
 
 			Args arg=(Args)opt;
 			switch (arg) {
+				case Args::DURATION:
+                    if (!Utility::parseDuration(durationSeconds,optarg)) throw setting_error("Invalid duration; use positive seconds, 90s, 10m or 1h (up to one year)");
+                    break;
+                case Args::FIRMWARE_DIR: firmwareDirectory=optarg; break;
+				case Args::RESET: reset = true; break;
 				case Args::INPUT_SOURCE: {
 					if (std::string(optarg) == "composite") {
 						inputSettings.setSource(InputSource::Composite);
@@ -374,7 +364,7 @@ int main(int argc, char *argv[]) {
 						inputSettings.setResolution(Resolution::Unknown);
 					} else {
 						unsigned long x,y;
-						bool valid=parseNumericResolution( x, y, std::string(optarg) );
+						bool valid=Utility::parseNumericResolution( x, y, std::string(optarg) );
 						if( valid ) {
 							Resolution grabResolution;
 							try {
@@ -405,8 +395,9 @@ int main(int argc, char *argv[]) {
 				}
 				case Args::INPUT_REFRESH_RATE: {
 					char *end;
+					errno=0;
 					double value=strtod(optarg, &end);
-					if( *end != 0 ) {
+					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 						parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number.");
 						return EXIT_FAILURE;
 					}
@@ -430,14 +421,16 @@ int main(int argc, char *argv[]) {
 				}
 				case Args::OUTPUT_FORMAT: {
 					outputFormatSet=true;
-					if (std::string(optarg) == "disk") {
+					if (std::string(optarg) == "stdout") {
+						format = Format::Stdout;
+					} else if (std::string(optarg) == "disk") {
 						format = Format::Disk;
 					} else if (std::string(optarg) == "fifo") {
 						format = Format::FIFO;
 					} else if (std::string(optarg) == "socket") {
 						format = Format::Socket;
 					} else {
-						const std::vector<std::string> arguments = {"disk", "fifo", "socket"};
+						const std::vector<std::string> arguments = {"disk", "fifo", "socket", "stdout"};
 						parameter_unknown(process.getName(), argv[currentOptionIndex], arguments);
 						return EXIT_FAILURE;
 					}
@@ -476,8 +469,9 @@ int main(int argc, char *argv[]) {
 						transcoderSettings.setResolution(Resolution::Unknown);
 					} else {
 						unsigned long x,y;
-						bool valid=parseNumericResolution( x, y, std::string(optarg) );
+						bool valid=Utility::parseNumericResolution( x, y, std::string(optarg) );
 						if( valid ) {
+							if (x>1920 || y>1080) throw setting_error("Output resolution exceeds 1920x1080");
 							transcoderSettings.setResolution(x, y);
 						} else {
 							const std::vector<std::string> arguments = {"ntsc", "pal", "720", "1080", "auto"};
@@ -497,8 +491,9 @@ int main(int argc, char *argv[]) {
 					return EXIT_FAILURE;
 #if 0
 					char *end;
+					errno=0;
 					double value=strtod(optarg, &end);
-					if( *end != 0 ) {
+					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 						parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number.");
 						return EXIT_FAILURE;
 					}
@@ -525,9 +520,10 @@ int main(int argc, char *argv[]) {
 							std::string copy=*it;
 							copy=Utility::trim(copy); //Modifies copy
 
+							errno=0;
 							float value=strtof( copy.c_str(), &endPtr );
 
-							if( *endPtr != 0 ) {
+							if( *endPtr != 0 || errno==ERANGE || !std::isfinite(value) ) {
 								//Wasn't a valid number.
 								std::cerr << "Could not understand bit rate string: '" << optarg << "'" << std::endl;
 								return EXIT_FAILURE;
@@ -557,8 +553,9 @@ int main(int argc, char *argv[]) {
 				}
 				case Args::AUDIO_BIT_RATE: {
 					char *end;
+					errno=0;
 					float value=strtof(optarg, &end);
-					if( *end != 0 ) {
+					if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 						parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number.");
 						return EXIT_FAILURE;
 					}
@@ -568,6 +565,7 @@ int main(int argc, char *argv[]) {
 					}
 					try {
 						//Let the options sanity checker handle other restrictions.
+						if (value>384) throw setting_error("Audio bit rate exceeds 384 kbps");
 						transcoderSettings.setAudioBitRate( (unsigned)std::round(value) );
 					} catch ( setting_error & e) {
 						const std::vector<std::string> arguments =
@@ -597,8 +595,9 @@ int main(int argc, char *argv[]) {
 						transcoderSettings.setH264Level( 0.0 );
 					} else {
 						char *end;
-						float value=strtof(optarg, &end);
-						if( *end != 0 ) {
+						errno=0;
+					float value=strtof(optarg, &end);
+						if( end == optarg || *end != 0 || errno==ERANGE || !std::isfinite(value) || value > static_cast<double>(UINT_MAX) || value < 0 ) {
 							parameter_error(process.getName(), argv[currentOptionIndex], "Must be a number or `auto`.");
 							return EXIT_FAILURE;
 						}
@@ -675,6 +674,7 @@ int main(int argc, char *argv[]) {
 			format = Format::FIFO;
 		}
 	}
+	if (output == "-") format=Format::Stdout;
 	if (format == Format::Disk) {
 		if( !destinationSet ) {
 			std::cerr << "Must specify <destination> file when using `disk` output format." << std::endl;
@@ -707,18 +707,22 @@ int main(int argc, char *argv[]) {
 	//stack unwinding will destruct object, calling uninit.
 	try {
 		GCHD gchd(&process, inputSettings, transcoderSettings);
+		gchd.setFirmwareDirectory(firmwareDirectory);
+
+		if (reset) { gchd.resetDevice(); return EXIT_SUCCESS; }
 
 		if(gchd.checkDevice()) {
 			return EXIT_FAILURE;
 		}
 
 		// helper class for streaming audio and video from device
-		Streamer streamer(&gchd, &process);
+		Streamer streamer(&gchd, &process, format);
 
 		// enable output
 		int ret;
 
 		switch (format) {
+			case Format::Stdout: ret = streamer.disk.enableStdout(); break;
 			case Format::Disk: ret = streamer.disk.enable(output); break;
 			case Format::FIFO: ret = streamer.fifo.enable(output); break;
 			case Format::Socket: ret = streamer.socket.enable(ip, port); break;
@@ -735,7 +739,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// immediately start receive loop after device init
-		streamer.loop();
+		streamer.loop(durationSeconds);
 	} catch ( setting_error &error ) {
 		std::cerr << std::endl << error.what() << std::endl;
 		return EXIT_FAILURE;
